@@ -1,0 +1,209 @@
+/* ─── GLOBAL — Windows retro aesthetic ────────────────────── */
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  /* Scanline sutil */
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 3px
+  );
+}
+
+/* Scrollbar estilo retro */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg); border-left: 1px solid var(--color-border); }
+::-webkit-scrollbar-thumb { background: var(--color-red); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-red-dark); }
+
+::selection { background: var(--color-red); color: #fff; }
+:focus-visible { outline: 1px solid var(--color-red); outline-offset: 0; }
+
+/* Containers */
+.page-container    { max-width: var(--container-max);     margin: 0 auto; padding: 0 var(--space-8); }
+.content-container { max-width: var(--container-content); margin: 0 auto; padding: 0 var(--space-8); }
+
+/* Label */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* ── WINDOW COMPONENT ──────────────────────────────────────── */
+/* Reutilizable: envuelve cualquier sección en una "ventana"    */
+
+.win {
+  border: var(--win-border-w) solid var(--color-border-win);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-win);
+  position: relative;
+}
+
+/* Doble borde inner */
+.win::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px solid var(--color-border-win-in);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Titlebar */
+.win__bar {
+  height: var(--win-titlebar-h);
+  background: var(--color-titlebar-bg);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  gap: var(--space-3);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  user-select: none;
+}
+
+.win__bar-slash {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0;
+}
+
+.win__bar-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.win__bar-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: #fff;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.win__bar-sep {
+  color: rgba(255,255,255,0.35);
+  font-size: var(--text-2xs);
+  padding: 0 var(--space-2);
+}
+
+.win__bar-subtitle {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: rgba(255,255,255,0.7);
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+}
+
+/* Botones de ventana —□✕ */
+.win__bar-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.win__ctrl {
+  width: 16px; height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.25);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+  line-height: 1;
+}
+.win__ctrl:hover { background: rgba(255,255,255,0.2); }
+.win__ctrl--close:hover { background: rgba(0,0,0,0.3); }
+
+.win__slashes {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: rgba(255,255,255,0.35);
+  margin-left: var(--space-2);
+}
+
+/* Body de la ventana */
+.win__body {
+  flex: 1;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Statusbar (barra inferior de ventana) ── */
+.win__status {
+  height: 18px;
+  border-top: 1px solid var(--color-border-win-in);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  gap: var(--space-4);
+  background: var(--color-surface-2);
+  position: relative;
+  z-index: 2;
+}
+.win__status-item {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-text-tertiary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+.win__status-item--red { color: var(--color-red); }
+
+/* ── Animaciones ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: fadeUp var(--duration-slower) var(--ease-out-expo) forwards; }
+
+.stagger > * { opacity: 0; animation: fadeUp var(--duration-slower) var(--ease-out-expo) forwards; }
+.stagger > *:nth-child(1) { animation-delay:   0ms; }
+.stagger > *:nth-child(2) { animation-delay:  50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+.stagger > *:nth-child(7) { animation-delay: 300ms; }
+.stagger > *:nth-child(8) { animation-delay: 350ms; }
+.stagger > *:nth-child(9) { animation-delay: 400ms; }
+
+/* Grain */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  background-size: 128px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.3;
+}
+
+.red-line { display: block; width: 24px; height: 2px; background: var(--color-red); }

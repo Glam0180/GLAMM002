@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STUDIO_ÑÑÑ — CANICAS.3D</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+    }
+
+    :root {
+      --red: #FF0100;
+      --red-dark: #CC0000;
+      --red-dim: rgba(255, 1, 0, 0.55);
+      --red-faint: rgba(255, 1, 0, 0.18);
+      --red-ghost: rgba(255, 1, 0, 0.10);
+      --black: #000000;
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--black);
+      font-family: 'Space Mono', monospace;
+      cursor: none;
+      border: 1px solid var(--red);
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255, 1, 0, 0.55) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 128px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .2;
+      mix-blend-mode: overlay;
+    }
+
+    ::selection {
+      background: var(--black);
+      color: var(--red);
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--red);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--black);
+    }
+
+    /* ───────── MASTER BAR ───────── */
+    #master-bar {
+      position: fixed;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      height: 28px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    #master-bar .slz {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+    }
+
+    #master-bar .dot5 {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    #master-bar .mtitle {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--black);
+      text-transform: uppercase;
+    }
+
+    #master-bar .msep {
+      color: rgba(0, 0, 0, .3);
+      font-size: 9px;
+    }
+
+    #master-bar .msub {
+      font-size: 9px;
+      color: rgba(0, 0, 0, .55);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #master-bar .mright {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mctrl {
+      width: 20px;
+      height: 16px;
+      background: var(--black);
+      border: 1px solid rgba(255, 1, 0, .25);
+      color: var(--red);
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mctrl:hover {
+      background: var(--red-dark);
+    }
+
+    /* ───────── STAGE / FRAME ───────── */
+    #stage {
+      position: fixed;
+      top: 32px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    #frame {
+      --size: min(calc(100vw - 72px), calc(100vh - 72px), 1080px);
+      width: var(--size);
+      height: var(--size);
+      background: var(--black);
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      gap: 5px;
+      position: relative;
+    }
+
+    /* ───────── MARCO GANADOR (estilo tragamonedas) ─────────
+       Solo el trazo (hollow): el centro queda 100% transparente,
+       así se ve el png/juego completo debajo. Gira en degradado
+       y se detiene sola a los 3s. */
+    @property --wa {
+      syntax: '<angle>';
+      inherits: false;
+      initial-value: 0deg;
+    }
+
+    #winFrame {
+      position: absolute;
+      inset: 0;
+      padding: 10px;
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 40;
+      opacity: 0;
+      --wa: 0deg;
+      background: conic-gradient(from var(--wa), #F696F6, #FEEBFB, #F98F46, #FFA6F8, #F696F6);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      filter: drop-shadow(0 0 8px rgba(249, 143, 246, .55));
+      transition: opacity .45s ease;
+    }
+
+    #winFrame.active {
+      opacity: 1;
+      animation: winSpin .8s linear infinite;
+    }
+
+    @keyframes winSpin {
+      to { --wa: 360deg; }
+    }
+
+    /* ───────── COMPONENTE VENTANA ───────── */
+    .win {
+      background: var(--black);
+      border: 2px solid var(--red);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .win__bar {
+      height: 22px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .win__bar .slz {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+    }
+
+    .win__bar .slz.end {
+      margin-left: 4px;
+    }
+
+    .win__bar-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .win__bar-title {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--black);
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win__bar-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .win__ctrl {
+      width: 16px;
+      height: 13px;
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 7px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .win__ctrl:hover {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    .win__body {
+      flex: 1;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      overflow: hidden;
+      color: var(--red);
+    }
+
+    .win__body.scroll {
+      overflow-y: auto;
+    }
+
+    /* ───────── CANVAS AREA ───────── */
+    #canvas-area {
+      flex: 1;
+    }
+
+    #canvas-inner {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
+
+    #vp-fit {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    #bg-layer {
+      position: absolute;
+      inset: 0;
+      background: #07070e;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      z-index: 0;
+    }
+
+    #hitVideo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 46%;
+      max-width: 460px;
+      z-index: 65;
+      pointer-events: none;
+      opacity: 0;
+      object-fit: contain;
+    }
+
+    #hitVideo.playing {
+      opacity: 1;
+    }
+
+    #canvas-inner canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+      cursor: none;
+    }
+
+    /* ───────── SIDEBAR ───────── */
+    #sidebar {
+      width: clamp(180px, 22vw, 210px);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* ───────── CONTROLES INTERNOS ───────── */
+    .plabel {
+      font-size: 8px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .plabel .vbadge {
+      font-size: 8px;
+      color: var(--red);
+      min-width: 28px;
+      text-align: right;
+      letter-spacing: 0;
+    }
+
+    .sep {
+      height: 1px;
+      background: rgba(255, 1, 0, .18);
+      margin: 0 -12px;
+      flex-shrink: 0;
+    }
+
+    .cr {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(to right, var(--red) var(--val, 50%), rgba(255, 1, 0, .2) var(--val, 50%));
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 9px;
+      height: 9px;
+      background: var(--black);
+      border: 1px solid var(--black);
+      box-shadow: 0 0 0 1px var(--red);
+      cursor: pointer;
+    }
+
+    input[type=range]::-moz-range-thumb {
+      width: 9px;
+      height: 9px;
+      background: var(--black);
+      border: 1px solid var(--black);
+      box-shadow: 0 0 0 1px var(--red);
+      cursor: pointer;
+    }
+
+    input[type=range]::-moz-range-track {
+      height: 3px;
+      background: rgba(255, 1, 0, .2);
+    }
+
+    input[type=file] {
+      display: none;
+    }
+
+    .imgdrop {
+      border: 1px dashed rgba(255, 1, 0, .5);
+      padding: 8px 6px;
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-align: center;
+      font-size: 8px;
+      color: var(--red);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      transition: background .12s, border-color .12s;
+    }
+
+    .imgdrop:hover {
+      border-style: solid;
+      background: var(--red-ghost);
+    }
+
+    .gbtn {
+      background: transparent;
+      border: 1px solid rgba(255, 1, 0, .4);
+      color: var(--red);
+      font-size: 8px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      padding: 6px 6px;
+      width: 100%;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .gbtn:hover {
+      background: var(--red-ghost);
+      border-color: var(--black);
+    }
+
+    .gbtn:active {
+      background: var(--black);
+      color: var(--red);
+    }
+
+    .cdots {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .cd {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      border: 1px solid var(--black);
+      box-shadow: 0 0 0 1px rgba(255, 1, 0, .3);
+      flex-shrink: 0;
+    }
+
+    .cd:hover {
+      box-shadow: 0 0 0 1px var(--red);
+    }
+
+    .cd.on {
+      border: 1px solid var(--red);
+      box-shadow: 0 0 0 1px var(--red), 0 0 0 3px rgba(255, 1, 0, .18);
+    }
+
+    .cdnote {
+      font-size: 8px;
+      color: var(--red-dim);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .looks-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .lookslot {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+
+    .lookfile { display: none; }
+
+    .lookthumb {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      border: 1px dashed rgba(255, 1, 0, .5);
+      background-size: cover;
+      background-position: center;
+      cursor: pointer;
+      color: var(--red-dim);
+      font-size: 14px;
+      line-height: 1;
+      box-sizing: border-box;
+    }
+
+    .lookthumb::before {
+      content: '+';
+    }
+
+    .lookthumb.filled {
+      border: 1px solid var(--red);
+      border-style: solid;
+    }
+
+    .lookthumb.filled::before {
+      content: '';
+    }
+
+    .lookthumb:hover {
+      background-color: var(--red-ghost);
+    }
+
+    .lookclear {
+      display: none;
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 14px;
+      height: 14px;
+      line-height: 13px;
+      text-align: center;
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .statrow {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--red-dim);
+    }
+
+    .statrow b {
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    .hintrow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 8px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--red-dim);
+    }
+
+    .hkey {
+      display: inline-block;
+      padding: 2px 5px;
+      border: 1px solid var(--red-faint);
+      color: var(--red);
+      font-size: 8px;
+    }
+
+    /* ───────── OVERLAYS DEL CANVAS ───────── */
+    #dropzone {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, .92);
+      border: 2px dashed var(--red);
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    #dropzone.active {
+      display: flex;
+    }
+
+    #dropzone p {
+      font-size: 13px;
+      color: var(--red);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    #dropzone span {
+      font-size: 9px;
+      color: var(--red-dim);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #nomodel {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      pointer-events: none;
+      z-index: 5;
+      width: 80%;
+    }
+
+    #nomodel h2 {
+      font-size: 11px;
+      color: var(--red);
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      text-shadow: 0 0 6px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.9);
+    }
+
+    #nomodel p {
+      font-size: 8px;
+      color: rgba(255,80,80,.85);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      text-shadow: 0 0 6px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.9);
+    }
+
+    #msg {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--black);
+      border: 1px solid var(--red);
+      padding: 6px 14px;
+      font-size: 9px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--red);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .2s;
+      z-index: 60;
+      white-space: nowrap;
+    }
+
+    #msg.on {
+      opacity: 1;
+    }
+
+    /* ───────── MIRA DE GESTO (sigue el centro del pinch) ───────── */
+    #gestHud {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      z-index: 55;
+      pointer-events: none;
+      transition: opacity .1s;
+    }
+    #gestSvg { display: block; }
+
+    /* ───────── CURSOR ───────── */
+    #dot {
+      position: fixed;
+      width: 8px;
+      height: 8px;
+      background: var(--red);
+      border: 2px solid var(--black);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 10000;
+    }
+
+    #dot.drag {
+      width: 16px;
+      height: 16px;
+      background: var(--black);
+    }
+
+    #dot.hand {
+      background: var(--black);
+      border-color: var(--black);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Barra madre fija superior -->
+  <div id="master-bar">
+    <span class="slz">///</span>
+    <div class="dot5"></div>
+    <span class="mtitle">STUDIO_ÑÑÑ</span>
+    <span class="msep">—</span>
+    <span class="msub">CANICAS.3D</span>
+    <div class="mright">
+      <div class="mctrl">—</div>
+      <div class="mctrl">□</div>
+      <div class="mctrl">✕</div>
+    </div>
+    <span class="slz">///</span>
+  </div>
+
+  <!-- Stage centrado -->
+  <div id="stage">
+    <div id="frame">
+
+      <!-- Canvas herramienta (izquierda) -->
+      <div id="canvas-area" class="win">
+        <div class="win__bar">
+          <span class="slz">///</span>
+          <div class="win__bar-dot"></div>
+          <span class="win__bar-title">VIEWPORT.3D</span>
+          <div class="win__bar-controls">
+            <div class="win__ctrl">—</div>
+            <div class="win__ctrl">□</div>
+            <div class="win__ctrl">✕</div>
+          </div>
+          <span class="slz end">///</span>
+        </div>
+        <div id="canvas-inner">
+          <div id="vp-fit">
+          <div id="bg-layer"></div>
+          <video id="hitVideo" muted playsinline preload="auto"></video>
+          <div id="dropzone">
+            <p>&#x2715; SUELTA TU IMAGEN</p><span>SOLO IMÁGENES — SE USA COMO FONDO</span>
+          </div>
+          <div id="msg"></div>
+
+          <!-- Video oculto: solo alimenta a MediaPipe, no se muestra -->
+          <video id="gestVideo" playsinline muted style="display:none;"></video>
+
+          <!-- Mira flat: sigue el centro del pinch, ahí se dirige la canica -->
+          <div id="gestHud" style="display:none;">
+            <svg id="gestSvg" viewBox="-40 -40 80 80" width="80" height="80">
+              <circle cx="0" cy="0" r="22" fill="none" stroke="#FF0100" stroke-width="2"></circle>
+              <line x1="-34" y1="0" x2="-14" y2="0" stroke="#FF0100" stroke-width="2"></line>
+              <line x1="14" y1="0" x2="34" y2="0" stroke="#FF0100" stroke-width="2"></line>
+              <line x1="0" y1="-34" x2="0" y2="-14" stroke="#FF0100" stroke-width="2"></line>
+              <line x1="0" y1="14" x2="0" y2="34" stroke="#FF0100" stroke-width="2"></line>
+              <circle cx="0" cy="0" r="2.5" fill="#FF0100"></circle>
+            </svg>
+          </div>
+          </div>
+          <div id="winFrame"></div>
+        </div>
+      </div>
+
+      <!-- Sidebar propiedades (derecha) -->
+      <div id="sidebar">
+
+        <!-- Escenario -->
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">ESCENARIO</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">—</div>
+              <div class="win__ctrl">✕</div>
+            </div>
+            <span class="slz end">///</span>
+          </div>
+          <div class="win__body">
+            <input type="file" id="bgf" accept="image/*">
+            <label for="bgf" class="imgdrop">// CARGAR FONDO</label>
+            <button class="gbtn" id="qbg">QUITAR FONDO</button>
+            <div class="sep"></div>
+            <div class="cr">
+              <div class="plabel">Radio círculo <span class="vbadge" id="radv">4.2</span></div>
+              <input type="range" id="radr" min="1.5" max="6" step="0.1" value="4.2">
+            </div>
+            <div class="cr">
+              <div class="plabel">Cant. canicas <span class="vbadge" id="cntv">12</span></div>
+              <input type="range" id="cntr" min="4" max="30" step="1" value="12">
+            </div>
+            <div class="sep"></div>
+            <button class="gbtn" id="rrb">REINICIAR RONDA</button>
+            <div class="sep"></div>
+
+            <div class="plabel">Cámara (ajuste fino)</div>
+            <div class="cr">
+              <div class="plabel">FOV <span class="vbadge" id="cfovv">53</span></div>
+              <input type="range" id="cfovr" min="30" max="85" step="1" value="53">
+            </div>
+            <div class="cr">
+              <div class="plabel">Altura cámara <span class="vbadge" id="camyv">1.6</span></div>
+              <input type="range" id="camyr" min="1" max="14" step="0.1" value="1.6">
+            </div>
+            <div class="cr">
+              <div class="plabel">Distancia cámara <span class="vbadge" id="camzv">13.2</span></div>
+              <input type="range" id="camzr" min="3" max="22" step="0.1" value="13.2">
+            </div>
+            <div class="cr">
+              <div class="plabel">Altura objetivo <span class="vbadge" id="tgtyv">2.60</span></div>
+              <input type="range" id="tgtyr" min="-2" max="4" step="0.05" value="2.6">
+            </div>
+            <div class="cdnote">Ajusta esto mientras ves el fondo cargado hasta que el círculo/POV calcen con la imagen</div>
+          </div>
+        </div>
+
+        <!-- Propiedades (flex:1, scroll interno) -->
+        <div class="win" style="flex:1;min-height:150px;">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">PROPIEDADES</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">—</div>
+              <div class="win__ctrl">□</div>
+            </div>
+            <span class="slz end">///</span>
+          </div>
+          <div class="win__body scroll">
+
+            <div>
+              <div class="plabel">Canica</div>
+            </div>
+
+            <div class="cr">
+              <div class="plabel">Tamaño <span class="vbadge" id="sv">0.17</span></div>
+              <input type="range" id="szr" min="0.08" max="0.32" step="0.01" value="0.17">
+            </div>
+            <div class="cr">
+              <div class="plabel">Velocidad <span class="vbadge" id="spv">38</span></div>
+              <input type="range" id="spr" min="4" max="60" step="1" value="38">
+            </div>
+            <div class="cr">
+              <div class="plabel">Rebote <span class="vbadge" id="bv">0.98</span></div>
+              <input type="range" id="brt" min="0.1" max="0.98" step="0.02" value="0.98">
+            </div>
+
+            <div class="plabel">Color</div>
+            <div class="cdots">
+              <div class="cd on" style="background:#FF3600"></div>
+              <div class="cd" style="background:#FA43FF"></div>
+              <div class="cd" style="background:#FFFF00"></div>
+              <div class="cd" style="background:#00CE45"></div>
+            </div>
+            <div class="cdnote">Aleatorio en cada disparo</div>
+
+            <div class="sep"></div>
+
+            <div class="plabel">Look de canica (PNG)</div>
+            <div class="looks-row">
+              <div class="lookslot">
+                <input type="file" id="lookFile0" class="lookfile" accept="image/png">
+                <label for="lookFile0" class="lookthumb" id="lookThumb0"></label>
+                <span class="lookclear" id="lookClear0">✕</span>
+              </div>
+              <div class="lookslot">
+                <input type="file" id="lookFile1" class="lookfile" accept="image/png">
+                <label for="lookFile1" class="lookthumb" id="lookThumb1"></label>
+                <span class="lookclear" id="lookClear1">✕</span>
+              </div>
+              <div class="lookslot">
+                <input type="file" id="lookFile2" class="lookfile" accept="image/png">
+                <label for="lookFile2" class="lookthumb" id="lookThumb2"></label>
+                <span class="lookclear" id="lookClear2">✕</span>
+              </div>
+              <div class="lookslot">
+                <input type="file" id="lookFile3" class="lookfile" accept="image/png">
+                <label for="lookFile3" class="lookthumb" id="lookThumb3"></label>
+                <span class="lookclear" id="lookClear3">✕</span>
+              </div>
+            </div>
+            <div class="cdnote">Sube 1 a 4 PNG — si hay alguno cargado, se usan esos looks en vez del color</div>
+
+            <div class="sep"></div>
+
+            <div class="plabel">Gravedad</div>
+            <div class="cr">
+              <div class="plabel">Fuerza <span class="vbadge" id="gv">-60</span></div>
+              <input type="range" id="gr" min="-60" max="0" step="1" value="-60">
+            </div>
+
+            <div class="sep"></div>
+
+            <div class="plabel">Control por gesto</div>
+            <button class="gbtn" id="gestb">🖐 ACTIVAR CÁMARA (MANO)</button>
+            <div class="cdnote" id="gestst">Apunta y cierra el pinch (pulgar+índice) para disparar</div>
+
+            <div class="sep"></div>
+
+            <button class="gbtn" id="clrb">LIMPIAR MIS CANICAS</button>
+          </div>
+        </div>
+
+        <!-- Info / stats -->
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">INFO</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">✕</div>
+            </div>
+            <span class="slz end">///</span>
+          </div>
+          <div class="win__body" style="gap:7px;">
+            <div class="statrow"><span>Disparos</span><b id="sc">0</b></div>
+            <div class="statrow"><span>Fuera</span><b id="hc">0</b>/<span id="tc">12</span></div>
+            <div class="sep"></div>
+            <div class="hintrow"><span class="hkey">Click</span><span>Disparar</span></div>
+            <div class="hintrow"><span class="hkey">Drag</span><span>Rotar cam.</span></div>
+            <div class="hintrow"><span class="hkey">Scroll</span><span>Zoom</span></div>
+            <div class="hintrow"><span class="hkey">R</span><span>Limpiar mías</span></div>
+            <div class="hintrow"><span class="hkey">Pinch</span><span>Disparo por gesto</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Cursor personalizado -->
+  <div id="dot"></div>
+
+  <!--
+    NOTA DE COMPATIBILIDAD:
+    Se usan los builds CLÁSICOS (no ES modules) de three.js r128, igual que en la
+    versión original — así el canvas funciona tanto si el HTML se abre directo
+    (file://) como servido por http(s).
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    //  CURSOR PERSONALIZADO
+    // ═══════════════════════════════════════════════════════════
+    const dot = document.getElementById('dot');
+    document.addEventListener('mousemove', e => { dot.style.left = e.clientX + 'px'; dot.style.top = e.clientY + 'px'; });
+    document.addEventListener('mousedown', e => { if (e.target.closest('#canvas-inner')) dot.classList.add('drag'); });
+    document.addEventListener('mouseup', () => dot.classList.remove('drag'));
+    document.querySelectorAll('label,.gbtn,.cd,.win__ctrl,.mctrl,input[type=range]').forEach(el => {
+      el.addEventListener('mouseenter', () => dot.classList.add('hand'));
+      el.addEventListener('mouseleave', () => dot.classList.remove('hand'));
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    //  FILL DE SLIDERS (--val)
+    // ═══════════════════════════════════════════════════════════
+    function updateSliderFill(el) {
+      const pct = ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1) + '%';
+      el.style.setProperty('--val', pct);
+    }
+    function initSliderFills() {
+      document.querySelectorAll('input[type=range]').forEach(el => {
+        updateSliderFill(el);
+        el.addEventListener('input', () => updateSliderFill(el));
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  MOTOR DE FÍSICA PROPIO (sin dependencias externas)
+    //  Colisiones esfera-esfera + esfera-suelo + muro circular de arena
+    // ═══════════════════════════════════════════════════════════
+    const IMPACT_FORCE = 1.85; // multiplicador de fuerza en choques (arcade)
+
+    class Vec3 {
+      constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z }
+      clone() { return new Vec3(this.x, this.y, this.z) }
+      len() { return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z) }
+    }
+
+    class Sphere {
+      constructor(pos, r, restitution = 0.6, friction = 0.12) {
+        this.pos = pos.clone();
+        this.vel = new Vec3();
+        this.r = r;
+        this.restitution = restitution;
+        this.friction = friction;
+        this.sleeping = false;
+        this.sleepTimer = 0;
+      }
+    }
+
+    class Physics {
+      constructor() {
+        this.gravity = new Vec3(0, -60, 0);
+        this.spheres = [];
+        this.floorY = 0;
+        this.damping = 0.999;
+        this.arenaR = 9;
+      }
+
+      addSphere(s) { this.spheres.push(s); }
+      removeSphere(s) { this.spheres = this.spheres.filter(x => x !== s); }
+
+      step(dt) {
+        const SUB = 5;
+        const sdt = dt / SUB;
+        for (let sub = 0; sub < SUB; sub++) {
+          for (const s of this.spheres) {
+            if (s.sleeping) continue;
+            s.vel.x += this.gravity.x * sdt; s.vel.y += this.gravity.y * sdt; s.vel.z += this.gravity.z * sdt;
+            s.vel.x *= this.damping; s.vel.y *= this.damping; s.vel.z *= this.damping;
+            s.pos.x += s.vel.x * sdt; s.pos.y += s.vel.y * sdt; s.pos.z += s.vel.z * sdt;
+
+            // suelo
+            if (s.pos.y - s.r < this.floorY) {
+              s.pos.y = this.floorY + s.r;
+              s.vel.y *= -s.restitution;
+              s.vel.x *= (1 - s.friction);
+              s.vel.z *= (1 - s.friction);
+            }
+
+            // muro circular de la arena (invisible, contiene el juego)
+            const dx = s.pos.x, dz = s.pos.z;
+            const d = Math.sqrt(dx * dx + dz * dz);
+            const maxD = this.arenaR - s.r;
+            if (d > maxD && d > 0.0001) {
+              const nx = dx / d, nz = dz / d;
+              s.pos.x = nx * maxD; s.pos.z = nz * maxD;
+              const vn = s.vel.x * nx + s.vel.z * nz;
+              if (vn > 0) { s.vel.x -= (1 + s.restitution) * vn * nx; s.vel.z -= (1 + s.restitution) * vn * nz; }
+            }
+
+            const speed = s.vel.len();
+            if (speed < 0.02) {
+              s.sleepTimer += sdt;
+              if (s.sleepTimer > 1.5) s.sleeping = true;
+            } else { s.sleepTimer = 0; s.sleeping = false; }
+          }
+
+          for (let i = 0; i < this.spheres.length; i++) {
+            for (let j = i + 1; j < this.spheres.length; j++) {
+              this._sphereSphere(this.spheres[i], this.spheres[j]);
+            }
+          }
+        }
+      }
+
+      _sphereSphere(a, b) {
+        const dx = b.pos.x - a.pos.x, dy = b.pos.y - a.pos.y, dz = b.pos.z - a.pos.z;
+        const dist2 = dx * dx + dy * dy + dz * dz;
+        const minD = a.r + b.r;
+        if (dist2 >= minD * minD) return;
+
+        // primer impacto del disparo del usuario contra una canica del
+        // círculo (no cuenta si ambas son del mismo tipo: disparo-vs-disparo
+        // o círculo-vs-círculo, y solo se dispara una vez por cada tiro)
+        if (a.isShotBall && !a.hasHitTarget && !b.isShotBall) { a.hasHitTarget = true; this.onFirstHit && this.onFirstHit(); }
+        else if (b.isShotBall && !b.hasHitTarget && !a.isShotBall) { b.hasHitTarget = true; this.onFirstHit && this.onFirstHit(); }
+
+        const dist = Math.sqrt(dist2) || 0.0001;
+        const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+        const pen = (minD - dist) * 0.5;
+        a.pos.x -= nx * pen; a.pos.y -= ny * pen; a.pos.z -= nz * pen;
+        b.pos.x += nx * pen; b.pos.y += ny * pen; b.pos.z += nz * pen;
+        const dvx = b.vel.x - a.vel.x, dvy = b.vel.y - a.vel.y, dvz = b.vel.z - a.vel.z;
+        const dvn = dvx * nx + dvy * ny + dvz * nz;
+        if (dvn > 0) return;
+        const rest = (a.restitution + b.restitution) * 0.5;
+        const imp = (1 + rest) * dvn * 0.5 * IMPACT_FORCE;
+        a.vel.x += imp * nx; a.vel.y += imp * ny; a.vel.z += imp * nz;
+        b.vel.x -= imp * nx; b.vel.y -= imp * ny; b.vel.z -= imp * nz;
+        a.sleeping = false; b.sleeping = false;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ESTADO
+    // ═══════════════════════════════════════════════════════════
+    let scene, camera, renderer, controls, clock, envTex, floorMesh;
+    const FLOOR_OPACITY_DEFAULT = 0.28;
+    let camFov = 53, camY = 1.6, camZ = 13.2, tgtY = 2.60;
+    let physics = new Physics();
+    physics.onFirstHit = () => { triggerWinFrame(); triggerHitVideo(); };
+    let marbles = [];        // {sphere, group, isTarget, out}
+    let ringMesh = null;
+    let shots = 0, ejected = 0, totalTargets = 0;
+    let orbColor = '#44aaff', orbColor2 = '#eaf6ff', orbSize = 0.17, orbSpeed = 38, orbBounce = 0.98;
+    let ringRadius = 4.2, targetCount = 12;
+    let nextLook = null, previewSprite = null, previewShadow = null;
+    const PREVIEW_SCALE = 0.55; // la canica "en recámara" se ve más chica que su tamaño real
+    // Punto de disparo: se calcula proyectando un rayo desde un punto FIJO de
+    // la pantalla (abajo-centro, como una mira/cañón en primera persona) y
+    // cruzándolo con el plano del piso. Esto es mucho más robusto que el
+    // offset local a la cámara de antes: siempre cae dentro de la pantalla
+    // (porque el NDC usado está garantizado en rango) y siempre queda
+    // exactamente al nivel del piso, sin importar el ángulo/zoom de cámara.
+    const launchRaycaster = new THREE.Raycaster();
+    const LAUNCH_NDC = { x: 0, y: -0.82 };
+    function getLaunchPoint() {
+      launchRaycaster.setFromCamera(LAUNCH_NDC, camera);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -orbSize); // plano y = orbSize
+      const p = new THREE.Vector3();
+      const hit = launchRaycaster.ray.intersectPlane(plane, p);
+      if (!hit) {
+        // si la cámara mirara hacia arriba (no debería pasar, está fija) usamos un punto de respaldo
+        p.copy(launchRaycaster.ray.origin).addScaledVector(launchRaycaster.ray.direction, 5);
+        p.y = orbSize;
+      }
+      return p;
+    }
+    let msgTimer;
+    const MAX_SHOTS = 60;
+    const MIN_LOFT = 0.16; // componente vertical mínima del tiro (~9°) para que no frene al instante
+    const PALETTE = ['#FF3600', '#FA43FF', '#FFFF00', '#00CE45'];
+    let _colorBag = [];
+    function randColor() {
+      if (_colorBag.length === 0) {
+        _colorBag = [...PALETTE];
+        // barajar (Fisher-Yates) para que el orden sea aleatorio pero
+        // los 4 colores salgan siempre repartidos parejo, sin sesgos
+        for (let i = _colorBag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [_colorBag[i], _colorBag[j]] = [_colorBag[j], _colorBag[i]];
+        }
+      }
+      return _colorBag.pop();
+    }
+
+    const $ = id => document.getElementById(id);
+    function showMsg(t, d = 2600) { const e = $('msg'); e.textContent = t; e.classList.add('on'); clearTimeout(msgTimer); msgTimer = setTimeout(() => e.classList.remove('on'), d); }
+
+    // ═══════════════════════════════════════════════════════════
+    //  MARCO GANADOR — se activa en el primer impacto de cada tiro
+    //  contra una canica del círculo. Gira en degradado alrededor
+    //  de todo el tablero y se apaga sola a los 3 segundos.
+    // ═══════════════════════════════════════════════════════════
+    let winFrameTimer = null;
+    function triggerWinFrame() {
+      const el = $('winFrame');
+      clearTimeout(winFrameTimer);
+      el.classList.remove('active');
+      void el.offsetWidth; // fuerza reflow para poder re-disparar la animación si ya estaba activa
+      el.classList.add('active');
+      winFrameTimer = setTimeout(() => el.classList.remove('active'), 3000);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  VIDEO DE IMPACTO — top.mov, centrado en el canvas, por encima
+    //  del fondo (#bg-layer). Se reproduce cada vez que un disparo
+    //  golpea por primera vez a una canica del círculo. top.mov debe
+    //  ir en la MISMA carpeta que este .html.
+    // ═══════════════════════════════════════════════════════════
+    let lastHitVideoAt = 0;
+    function triggerHitVideo() {
+      const now = performance.now();
+      if (now - lastHitVideoAt < 250) return; // evita re-disparos en el mismo instante físico
+      lastHitVideoAt = now;
+      const v = $('hitVideo');
+      if (!v) return;
+      v.classList.add('playing');
+      try { v.currentTime = 0; } catch (e) { /* aún no cargó metadata, no pasa nada */ }
+      const p = v.play();
+      if (p && p.catch) p.catch(() => { });
+    }
+    document.getElementById('hitVideo') && document.getElementById('hitVideo').addEventListener('ended', () => {
+      $('hitVideo').classList.remove('playing');
+    });
+
+    // Carga top.mov automáticamente al iniciar, con el mismo sondeo de
+    // rutas que usa bg.png (raíz de /public o /public/assets). Si el
+    // navegador no puede reproducir .mov (códec/MIME), prueba top.mp4
+    // como respaldo. El probe se agrega temporalmente al DOM oculto,
+    // porque algunos navegadores no cargan bien un <video> desconectado.
+    function loadDefaultHitVideo() {
+      const v = $('hitVideo');
+      if (!v) return;
+      const candidates = [
+        // .mov: solo Safari suele reproducirlo con transparencia real
+        './top.mov', './assets/top.mov', '/top.mov', '/assets/top.mov',
+        // .webm (VP9 + alfa): transparencia real en Chrome/Firefox/Edge — prioridad
+        './top.webm', './assets/top.webm', '/top.webm', '/assets/top.webm',
+        // .mp4: respaldo final, siempre se reproduce pero SIN transparencia
+        './top.mp4', './assets/top.mp4', '/top.mp4', '/assets/top.mp4'
+      ];
+      let i = 0;
+      (function tryNext() {
+        if (i >= candidates.length) {
+          console.warn('[canicas] No se pudo cargar top.mov ni top.mp4 en ninguna ruta probada:', candidates,
+            '— revisá la pestaña Network/Consola del navegador: si el archivo SÍ se descarga pero da error de formato, ' +
+            'el códec del .mov no es compatible con este navegador (o el servidor lo está sirviendo con un Content-Type incorrecto). ' +
+            'Probá exportar/renombrar una copia como top.mp4 (H.264) junto al .mov.');
+          return;
+        }
+        const path = candidates[i++];
+        const probe = document.createElement('video');
+        probe.muted = true;
+        probe.playsInline = true;
+        probe.preload = 'auto';
+        probe.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
+        document.body.appendChild(probe);
+        const cleanup = () => probe.remove();
+        probe.addEventListener('loadeddata', () => { v.src = path; console.info('[canicas] top video cargado desde', path); cleanup(); }, { once: true });
+        probe.addEventListener('error', () => {
+          const err = probe.error;
+          console.warn('[canicas] falló', path, err ? `(code ${err.code}: ${err.message || 'sin detalle'})` : '');
+          cleanup(); tryNext();
+        }, { once: true });
+        probe.src = path;
+        probe.load();
+      })();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ENTORNO PROCEDURAL (para reflejos de vidrio en las canicas)
+    // ═══════════════════════════════════════════════════════════
+    function buildEnvironment() {
+      const envScene = new THREE.Scene();
+      function panel(w, h, color, x, y, z, rx, ry, rz) {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color }));
+        m.position.set(x, y, z); m.rotation.set(rx, ry, rz);
+        envScene.add(m);
+      }
+      panel(10, 10, 0x1a2740, 0, 0, -7, 0, 0, 0);
+      panel(10, 10, 0xffcf9e, 0, 0, 7, 0, Math.PI, 0);
+      panel(8, 8, 0xff8a5c, -7, 0, 0, 0, Math.PI / 2, 0);
+      panel(8, 8, 0x6fc7ff, 7, 0, 0, 0, -Math.PI / 2, 0);
+      panel(8, 8, 0xd8d8e8, 0, 7, 0, Math.PI / 2, 0, 0);
+      panel(8, 8, 0x0a0a14, 0, -7, 0, -Math.PI / 2, 0, 0);
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      pmrem.compileEquirectangularShader();
+      const rt = pmrem.fromScene(envScene, 0.035);
+      pmrem.dispose();
+      return rt.texture;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CANICA — ilustración 2D plana estilo "cel shading": 3 tonos
+    //  planos (luz, tono medio, sombra) + stroke fino de 1pt.
+    // ═══════════════════════════════════════════════════════════
+    function shadeColor(hex, pct) {
+      // pct > 0 aclara, pct < 0 oscurece (mezcla plana, sin degradé)
+      const n = parseInt(hex.replace('#', ''), 16);
+      let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      const mix = (c) => Math.round(pct >= 0 ? c + (255 - c) * pct : c * (1 + pct));
+      r = Math.min(255, Math.max(0, mix(r)));
+      g = Math.min(255, Math.max(0, mix(g)));
+      b = Math.min(255, Math.max(0, mix(b)));
+      return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    // tono de sombra: NO oscurecer hacia el negro — se mezcla el color base
+    // con su complementario en modo "multiplicar", a solo 8% de opacidad
+    function complementMultiplyShade(hex, opacity = 0.08) {
+      const n = parseInt(hex.replace('#', ''), 16);
+      const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      const cr = 255 - r, cg = 255 - g, cb = 255 - b;      // complementario
+      const mr = (r * cr) / 255, mg = (g * cg) / 255, mb = (b * cb) / 255; // multiplicar
+      const fr = Math.round(r * (1 - opacity) + mr * opacity);
+      const fg = Math.round(g * (1 - opacity) + mg * opacity);
+      const fb = Math.round(b * (1 - opacity) + mb * opacity);
+      return '#' + ((1 << 24) + (fr << 16) + (fg << 8) + fb).toString(16).slice(1);
+    }
+
+    const _marbleTexCache = new Map();
+    function getMarbleTexture(colorHex) {
+      if (_marbleTexCache.has(colorHex)) return _marbleTexCache.get(colorHex);
+
+      const size = 200;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const cx = size / 2, cy = size / 2;
+      const strokeW = size * 0.022;          // stroke fino, tipo 1pt
+      const rOuter = size / 2 - 3;
+      const rFill = rOuter - strokeW / 2;
+
+      const shadowTone = complementMultiplyShade(colorHex, 0.08); // sombra: complementario en multiplicar, 8% opacidad
+      const midTone = colorHex;                       // tono medio (color base)
+      const lightTone = shadeColor(colorHex, 0.34);    // luz (tono claro)
+
+      ctx.clearRect(0, 0, size, size);
+
+      // degradado suave (difuminado) de luz → tono medio → sombra, en vez
+      // de formas planas: el foco de luz arriba-izquierda se funde poco a
+      // poco hacia el tono base y hacia la sombra en el borde opuesto
+      const grad = ctx.createRadialGradient(
+        cx - rFill * 0.38, cy - rFill * 0.42, rFill * 0.04,
+        cx - rFill * 0.05, cy - rFill * 0.05, rFill * 1.35
+      );
+      grad.addColorStop(0, lightTone);
+      grad.addColorStop(0.45, midTone);
+      grad.addColorStop(1, shadowTone);
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, rFill, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // stroke negro fino (1pt) tipo ilustración
+      ctx.beginPath();
+      ctx.arc(cx, cy, rOuter - strokeW / 2, 0, Math.PI * 2);
+      ctx.lineWidth = strokeW;
+      ctx.strokeStyle = '#101014';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.anisotropy = 4;
+      _marbleTexCache.set(colorHex, tex);
+      return tex;
+    }
+
+    function createMarbleMesh(r, colorHexOrTex) {
+      const isCustomTex = colorHexOrTex && colorHexOrTex.isTexture;
+      const tex = isCustomTex ? colorHexOrTex : getMarbleTexture(colorHexOrTex);
+      const mat = new THREE.SpriteMaterial({
+        map: tex,
+        transparent: true,
+        fog: false,          // color plano constante, sin niebla/profundidad
+        toneMapped: false,   // color exacto tal cual el HEX, sin tonemapping
+        rotation: Math.random() * Math.PI * 2
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(r * 2, r * 2, 1);
+      sprite.userData.r = r;
+      sprite.castShadow = false;
+      return sprite;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  LOOKS DE CANICA — hasta 4 PNG subidos por el usuario. Si hay
+    //  al menos uno cargado, las canicas usan esas imágenes (elegidas
+    //  al azar) en vez del look procedural de color.
+    // ═══════════════════════════════════════════════════════════
+    const customLooks = [null, null, null, null]; // THREE.Texture o null por slot
+
+    function rollNextLook() {
+      const filled = customLooks.filter(Boolean);
+      if (filled.length) {
+        return { tex: filled[Math.floor(Math.random() * filled.length)], color: '#ffffff' };
+      }
+      return { tex: null, color: randColor() };
+    }
+    function spriteFromLook(r, look) {
+      return createMarbleMesh(r, look.tex || look.color);
+    }
+
+    function loadCustomLook(slot, file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const tex = new THREE.Texture(img);
+          tex.needsUpdate = true;
+          tex.encoding = THREE.sRGBEncoding;
+          tex.minFilter = THREE.LinearFilter;
+          tex.magFilter = THREE.LinearFilter;
+          tex.anisotropy = 4;
+          if (customLooks[slot]) customLooks[slot].dispose();
+          customLooks[slot] = tex;
+          const thumb = $('lookThumb' + slot);
+          thumb.style.backgroundImage = `url(${ev.target.result})`;
+          thumb.classList.add('filled');
+          $('lookClear' + slot).style.display = 'inline-block';
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    function clearCustomLook(slot) {
+      if (customLooks[slot]) customLooks[slot].dispose();
+      customLooks[slot] = null;
+      const thumb = $('lookThumb' + slot);
+      thumb.style.backgroundImage = '';
+      thumb.classList.remove('filled');
+      $('lookClear' + slot).style.display = 'none';
+      $('lookFile' + slot).value = '';
+    }
+
+    // Carga automática de los looks por defecto (c1.png, c2.png, c3.png,
+    // c4.png). Deben ir en la MISMA carpeta que este archivo .html. Si
+    // alguno no existe, ese slot simplemente queda vacío (sin errores
+    // visibles) y las canicas usan el look procedural de color.
+    function loadCustomLookFromURL(slot, url) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const tex = new THREE.Texture(img);
+        tex.needsUpdate = true;
+        tex.encoding = THREE.sRGBEncoding;
+        tex.minFilter = THREE.LinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.anisotropy = 4;
+        if (customLooks[slot]) customLooks[slot].dispose();
+        customLooks[slot] = tex;
+        const thumb = $('lookThumb' + slot);
+        thumb.style.backgroundImage = `url(${url})`;
+        thumb.classList.add('filled');
+        $('lookClear' + slot).style.display = 'inline-block';
+      };
+      img.onerror = () => { /* no está esa imagen junto al html — se ignora */ };
+      img.src = url;
+    }
+    function loadDefaultLooks() {
+      // Mismo mecanismo de sondeo que usa bg.png: prueba varias
+      // ubicaciones típicas de /public y usa la primera que exista.
+      const names = ['1c.png', '2c.png', '3c.png', '4c.png'];
+      names.forEach((name, slot) => {
+        const candidates = [`./${name}`, `./assets/${name}`, `/${name}`, `/assets/${name}`];
+        let i = 0;
+        (function tryNext() {
+          if (i >= candidates.length) return; // no está en ninguna ruta: slot queda vacío
+          const path = candidates[i++];
+          const probe = new Image();
+          probe.onload = () => loadCustomLookFromURL(slot, path);
+          probe.onerror = tryNext;
+          probe.src = path;
+        })();
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  SOMBRA DE CONTACTO — óvalo PLANO (sin difuminado/gradiente),
+    //  proyectado hacia la izquierda de cada canica.
+    // ═══════════════════════════════════════════════════════════
+    const _shadowGeo = new THREE.CircleGeometry(1, 40);
+    const SHADOW_OFFSET = new THREE.Vector3(-0.9, 0, 0.3); // hacia la izquierda
+    function createGroundShadow(r) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x000000, transparent: true, opacity: 0.28,
+        depthWrite: false, toneMapped: false
+      });
+      const mesh = new THREE.Mesh(_shadowGeo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.scale.set(r * 1.55, r * 1.05, 1); // óvalo plano, borde duro, sin blur
+      mesh.renderOrder = 1;
+      mesh.userData.offset = SHADOW_OFFSET.clone().multiplyScalar(r);
+      return mesh;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CANICA "EN RECÁMARA" — se ve en primera persona, centrada,
+    //  lista para disparar, pegada a la cámara (no a la escena).
+    // ═══════════════════════════════════════════════════════════
+    function refreshPreviewBall() {
+      if (previewSprite) {
+        scene.remove(previewSprite);
+        previewSprite.material.dispose();
+      }
+      if (!nextLook) nextLook = rollNextLook();
+      previewSprite = spriteFromLook(orbSize * PREVIEW_SCALE, nextLook);
+      const lp = getLaunchPoint();
+      // apoyada realmente en el suelo: su centro debe estar a la altura de
+      // su PROPIO radio (más chico que una canica real), no al radio completo
+      previewSprite.position.set(lp.x, orbSize * PREVIEW_SCALE, lp.z);
+      scene.add(previewSprite);
+
+      if (previewShadow) {
+        scene.remove(previewShadow);
+        previewShadow.material.dispose();
+      }
+      previewShadow = createGroundShadow(orbSize * PREVIEW_SCALE);
+      previewShadow.position.set(lp.x + previewShadow.userData.offset.x, 0.004, lp.z + previewShadow.userData.offset.z);
+      scene.add(previewShadow);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  THREE.JS INIT
+    // ═══════════════════════════════════════════════════════════
+    let imgAspect = null; // ancho/alto de la imagen cargada, o null si no hay imagen
+
+    // ═══════════════════════════════════════════════════════════
+    //  LAYOUT RESPONSIVE — el #frame completo (no solo un layer
+    //  interno) toma siempre la forma EXACTA de la imagen cargada,
+    //  sin recortar ni estirar y sin franjas negras. Si no hay
+    //  imagen, usa la relación 1080×1360 como referencia por defecto.
+    // ═══════════════════════════════════════════════════════════
+    const DEFAULT_ASPECT = 1080 / 1360;
+    const FRAME_PAD = 20;   // #frame { padding: 20px }
+    const FRAME_GAP = 5;    // #frame { gap: 5px }
+    const WIN_BORDER = 4;   // .win { border: 2px } × 2 lados
+    const BAR_H = 22;       // .win__bar { height: 22px }
+
+    function layoutFrame() {
+      const stage = $('stage').getBoundingClientRect();
+      const sidebarW = $('sidebar').getBoundingClientRect().width;
+      const aspect = imgAspect || DEFAULT_ASPECT;
+
+      const availW = stage.width, availH = stage.height;
+      const ow = WIN_BORDER;                 // overhead de ancho del panel del canvas
+      const oh = WIN_BORDER + BAR_H;         // overhead de alto (borde + barra de título)
+      const extraW = ow + FRAME_GAP + sidebarW + FRAME_PAD * 2;
+      const extraH = oh + FRAME_PAD * 2;
+
+      // 1) intenta ajustar por altura completa disponible
+      let innerH = availH - extraH;
+      let innerW = innerH * aspect;
+      let frameW = innerW + extraW;
+      let frameH = availH;
+
+      // 2) si no entra a lo ancho, ajusta por ancho disponible en su lugar
+      if (frameW > availW) {
+        frameW = availW;
+        innerW = frameW - extraW;
+        innerH = innerW / aspect;
+        frameH = innerH + extraH;
+      }
+
+      const frame = $('frame');
+      frame.style.width = Math.round(frameW) + 'px';
+      frame.style.height = Math.round(frameH) + 'px';
+    }
+
+    function applyRenderScale() {
+      const rect = $('vp-fit').getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(Math.max(1, rect.width), Math.max(1, rect.height), false);
+    }
+
+    function syncCameraAspect() {
+      const rect = $('vp-fit').getBoundingClientRect();
+      camera.aspect = rect.width / Math.max(1, rect.height);
+      camera.updateProjectionMatrix();
+    }
+
+    function applyCameraFraming() {
+      camera.fov = camFov;
+      camera.position.set(0, camY, camZ);
+      camera.updateProjectionMatrix();
+      controls.target.set(0, tgtY, 0);
+      controls.update();
+    }
+
+    function makeRingMesh(radius) {
+      if (ringMesh) { scene.remove(ringMesh); ringMesh.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }); }
+      const g = new THREE.Group();
+
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(radius - 0.035, radius + 0.035, 96),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide, toneMapped: false })
+      );
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.012;
+      g.add(ring);
+
+      scene.add(g);
+      ringMesh = g;
+    }
+
+    function initThree() {
+      const rect = $('vp-fit').getBoundingClientRect();
+
+      scene = new THREE.Scene();
+      scene.background = null; // el fondo cargado vive en la capa CSS (#bg-layer), sin pixelar
+
+      camera = new THREE.PerspectiveCamera(camFov, rect.width / Math.max(1, rect.height), 0.05, 150);
+      camera.position.set(0, camY, camZ);
+      scene.add(camera); // necesario para que los hijos de la cámara (canica de preview) se rendericen
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setClearColor(0x000000, 0);
+      applyRenderScale();
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      $('vp-fit').appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, tgtY, 0);
+      controls.update();
+      controls.enabled = false; // cámara fija: sin rotar/zoom/pan, ángulo tal cual la referencia
+
+      // Luces (afectan al suelo/anillo; las canicas son sprites planos sin luz)
+      scene.add(new THREE.AmbientLight(0x1a2a44, 1.1));
+      const dir = new THREE.DirectionalLight(0xffffff, 1.9);
+      dir.position.set(6, 12, 7); dir.castShadow = true;
+      dir.shadow.mapSize.set(2048, 2048);
+      ['left', 'bottom'].forEach(k => dir.shadow.camera[k] = -10);
+      ['right', 'top'].forEach(k => dir.shadow.camera[k] = 10);
+      dir.shadow.camera.far = 40; scene.add(dir);
+      const p1 = new THREE.PointLight(0x334dff, 4, 18); p1.position.set(-6, 5, -3); scene.add(p1);
+      const p2 = new THREE.PointLight(0xff7733, 2.2, 14); p2.position.set(6, 3, 5); scene.add(p2);
+
+      // Suelo — semi-transparente para que el fondo se vea a través (sin cuadrícula)
+      floorMesh = new THREE.Mesh(
+        new THREE.CircleGeometry(20, 64),
+        new THREE.MeshStandardMaterial({ color: 0x0a1020, roughness: .9, metalness: .1, transparent: true, opacity: FLOOR_OPACITY_DEFAULT, depthWrite: true })
+      );
+      floorMesh.rotation.x = -Math.PI / 2; floorMesh.receiveShadow = true; scene.add(floorMesh);
+
+      makeRingMesh(ringRadius);
+
+      new ResizeObserver(() => { layoutFrame(); syncCameraAspect(); applyRenderScale(); }).observe($('stage'));
+      window.addEventListener('resize', () => { layoutFrame(); syncCameraAspect(); applyRenderScale(); });
+
+      renderer.domElement.addEventListener('click', shoot);
+      document.addEventListener('keydown', e => { if (e.key === 'r' || e.key === 'R') clearShots(); });
+      clock = new THREE.Clock();
+
+      nextLook = rollNextLook();
+      refreshPreviewBall();
+
+      spawnTargets();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CANICAS OBJETIVO — llenar el círculo
+    // ═══════════════════════════════════════════════════════════
+    function spawnTargets() {
+      [...marbles].filter(m => m.isTarget).forEach(removeMarble);
+      ejected = 0; totalTargets = targetCount;
+      $('hc').textContent = 0; $('tc').textContent = totalTargets;
+
+      const placed = [];
+      let attempts = 0;
+      while (placed.length < targetCount && attempts < targetCount * 60) {
+        attempts++;
+        const ang = Math.random() * Math.PI * 2;
+        const rad = Math.sqrt(Math.random()) * (ringRadius - orbSize * 1.6);
+        const x = Math.cos(ang) * rad, z = Math.sin(ang) * rad;
+        let ok = true;
+        for (const p of placed) {
+          const dx = p.x - x, dz = p.z - z;
+          if (Math.sqrt(dx * dx + dz * dz) < orbSize * 2.3) { ok = false; break; }
+        }
+        if (ok) placed.push({ x, z });
+      }
+
+      for (const p of placed) {
+        const look = rollNextLook();
+        const color = look.color;
+        const group = spriteFromLook(orbSize, look);
+        group.position.set(p.x, orbSize, p.z);
+        scene.add(group);
+        const shadow = createGroundShadow(orbSize);
+        shadow.position.set(p.x + shadow.userData.offset.x, 0.004, p.z + shadow.userData.offset.z);
+        scene.add(shadow);
+        const sphere = new Sphere(new Vec3(p.x, orbSize, p.z), orbSize, 0.65, 0.1);
+        sphere.sleeping = true;
+        sphere.isShotBall = false;
+        physics.addSphere(sphere);
+        marbles.push({ sphere, group, shadow, isTarget: true, out: false, color });
+      }
+      showMsg('RONDA LISTA — ' + placed.length + ' CANICAS EN EL CÍRCULO');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  DISPARAR — dirección según el punto de click del mouse
+    // ═══════════════════════════════════════════════════════════
+    const raycaster = new THREE.Raycaster();
+    const mouseNDC = new THREE.Vector2();
+
+    function shoot(e) {
+      if (e.target !== renderer.domElement) return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      fireFromNDC(ndcX, ndcY, orbSpeed);
+    }
+
+    // dispara una canica apuntando hacia el punto (ndcX, ndcY) en coordenadas
+    // de pantalla normalizadas [-1,1] (igual que un click), con una velocidad
+    // dada. La usan tanto el click del mouse como el control por gesto.
+    function fireFromNDC(ndcX, ndcY, speed) {
+      mouseNDC.x = ndcX; mouseNDC.y = ndcY;
+      raycaster.setFromCamera(mouseNDC, camera);
+
+      // origen SIEMPRE fijo (el mismo punto donde se veía la canica lista,
+      // pegada a la cámara)
+      const tp = getLaunchPoint();
+
+      // punto al que apunta el click: intersección del rayo del mouse con
+      // el plano horizontal que pasa por el punto de disparo (tp.y).
+      // Antes la dirección se tomaba directo del rayo de la cámara pero el
+      // disparo salía desde tp (desplazado de la cámara), lo que generaba
+      // un desfase de paralaje entre el cursor y hacia dónde iba la canica.
+      // Apuntando desde tp hacia el punto real donde cae el rayo del mouse
+      // se elimina ese desfase.
+      const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -tp.y);
+      const aimPoint = new THREE.Vector3();
+      const hit = raycaster.ray.intersectPlane(aimPlane, aimPoint);
+      if (!hit) {
+        // el rayo mira hacia arriba y no cruza el plano: usar un punto lejano
+        aimPoint.copy(raycaster.ray.origin).addScaledVector(raycaster.ray.direction, 30);
+      }
+      const dir = aimPoint.clone().sub(tp).normalize();
+      // como el punto de disparo está exactamente al nivel del piso (igual
+      // que las canicas del círculo), un tiro perfectamente horizontal
+      // tocaría el suelo desde el primer instante y frenaría de inmediato
+      // por la fricción del rebote continuo. Un pequeño "loft" mínimo hacia
+      // arriba le da aire suficiente para viajar antes de aterrizar.
+      if (dir.y < MIN_LOFT) { dir.y = MIN_LOFT; dir.normalize(); }
+
+      const look = nextLook || rollNextLook();
+      const color = look.color;
+      const group = spriteFromLook(orbSize, look);
+      group.position.copy(tp);
+      scene.add(group);
+
+      const shadow = createGroundShadow(orbSize);
+      shadow.position.set(tp.x + shadow.userData.offset.x, 0.004, tp.z + shadow.userData.offset.z);
+      scene.add(shadow);
+
+      const sphere = new Sphere(new Vec3(tp.x, tp.y, tp.z), orbSize, orbBounce, 0.06);
+      sphere.vel = new Vec3(dir.x * speed, dir.y * speed, dir.z * speed);
+      sphere.isShotBall = true;
+      sphere.hasHitTarget = false;
+      physics.addSphere(sphere);
+
+      marbles.push({ sphere, group, shadow, isTarget: false, out: false, color });
+      shots++; $('sc').textContent = shots;
+
+      const shotOnly = marbles.filter(m => !m.isTarget);
+      if (shotOnly.length > MAX_SHOTS) removeMarble(shotOnly[0]);
+
+      // prepara la siguiente canica "en recámara"
+      nextLook = rollNextLook();
+      refreshPreviewBall();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CONTROL POR GESTO (MediaPipe Hands) — el pellizco (pulgar +
+    //  índice) de tu mano controla dirección y fuerza; al CERRARLO
+    //  se dispara la canica. Todo opcional, se activa con el botón
+    //  "ACTIVAR CÁMARA" del panel.
+    // ═══════════════════════════════════════════════════════════
+    let handLandmarker = null;
+    let gestureActive = false;
+    let gestureStream = null;
+    let pinchWasClosed = false;
+    const gestAimNDC = { x: 0, y: 0 };
+    let gestForce = 0; // 0..1, qué tan "estirado" está el gesto respecto al centro
+
+    const PINCH_OPEN_T = 0.55;    // pinza abierta por encima de esto → modo apuntar
+    const PINCH_CLOSED_T = 0.32;  // pinza cerrada por debajo de esto → dispara
+    const GEST_SENSITIVITY = 2.4; // amplifica el movimiento de la mano a pantalla completa
+    const GEST_MIN_SPEED = 14;
+    const GEST_MAX_SPEED = 55;
+
+    async function toggleGestureControl() {
+      if (gestureActive) { stopGestureControl(); return; }
+      const btn = $('gestb'), st = $('gestst');
+      btn.disabled = true;
+      st.textContent = 'Cargando modelo de mano...';
+      try {
+        if (!handLandmarker) {
+          const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+          const fileset = await vision.FilesetResolver.forVisionTasks(
+            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+          );
+          handLandmarker = await vision.HandLandmarker.createFromOptions(fileset, {
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+              delegate: 'GPU'
+            },
+            runningMode: 'VIDEO',
+            numHands: 1
+          });
+        }
+        st.textContent = 'Pidiendo acceso a la cámara...';
+        gestureStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 480, height: 360, facingMode: 'user' }, audio: false
+        });
+        const video = $('gestVideo');
+        video.srcObject = gestureStream;
+        await video.play();
+        gestureActive = true;
+        pinchWasClosed = false;
+        btn.textContent = '🖐 DESACTIVAR CÁMARA';
+        st.textContent = 'Mano derecha: muévela para apuntar, cierra el pinch para disparar';
+        $('gestHud').style.display = 'block';
+      } catch (err) {
+        st.textContent = '❌ No se pudo activar la cámara o el modelo de mano';
+        console.error(err);
+      }
+      btn.disabled = false;
+    }
+
+    function stopGestureControl() {
+      gestureActive = false;
+      if (gestureStream) { gestureStream.getTracks().forEach(t => t.stop()); gestureStream = null; }
+      $('gestb').textContent = '🖐 ACTIVAR CÁMARA (MANO)';
+      $('gestst').textContent = 'Apunta y cierra el pinch (pulgar+índice) para disparar';
+      $('gestHud').style.display = 'none';
+    }
+
+    // ubica la mira exactamente en el punto de pantalla al que apunta el
+    // pinch — el mismo punto que se usa para calcular hacia dónde va la
+    // canica (misma matemática que fireFromNDC/el click del mouse), así
+    // nunca hay desfase entre la mira y el disparo real.
+    function updateGestHudPosition(ndcX, ndcY) {
+      const ci = $('vp-fit');
+      const w = ci.clientWidth, h = ci.clientHeight;
+      const sx = (ndcX * 0.5 + 0.5) * w;
+      const sy = (1 - (ndcY * 0.5 + 0.5)) * h;
+      const hud = $('gestHud');
+      hud.style.left = sx.toFixed(1) + 'px';
+      hud.style.top = sy.toFixed(1) + 'px';
+    }
+
+    // Se llama una vez por frame desde loop(). Lee la mano, mueve la mira
+    // al centro del pinch y dispara al cerrar el pinch.
+    function updateGestureControl() {
+      if (!gestureActive || !handLandmarker) return;
+      const video = $('gestVideo');
+      if (video.readyState < 2) return;
+
+      const result = handLandmarker.detectForVideo(video, performance.now());
+      const lm = result && result.landmarks && result.landmarks[0];
+      if (!lm) return;
+
+      const thumb = lm[4], index = lm[8], wrist = lm[0], midMcp = lm[9];
+      const handScale = Math.hypot(midMcp.x - wrist.x, midMcp.y - wrist.y) || 0.0001;
+      const pinchDist = Math.hypot(thumb.x - index.x, thumb.y - index.y) / handScale;
+
+      // punto medio del pellizco; se espeja en X para que se sienta natural
+      // (mover la mano a tu derecha mueve el punto a la derecha en pantalla)
+      const midX = 1 - (thumb.x + index.x) / 2;
+      const midY = (thumb.y + index.y) / 2;
+      const dx = midX - 0.5, dy = midY - 0.5;
+
+      const ndcX = Math.max(-1, Math.min(1, dx * GEST_SENSITIVITY * 2));
+      const ndcY = Math.max(-1, Math.min(1, -dy * GEST_SENSITIVITY * 2));
+      gestAimNDC.x = ndcX; gestAimNDC.y = ndcY;
+      gestForce = Math.min(1, Math.hypot(dx, dy) / 0.35);
+
+      // la mira sigue el centro del pinch — ahí es donde se dirige la canica
+      updateGestHudPosition(ndcX, ndcY);
+
+      if (pinchDist < PINCH_CLOSED_T && !pinchWasClosed) {
+        const speed = GEST_MIN_SPEED + gestForce * (GEST_MAX_SPEED - GEST_MIN_SPEED);
+        fireFromNDC(gestAimNDC.x, gestAimNDC.y, speed);
+        pinchWasClosed = true;
+      } else if (pinchDist > PINCH_OPEN_T) {
+        pinchWasClosed = false;
+      }
+    }
+
+    function removeMarble(m) {
+      scene.remove(m.group);
+      m.group.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material !== envTex) c.material.dispose && c.material.dispose(); });
+      if (m.shadow) {
+        scene.remove(m.shadow);
+        m.shadow.material.dispose();
+      }
+      physics.removeSphere(m.sphere);
+      marbles.splice(marbles.indexOf(m), 1);
+    }
+
+    function clearShots() {
+      [...marbles].filter(m => !m.isTarget).forEach(removeMarble);
+      shots = 0; $('sc').textContent = 0;
+      showMsg('CANICAS PROPIAS LIMPIADAS');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  EFECTO DE PARTÍCULAS AL SACAR UNA CANICA DEL CÍRCULO
+    // ═══════════════════════════════════════════════════════════
+    let particles = [];
+    const _splatGeo = new THREE.IcosahedronGeometry(1, 0);
+    function spawnEjectEffect(pos, colorHex) {
+      const col = new THREE.Color(colorHex);
+      for (let i = 0; i < 12; i++) {
+        const size = 0.03 + Math.random() * 0.06;
+        const m = new THREE.Mesh(_splatGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, toneMapped: false }));
+        m.scale.setScalar(size);
+        m.position.copy(pos);
+        scene.add(m);
+        const ang = Math.random() * Math.PI * 2, spd = 1.5 + Math.random() * 5;
+        const vel = new THREE.Vector3(Math.cos(ang) * spd, (Math.random() * .6 + .5) * 5, Math.sin(ang) * spd);
+        particles.push({ mesh: m, vel, life: 1.0 });
+      }
+    }
+
+    function updateParticles(dt) {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= dt * 1.8;
+        p.vel.y -= 16 * dt;
+        p.mesh.position.addScaledVector(p.vel, dt);
+        p.mesh.material.opacity = Math.max(0, p.life);
+        if (p.life <= 0) { scene.remove(p.mesh); p.mesh.material.dispose(); particles.splice(i, 1); }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ¿SE SALIÓ DEL CÍRCULO?
+    // ═══════════════════════════════════════════════════════════
+    function checkRingOut() {
+      const toRemove = [];
+      for (const m of marbles) {
+        if (!m.isTarget || m.out) continue;
+        const s = m.sphere;
+        const d = Math.sqrt(s.pos.x * s.pos.x + s.pos.z * s.pos.z);
+        if (d - s.r > ringRadius) {
+          m.out = true;
+          ejected++;
+          $('hc').textContent = ejected;
+          spawnEjectEffect(new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), m.color);
+          toRemove.push(m);
+        }
+      }
+      if (toRemove.length) {
+        toRemove.forEach(removeMarble);
+        if (ejected >= totalTargets && totalTargets > 0) showMsg('¡CÍRCULO VACÍO! REINICIA LA RONDA', 4000);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  LOOP
+    // ═══════════════════════════════════════════════════════════
+    const _axis = new THREE.Vector3();
+    function loop() {
+      requestAnimationFrame(loop);
+      const dt = Math.min(clock.getDelta(), .05);
+
+      physics.step(dt);
+
+      if (previewSprite) {
+        const lp = getLaunchPoint();
+        previewSprite.position.set(lp.x, orbSize * PREVIEW_SCALE, lp.z);
+        if (previewShadow) {
+          previewShadow.position.set(
+            lp.x + previewShadow.userData.offset.x,
+            0.004,
+            lp.z + previewShadow.userData.offset.z
+          );
+        }
+      }
+
+      for (const m of marbles) {
+        m.group.position.set(m.sphere.pos.x, m.sphere.pos.y, m.sphere.pos.z);
+        if (m.shadow) {
+          m.shadow.position.set(
+            m.sphere.pos.x + m.shadow.userData.offset.x,
+            0.004,
+            m.sphere.pos.z + m.shadow.userData.offset.z
+          );
+        }
+        const v = m.sphere.vel;
+        const speed = Math.sqrt(v.x * v.x + v.z * v.z);
+        if (speed > 0.015) {
+          const spin = (speed * dt) / Math.max(0.02, m.sphere.r);
+          m.group.material.rotation -= (v.x >= 0 ? 1 : -1) * spin;
+        }
+      }
+
+      checkRingOut();
+      updateParticles(dt);
+      updateGestureControl();
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  UI
+    // ═══════════════════════════════════════════════════════════
+    function bindUI() {
+      $('szr').addEventListener('input', e => { orbSize = +e.target.value; $('sv').textContent = orbSize.toFixed(2); refreshPreviewBall(); });
+      $('spr').addEventListener('input', e => { orbSpeed = +e.target.value; $('spv').textContent = orbSpeed; });
+      $('brt').addEventListener('input', e => { orbBounce = +e.target.value; $('bv').textContent = orbBounce.toFixed(2); });
+      $('gr').addEventListener('input', e => { const g = +e.target.value; physics.gravity.y = g; $('gv').textContent = g; });
+
+      document.querySelectorAll('.cd').forEach(d => d.addEventListener('click', () => {
+        document.querySelectorAll('.cd').forEach(x => x.classList.remove('on')); d.classList.add('on');
+      }));
+
+      $('radr').addEventListener('input', e => {
+        ringRadius = +e.target.value; $('radv').textContent = ringRadius.toFixed(1);
+        physics.arenaR = Math.max(ringRadius * 2.4, 9);
+        makeRingMesh(ringRadius);
+      });
+      $('cntr').addEventListener('input', e => { targetCount = +e.target.value; $('cntv').textContent = targetCount; });
+
+      $('cfovr').addEventListener('input', e => { camFov = +e.target.value; $('cfovv').textContent = camFov; applyCameraFraming(); });
+      $('camyr').addEventListener('input', e => { camY = +e.target.value; $('camyv').textContent = camY.toFixed(1); applyCameraFraming(); });
+      $('camzr').addEventListener('input', e => { camZ = +e.target.value; $('camzv').textContent = camZ.toFixed(1); applyCameraFraming(); });
+      $('tgtyr').addEventListener('input', e => { tgtY = +e.target.value; $('tgtyv').textContent = tgtY.toFixed(2); applyCameraFraming(); });
+
+      $('clrb').addEventListener('click', clearShots);
+      $('rrb').addEventListener('click', spawnTargets);
+      $('gestb').addEventListener('click', toggleGestureControl);
+
+      for (let i = 0; i < 4; i++) {
+        $('lookFile' + i).addEventListener('change', (e) => {
+          const f = e.target.files && e.target.files[0];
+          if (f) loadCustomLook(i, f);
+        });
+        $('lookClear' + i).addEventListener('click', () => clearCustomLook(i));
+      }
+
+      $('bgf').addEventListener('change', e => {
+        if (!e.target.files[0]) return;
+        loadBackground(e.target.files[0]);
+        e.target.value = '';
+      });
+      $('qbg').addEventListener('click', () => {
+        $('bg-layer').style.backgroundImage = 'none';
+        $('bg-layer').style.background = '#07070e';
+        imgAspect = null;
+        layoutFrame();
+        syncCameraAspect();
+        applyRenderScale();
+        if (floorMesh) floorMesh.material.opacity = FLOOR_OPACITY_DEFAULT;
+        showMsg('FONDO ELIMINADO');
+      });
+
+      const ci = $('canvas-inner');
+      ci.addEventListener('dragover', e => { e.preventDefault(); $('dropzone').classList.add('active'); });
+      ci.addEventListener('dragleave', e => { if (!e.relatedTarget || !ci.contains(e.relatedTarget)) $('dropzone').classList.remove('active'); });
+      ci.addEventListener('drop', e => {
+        e.preventDefault(); $('dropzone').classList.remove('active');
+        const f = e.dataTransfer.files[0];
+        if (!f) return;
+        if (f.type.startsWith('image/')) loadBackground(f);
+        else showMsg('SOLO ARCHIVOS DE IMAGEN');
+      });
+    }
+
+    // Aplica una imagen (data: URL o ruta normal) como fondo, ajustando
+    // el contenedor a su forma exacta. Se usa tanto para archivos
+    // arrastrados/seleccionados como para la carga automática de bg.png.
+    function applyBackgroundImage(url, { silent = false } = {}) {
+      const img = new Image();
+      img.onload = () => {
+        imgAspect = img.naturalWidth / img.naturalHeight;
+        layoutFrame();
+        syncCameraAspect();
+        applyRenderScale();
+        $('bg-layer').style.background = '#07070e';
+        $('bg-layer').style.backgroundImage = `url("${url}")`;
+        $('bg-layer').style.backgroundSize = 'contain';
+        $('bg-layer').style.backgroundPosition = 'center';
+        if (floorMesh) floorMesh.material.opacity = 0; // deja ver el fondo completo
+        if (!silent) showMsg('✅ FONDO CARGADO');
+      };
+      img.onerror = () => { if (!silent) showMsg('❌ ERROR AL CARGAR LA IMAGEN'); };
+      img.src = url;
+    }
+
+    function loadBackground(file) {
+      const reader = new FileReader();
+      reader.onload = () => applyBackgroundImage(reader.result);
+      reader.onerror = () => showMsg('❌ ERROR AL CARGAR LA IMAGEN');
+      reader.readAsDataURL(file);
+    }
+
+    // Carga bg.png automáticamente al iniciar (silenciosa: si no existe,
+    // no muestra error, simplemente se queda sin fondo hasta que el
+    // usuario suba una imagen).
+    function loadDefaultBackground() {
+      // Prueba varias ubicaciones típicas dentro de /public — usa la
+      // primera que exista. Así funciona tanto si pones bg.png junto
+      // al html como si lo metes en una carpeta assets/.
+      const candidates = ['./bg.png', './assets/bg.png', '/bg.png', '/assets/bg.png'];
+      let i = 0;
+      (function tryNext() {
+        if (i >= candidates.length) return; // no se encontró ninguna: sigue sin fondo
+        const path = candidates[i++];
+        const probe = new Image();
+        probe.onload = () => applyBackgroundImage(path, { silent: true });
+        probe.onerror = tryNext;
+        probe.src = path;
+      })();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ARRANQUE
+    // ═══════════════════════════════════════════════════════════
+    initSliderFills();
+    layoutFrame();
+    initThree();
+    bindUI();
+    loadDefaultBackground();
+    loadDefaultLooks();
+    loadDefaultHitVideo();
+    loop();
+  </script>
+</body>
+
+</html>

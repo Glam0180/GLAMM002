@@ -1,0 +1,123 @@
+/* ─── DESIGN TOKENS — NOTAS AMANO LAB ─────────────────────── */
+/* Paleta: #FF0100 · #201213 · Estética Windows retro           */
+
+:root {
+
+  /* ── Colores base ── */
+  --color-red:          #FF0100;
+  --color-red-dark:     #cc0100;
+  --color-red-dim:      rgba(255,1,0,0.10);
+
+  --color-dark:         #201213;
+  --color-dark-2:       #2a1518;
+  --color-dark-3:       #180d0e;
+
+  /* ── Superficies ── */
+  --color-bg:           #0e0809;
+  --color-surface:      #160c0d;
+  --color-surface-2:    #201213;
+  --color-surface-3:    #2a1518;
+  --color-surface-win:  #1a0f10;   /* fondo interior de ventana */
+
+  /* ── Bordes Windows ── */
+  --color-border:         #2e1719;
+  --color-border-light:   #3d1f22;
+  --color-border-red:     #FF0100;
+  --color-border-win:     #FF0100;   /* borde exterior ventana */
+  --color-border-win-in:  #3d1f22;   /* borde interior */
+
+  /* ── Titlebar ── */
+  --color-titlebar-bg:    #FF0100;
+  --color-titlebar-text:  #fff;
+  --color-titlebar-icon:  rgba(255,255,255,0.55);
+
+  /* ── Texto ── */
+  --color-text-primary:   #f0e8e8;
+  --color-text-secondary: #7a6060;
+  --color-text-tertiary:  #3d2525;
+  --color-text-red:       #FF0100;
+
+  /* ── Tags ── */
+  --color-tag-red:     rgba(255,1,0,0.14);
+  --color-tag-red-t:   #FF0100;
+  --color-tag-amber:   rgba(200,140,58,0.12);
+  --color-tag-amber-t: #c88c3a;
+  --color-tag-gray:    rgba(255,255,255,0.04);
+  --color-tag-gray-t:  #4a3535;
+  --color-tag-green:   rgba(80,160,80,0.1);
+  --color-tag-green-t: #5a8c5a;
+
+  /* ── Tipografía ── */
+  --font-display: 'Syne', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+  --font-win:     'DM Mono', monospace;  /* fuente de títulos de ventana */
+
+  /* Tamaños — textos pequeños estilo referencia */
+  --text-2xs:  0.5625rem;   /* 9px  — para labels de titlebar */
+  --text-xs:   0.625rem;    /* 10px */
+  --text-sm:   0.6875rem;   /* 11px */
+  --text-base: 0.75rem;     /* 12px */
+  --text-md:   0.875rem;    /* 14px */
+  --text-lg:   1.0625rem;   /* 17px */
+  --text-xl:   1.375rem;    /* 22px */
+  --text-2xl:  2rem;        /* 32px */
+  --text-3xl:  3rem;        /* 48px */
+  --text-4xl:  4.5rem;      /* 72px */
+
+  --leading-tight:  1.1;
+  --leading-snug:   1.25;
+  --leading-normal: 1.5;
+  --leading-loose:  1.7;
+
+  --tracking-tight:  -0.03em;
+  --tracking-snug:   -0.01em;
+  --tracking-normal:  0em;
+  --tracking-wide:    0.08em;
+  --tracking-wider:   0.14em;
+
+  /* ── Espacio ── */
+  --space-1:   0.25rem;
+  --space-2:   0.5rem;
+  --space-3:   0.75rem;
+  --space-4:   1rem;
+  --space-5:   1.25rem;
+  --space-6:   1.5rem;
+  --space-8:   2rem;
+  --space-10:  2.5rem;
+  --space-12:  3rem;
+  --space-16:  4rem;
+  --space-20:  5rem;
+  --space-24:  6rem;
+
+  /* ── Ventana ── */
+  --win-titlebar-h:   22px;
+  --win-border-w:     2px;
+  --win-border-outer: 1px solid var(--color-border-win);
+  --win-border-inner: 1px solid var(--color-border-win-in);
+
+  /* ── Layout ── */
+  --container-max:     1440px;
+  --container-content: 1200px;
+  --nav-height:        28px;  /* altura barra nav = titlebar style */
+
+  /* ── Radios ── */
+  --radius-sm:   0px;   /* Windows retro = sin radios */
+  --radius-md:   0px;
+  --radius-lg:   0px;
+  --radius-full: 9999px;
+
+  /* ── Transiciones ── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast:   100ms;
+  --duration-base:   180ms;
+  --duration-slow:   320ms;
+  --duration-slower: 550ms;
+
+  /* ── Z-index ── */
+  --z-base:    0;
+  --z-raised:  10;
+  --z-overlay: 100;
+  --z-nav:     200;
+  --z-modal:   300;
+}

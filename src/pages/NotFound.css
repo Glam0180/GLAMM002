@@ -1,0 +1,20 @@
+.nf { min-height: 70vh; display: flex; align-items: center; padding: var(--space-16) 0; }
+.nf__win { width: 100%; max-width: 500px; }
+.nf__body { padding: var(--space-8); display: flex; flex-direction: column; gap: var(--space-4); }
+.nf__code {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--color-red); letter-spacing: var(--tracking-wider);
+}
+.nf__title {
+  font-family: var(--font-display); font-size: var(--text-xl);
+  font-weight: 700; letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+.nf__desc { font-size: var(--text-xs); color: var(--color-text-secondary); }
+.nf__link {
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--color-text-tertiary); margin-top: var(--space-2);
+  transition: color var(--duration-fast);
+}
+.nf__link:hover { color: var(--color-red); }

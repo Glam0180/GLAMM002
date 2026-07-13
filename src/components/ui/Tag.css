@@ -1,0 +1,18 @@
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); letter-spacing: var(--tracking-wide);
+  text-transform: uppercase; border-radius: 0;
+}
+.tag--sm  { font-size: 0.55rem;      padding: 1px 4px; }
+.tag--md  { font-size: var(--text-2xs); padding: 2px var(--space-2); }
+
+.tag__dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+
+.tag--red   { background: var(--color-tag-red);   color: var(--color-tag-red-t); }
+.tag--red   .tag__dot { background: var(--color-tag-red-t); }
+.tag--amber { background: var(--color-tag-amber); color: var(--color-tag-amber-t); }
+.tag--amber .tag__dot { background: var(--color-tag-amber-t); }
+.tag--gray  { background: var(--color-tag-gray);  color: var(--color-tag-gray-t); }
+.tag--gray  .tag__dot { background: var(--color-tag-gray-t); }
+.tag--green { background: var(--color-tag-green); color: var(--color-tag-green-t); }
+.tag--green .tag__dot { background: var(--color-tag-green-t); }
