@@ -334,15 +334,13 @@
 
     #hitVideo {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 46%;
-      max-width: 460px;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       z-index: 65;
       pointer-events: none;
       opacity: 0;
-      object-fit: contain;
+      object-fit: fill;
     }
 
     #hitVideo.playing {
@@ -1205,48 +1203,58 @@
       $('hitVideo').classList.remove('playing');
     });
 
-    // Carga top.mov automáticamente al iniciar, con el mismo sondeo de
-    // rutas que usa bg.png (raíz de /public o /public/assets). Si el
-    // navegador no puede reproducir .mov (códec/MIME), prueba top.mp4
-    // como respaldo. El probe se agrega temporalmente al DOM oculto,
-    // porque algunos navegadores no cargan bien un <video> desconectado.
+    // Carga top.webm/.mov/.mp4 automáticamente al iniciar, con el mismo
+    // sondeo de rutas que usa bg.png (raíz de /public o /public/assets).
+    // Prueba directo sobre el <video> real (no uno desconectado del DOM,
+    // que en algunos navegadores no termina de cargar) y usa un timeout
+    // de respaldo por si el navegador no dispara ni 'loadeddata' ni 'error'.
     function loadDefaultHitVideo() {
       const v = $('hitVideo');
       if (!v) return;
       const candidates = [
-        // .mov: solo Safari suele reproducirlo con transparencia real
-        './top.mov', './assets/top.mov', '/top.mov', '/assets/top.mov',
         // .webm (VP9 + alfa): transparencia real en Chrome/Firefox/Edge — prioridad
         './top.webm', './assets/top.webm', '/top.webm', '/assets/top.webm',
+        // .mov: solo Safari suele reproducirlo con transparencia real
+        './top.mov', './assets/top.mov', '/top.mov', '/assets/top.mov',
         // .mp4: respaldo final, siempre se reproduce pero SIN transparencia
         './top.mp4', './assets/top.mp4', '/top.mp4', '/assets/top.mp4'
       ];
       let i = 0;
-      (function tryNext() {
+      let timeoutId = null;
+
+      function cleanup() {
+        clearTimeout(timeoutId);
+        v.removeEventListener('loadeddata', onOk);
+        v.removeEventListener('canplay', onOk);
+        v.removeEventListener('error', onFail);
+      }
+      function onOk() {
+        cleanup();
+        console.info('[canicas] ✅ top video listo desde', candidates[i - 1]);
+      }
+      function onFail() {
+        const err = v.error;
+        console.warn('[canicas] falló', candidates[i - 1], err ? `(code ${err.code}: ${mediaErrName(err.code)})` : '(timeout, sin evento error)');
+        cleanup();
+        tryNext();
+      }
+      function tryNext() {
         if (i >= candidates.length) {
-          console.warn('[canicas] No se pudo cargar top.mov ni top.mp4 en ninguna ruta probada:', candidates,
-            '— revisá la pestaña Network/Consola del navegador: si el archivo SÍ se descarga pero da error de formato, ' +
-            'el códec del .mov no es compatible con este navegador (o el servidor lo está sirviendo con un Content-Type incorrecto). ' +
-            'Probá exportar/renombrar una copia como top.mp4 (H.264) junto al .mov.');
+          console.warn('[canicas] ❌ no se encontró top.webm / top.mov / top.mp4 en ninguna ruta probada:', candidates);
           return;
         }
         const path = candidates[i++];
-        const probe = document.createElement('video');
-        probe.muted = true;
-        probe.playsInline = true;
-        probe.preload = 'auto';
-        probe.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
-        document.body.appendChild(probe);
-        const cleanup = () => probe.remove();
-        probe.addEventListener('loadeddata', () => { v.src = path; console.info('[canicas] top video cargado desde', path); cleanup(); }, { once: true });
-        probe.addEventListener('error', () => {
-          const err = probe.error;
-          console.warn('[canicas] falló', path, err ? `(code ${err.code}: ${err.message || 'sin detalle'})` : '');
-          cleanup(); tryNext();
-        }, { once: true });
-        probe.src = path;
-        probe.load();
-      })();
+        v.addEventListener('loadeddata', onOk, { once: true });
+        v.addEventListener('canplay', onOk, { once: true });
+        v.addEventListener('error', onFail, { once: true });
+        timeoutId = setTimeout(onFail, 4000);
+        v.src = path;
+        v.load();
+      }
+      tryNext();
+    }
+    function mediaErrName(code) {
+      return { 1: 'ABORTED', 2: 'NETWORK (no se encontró/descargó el archivo)', 3: 'DECODE (el navegador no puede decodificar ese archivo)', 4: 'SRC_NOT_SUPPORTED (formato/códec no soportado)' }[code] || 'desconocido';
     }
 
     // ═══════════════════════════════════════════════════════════
