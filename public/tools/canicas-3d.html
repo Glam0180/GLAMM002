@@ -1091,8 +1091,9 @@
         // primer impacto del disparo del usuario contra una canica del
         // círculo (no cuenta si ambas son del mismo tipo: disparo-vs-disparo
         // o círculo-vs-círculo, y solo se dispara una vez por cada tiro)
-        if (a.isShotBall && !a.hasHitTarget && !b.isShotBall) { a.hasHitTarget = true; this.onFirstHit && this.onFirstHit(); }
-        else if (b.isShotBall && !b.hasHitTarget && !a.isShotBall) { b.hasHitTarget = true; this.onFirstHit && this.onFirstHit(); }
+        const hitPos = { x: (a.pos.x + b.pos.x) / 2, y: (a.pos.y + b.pos.y) / 2, z: (a.pos.z + b.pos.z) / 2 };
+        if (a.isShotBall && !a.hasHitTarget && !b.isShotBall) { a.hasHitTarget = true; this.onFirstHit && this.onFirstHit(hitPos); }
+        else if (b.isShotBall && !b.hasHitTarget && !a.isShotBall) { b.hasHitTarget = true; this.onFirstHit && this.onFirstHit(hitPos); }
 
         const dist = Math.sqrt(dist2) || 0.0001;
         const nx = dx / dist, ny = dy / dist, nz = dz / dist;
@@ -1117,7 +1118,7 @@
     const FLOOR_OPACITY_DEFAULT = 0.28;
     let camFov = 53, camY = 1.6, camZ = 13.2, tgtY = 2.60;
     let physics = new Physics();
-    physics.onFirstHit = () => { triggerWinFrame(); triggerHitVideo(); };
+    physics.onFirstHit = (pos) => { triggerWinFrame(); triggerHitVideo(); spawnConfetti(pos); };
     let marbles = [];        // {sphere, group, isTarget, out}
     let ringMesh = null;
     let shots = 0, ejected = 0, totalTargets = 0;
@@ -1713,7 +1714,7 @@
     // dispara una canica apuntando hacia el punto (ndcX, ndcY) en coordenadas
     // de pantalla normalizadas [-1,1] (igual que un click), con una velocidad
     // dada. La usan tanto el click del mouse como el control por gesto.
-    function fireFromNDC(ndcX, ndcY, speed) {
+    function fireFromNDC(ndcX, ndcY, speed, opts) {
       mouseNDC.x = ndcX; mouseNDC.y = ndcY;
       raycaster.setFromCamera(mouseNDC, camera);
 
@@ -1755,6 +1756,10 @@
 
       const sphere = new Sphere(new Vec3(tp.x, tp.y, tp.z), orbSize, orbBounce, 0.06);
       sphere.vel = new Vec3(dir.x * speed, dir.y * speed, dir.z * speed);
+      // más fuerza sin más parábola: la componente vertical se limita a un
+      // techo fijo, así el extra de velocidad va todo a empuje horizontal
+      // (tiro más plano y contundente) en vez de a más altura de arco.
+      if (opts && opts.maxVelY != null && sphere.vel.y > opts.maxVelY) sphere.vel.y = opts.maxVelY;
       sphere.isShotBall = true;
       sphere.hasHitTarget = false;
       physics.addSphere(sphere);
@@ -1786,8 +1791,9 @@
     const PINCH_OPEN_T = 0.55;    // pinza abierta por encima de esto → modo apuntar
     const PINCH_CLOSED_T = 0.32;  // pinza cerrada por debajo de esto → dispara
     const GEST_SENSITIVITY = 2.4; // amplifica el movimiento de la mano a pantalla completa
-    const GEST_MIN_SPEED = 14;
-    const GEST_MAX_SPEED = 55;
+    const GEST_MIN_SPEED = 20;
+    const GEST_MAX_SPEED = 82;    // más fuerza que antes (era 55)
+    const GEST_MAX_VEL_Y = 6.5;   // techo de altura del arco: la fuerza extra empuja horizontal, no hacia arriba
 
     async function toggleGestureControl() {
       if (gestureActive) { stopGestureControl(); return; }
@@ -1881,7 +1887,7 @@
 
       if (pinchDist < PINCH_CLOSED_T && !pinchWasClosed) {
         const speed = GEST_MIN_SPEED + gestForce * (GEST_MAX_SPEED - GEST_MIN_SPEED);
-        fireFromNDC(gestAimNDC.x, gestAimNDC.y, speed);
+        fireFromNDC(gestAimNDC.x, gestAimNDC.y, speed, { maxVelY: GEST_MAX_VEL_Y });
         pinchWasClosed = true;
       } else if (pinchDist > PINCH_OPEN_T) {
         pinchWasClosed = false;
@@ -1924,12 +1930,43 @@
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    //  CONFETI DE COLISIÓN — cuadraditos planos de colores random,
+    //  sin sombreado (look pixel-art), tipo confeti. Se dispara en
+    //  cada golpe (mismo evento que el video/marco de impacto).
+    // ═══════════════════════════════════════════════════════════
+    const _confettiGeo = new THREE.PlaneGeometry(1, 1);
+    const CONFETTI_COLORS = ['#ff4d4d', '#ffd93d', '#4dff88', '#4da6ff', '#c34dff', '#ff8a3d', '#3ddbd9', '#ff4dc4'];
+    function spawnConfetti(pos) {
+      if (!pos) return;
+      const count = 10 + Math.floor(Math.random() * 6);
+      for (let i = 0; i < count; i++) {
+        const hex = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(hex), transparent: true, toneMapped: false, side: THREE.DoubleSide });
+        const m = new THREE.Mesh(_confettiGeo, mat);
+        const size = 0.028 + Math.random() * 0.034; // cuadraditos chicos
+        m.scale.set(size, size, size);
+        m.position.set(pos.x, pos.y, pos.z);
+        m.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        scene.add(m);
+        const ang = Math.random() * Math.PI * 2, spd = 2 + Math.random() * 4.5;
+        const vel = new THREE.Vector3(Math.cos(ang) * spd, (Math.random() * .8 + .8) * 5.5, Math.sin(ang) * spd);
+        const spin = new THREE.Vector3((Math.random() - .5) * 12, (Math.random() - .5) * 12, (Math.random() - .5) * 12);
+        particles.push({ mesh: m, vel, life: 1.0, decay: 1.15, spin });
+      }
+    }
+
     function updateParticles(dt) {
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.life -= dt * 1.8;
+        p.life -= dt * (p.decay || 1.8);
         p.vel.y -= 16 * dt;
         p.mesh.position.addScaledVector(p.vel, dt);
+        if (p.spin) {
+          p.mesh.rotation.x += p.spin.x * dt;
+          p.mesh.rotation.y += p.spin.y * dt;
+          p.mesh.rotation.z += p.spin.z * dt;
+        }
         p.mesh.material.opacity = Math.max(0, p.life);
         if (p.life <= 0) { scene.remove(p.mesh); p.mesh.material.dispose(); particles.splice(i, 1); }
       }
