@@ -4,9 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STUDIO_ÑÑÑ — CANICAS.3D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <title>STUDIO GLAM — CANICAS.3D</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+    /* Space Mono — tipografía del design system studio_ñññ */
 
     *,
     *::before,
@@ -121,6 +122,7 @@
 
     #master-bar .msub {
       font-size: 9px;
+      font-weight: 700;
       color: rgba(0, 0, 0, .55);
       text-transform: uppercase;
       letter-spacing: .08em;
@@ -188,35 +190,37 @@
     #winFrame {
       position: absolute;
       inset: 0;
-      padding: 3px;
-      border-radius: 2px;
+      padding: 5px;
       pointer-events: none;
       z-index: 40;
       opacity: 0;
       --wa: 0deg;
-      background: conic-gradient(from var(--wa), #F696F6, #FEEBFB, #F98F46, #FFA6F8, #F696F6);
+      background: conic-gradient(from var(--wa),
+        #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3,
+        #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3,
+        #ff0000);
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       mask-composite: exclude;
-      filter: drop-shadow(0 0 8px rgba(249, 143, 246, .55));
+      filter: drop-shadow(0 0 12px rgba(255,255,255,.6)) drop-shadow(0 0 28px rgba(255,0,0,.5)) drop-shadow(0 0 48px rgba(0,255,0,.4)) drop-shadow(0 0 68px rgba(0,0,255,.3));
       transition: opacity .45s ease;
     }
 
     #winFrame.active {
       opacity: 1;
-      filter: drop-shadow(0 0 16px rgba(249, 143, 246, .8));
-      animation: winSpin .8s linear infinite, glowPulse .7s ease-out;
+      filter: drop-shadow(0 0 20px rgba(255,255,255,.8)) drop-shadow(0 0 40px rgba(255,0,0,.6)) drop-shadow(0 0 60px rgba(0,255,0,.5)) drop-shadow(0 0 80px rgba(0,0,255,.4));
+      animation: winSpin .6s linear infinite, glowPulseRainbow .7s ease-out;
     }
 
     @keyframes winSpin {
       to { --wa: 360deg; }
     }
 
-    @keyframes glowPulse {
-      0% { box-shadow: 0 0 0 0 rgba(249, 143, 246, 0); }
-      15% { box-shadow: 0 0 70px 18px rgba(249, 143, 246, .55), 0 0 150px 44px rgba(249, 143, 246, .28); }
-      100% { box-shadow: 0 0 22px 4px rgba(249, 143, 246, .14); }
+    @keyframes glowPulseRainbow {
+      0% { box-shadow: 0 0 0 0 rgba(255,255,255,0), 0 0 0 0 rgba(255,0,0,0), 0 0 0 0 rgba(0,255,0,0), 0 0 0 0 rgba(0,0,255,0); }
+      15% { box-shadow: 0 0 70px 18px rgba(255,255,255,.55), 0 0 150px 44px rgba(255,0,0,.35), 0 0 200px 60px rgba(0,255,0,.25), 0 0 260px 80px rgba(0,0,255,.2); }
+      100% { box-shadow: 0 0 22px 4px rgba(255,255,255,.14), 0 0 40px 10px rgba(255,0,0,.1), 0 0 60px 16px rgba(0,255,0,.08), 0 0 80px 22px rgba(0,0,255,.06); }
     }
 
     /* ───────── COMPONENTE VENTANA ───────── */
@@ -295,10 +299,10 @@
 
     .win__body {
       flex: 1;
-      padding: 8px 10px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 10px;
       overflow: hidden;
       color: var(--red);
     }
@@ -332,7 +336,7 @@
     #bg-layer {
       position: absolute;
       inset: 0;
-      background: #07070e;
+      background: #000000;
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center;
@@ -448,7 +452,7 @@
     .imgdrop {
       border: 1px dashed rgba(255, 1, 0, .5);
       padding: 8px 6px;
-      min-height: 34px;
+      min-height: 46px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -650,35 +654,6 @@
       letter-spacing: .08em;
     }
 
-    #nomodel {
-      position: absolute;
-      top: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-      pointer-events: none;
-      z-index: 5;
-      width: 80%;
-    }
-
-    #nomodel h2 {
-      font-size: 11px;
-      color: var(--red);
-      font-weight: 700;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-      text-shadow: 0 0 6px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.9);
-    }
-
-    #nomodel p {
-      font-size: 8px;
-      color: rgba(255,80,80,.85);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      text-shadow: 0 0 6px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.9);
-    }
-
     #msg {
       position: absolute;
       top: 8px;
@@ -738,6 +713,123 @@
       background: var(--black);
       border-color: var(--black);
     }
+
+
+    /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
+    @media (max-width: 768px) {
+      html, body {
+        overflow: auto;
+        height: auto;
+      }
+
+      #stage {
+        position: relative;
+        top: 32px;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        height: auto;
+        min-height: 100vh;
+        flex-direction: column;
+        padding: 4px;
+        gap: 4px;
+      }
+
+      #frame {
+        --size: auto;
+        width: 100%;
+        height: auto;
+        flex-direction: column !important;
+        padding: 8px;
+        gap: 4px;
+      }
+
+      /* Canvas fijo 1080×1350, escalado para caber */
+      #canvas-area {
+        width: 100%;
+        flex: none;
+        order: 0;
+      }
+
+      #canvas-inner {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1080 / 1350;
+        height: auto;
+        min-height: 0;
+      }
+
+      #vp-fit {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* Sidebar abajo, horizontal scroll */
+      #sidebar {
+        width: 100%;
+        height: auto;
+        flex: none;
+        order: 1;
+        flex-direction: row;
+        gap: 4px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--red-dim) transparent;
+      }
+      #sidebar::-webkit-scrollbar {
+        height: 2px;
+      }
+      #sidebar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #sidebar::-webkit-scrollbar-thumb {
+        background: var(--red-dim);
+      }
+
+      #sidebar .win {
+        flex: 0 0 85vw;
+        min-width: 280px;
+        max-width: 340px;
+        height: auto;
+        max-height: 320px;
+        scroll-snap-align: start;
+        overflow: hidden;
+      }
+
+      #sidebar .win[style*="flex:1"] {
+        flex: 0 0 85vw;
+        min-height: 200px;
+      }
+
+      #sidebar .win__body.scroll {
+        max-height: 240px;
+        overflow-y: auto;
+      }
+
+      /* Ajustes de controles en mobile */
+      .looks-row {
+        flex-wrap: nowrap;
+      }
+
+      .cdots {
+        flex-wrap: nowrap;
+      }
+
+      /* Cursor oculto en touch */
+      #dot {
+        display: none;
+      }
+
+      body {
+        cursor: auto;
+      }
+    }
+
   </style>
 </head>
 
@@ -747,7 +839,8 @@
   <div id="master-bar">
     <span class="slz">///</span>
     <div class="dot5"></div>
-    <span class="mtitle">STUDIO_ÑÑÑ</span>
+    <svg class="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span class="mtitle">STUDIO GLAM</span>
     <span class="msep">—</span>
     <span class="msub">CANICAS.3D</span>
     <div class="mright">
@@ -818,7 +911,7 @@
             </div>
             <span class="slz end">///</span>
           </div>
-          <div class="win__body">
+          <div class="win__body" style="gap:10px;">
             <input type="file" id="bgf" accept="image/*">
             <label for="bgf" class="imgdrop">// CARGAR FONDO</label>
             <button class="gbtn" id="qbg">QUITAR FONDO</button>
@@ -897,6 +990,13 @@
             <div class="cdnote">Aleatorio en cada disparo</div>
 
             <div class="sep"></div>
+            <div class="cr">
+              <div class="plabel">Tamaño confeti <span class="vbadge" id="cfv">0.18</span></div>
+              <input type="range" id="cfr" min="0.05" max="0.50" step="0.01" value="0.18">
+            </div>
+            <div class="cdnote">Tamaño de las partículas al golpear canica</div>
+
+            <div class="sep"></div>
 
             <div class="plabel">Look de canica (PNG)</div>
             <div class="looks-row">
@@ -954,11 +1054,13 @@
             </div>
             <span class="slz end">///</span>
           </div>
-          <div class="win__body" style="gap:7px;">
+          <div class="win__body" style="gap:10px;">
             <div class="statrow"><span>Disparos</span><b id="sc">0</b></div>
             <div class="statrow"><span>Fuera</span><b id="hc">0</b>/<span id="tc">12</span></div>
             <div class="sep"></div>
-            <div class="hintrow"><span class="hkey">Click sost.</span><span>Cargar y disparar</span></div>
+            <div class="hintrow"><span class="hkey">Click</span><span>Disparar (potencia por altura)</span></div>
+            <div class="hintrow"><span class="hkey">Mouse arriba</span><span>Más potencia</span></div>
+            <div class="hintrow"><span class="hkey">Mouse abajo</span><span>Menos potencia</span></div>
             <div class="hintrow"><span class="hkey">Drag</span><span>Rotar cam.</span></div>
             <div class="hintrow"><span class="hkey">Scroll</span><span>Zoom</span></div>
             <div class="hintrow"><span class="hkey">R</span><span>Limpiar mías</span></div>
@@ -1102,6 +1204,23 @@
         if (a.isShotBall && !a.hasHitTarget && !b.isShotBall) { a.hasHitTarget = true; this.onFirstHit && this.onFirstHit(hitPos); }
         else if (b.isShotBall && !b.hasHitTarget && !a.isShotBall) { b.hasHitTarget = true; this.onFirstHit && this.onFirstHit(hitPos); }
 
+        // SONIDO de colisión según velocidad relativa — POR CANICA INDIVIDUAL:
+        // cada canica suena agudo en su primer golpe y grave en los siguientes.
+        // La canica de referencia es la que dispara (isShotBall); si chocan
+        // dos canicas del círculo entre sí, se usa "a" como referencia.
+        const relSpeed = Math.sqrt(
+          (a.vel.x - b.vel.x) ** 2 +
+          (a.vel.y - b.vel.y) ** 2 +
+          (a.vel.z - b.vel.z) ** 2
+        );
+        if (relSpeed > 2.0) {
+          const ref = a.isShotBall ? a : (b.isShotBall ? b : a);
+          if (ref.soundHits == null) ref.soundHits = 0;
+          const isHigh = ref.soundHits === 0;
+          ref.soundHits++;
+          playMarbleHit(relSpeed, isHigh);
+        }
+
         const dist = Math.sqrt(dist2) || 0.0001;
         const nx = dx / dist, ny = dy / dist, nz = dz / dist;
         const pen = (minD - dist) * 0.5;
@@ -1125,14 +1244,15 @@
     const FLOOR_OPACITY_DEFAULT = 0.28;
     let camFov = 53, camY = 1.6, camZ = 13.2, tgtY = 2.60;
     let physics = new Physics();
-    physics.onFirstHit = (pos) => { triggerWinFrame(); triggerHitVideo(); spawnConfetti(pos); };
+    let _pendingHits = [];
+    physics.onFirstHit = (pos) => { _pendingHits.push(pos); };
     let marbles = [];        // {sphere, group, isTarget, out}
     let ringMesh = null;
     let shots = 0, ejected = 0, totalTargets = 0;
-    let orbColor = '#44aaff', orbColor2 = '#eaf6ff', orbSize = 0.17, orbSpeed = 38, orbBounce = 0.98;
+    let orbSize = 0.17, orbSpeed = 38, orbBounce = 0.98;
     let ringRadius = 4.2, targetCount = 12;
     let nextLook = null, previewSprite = null, previewShadow = null;
-    const PREVIEW_SCALE = 0.55; // la canica "en recámara" se ve más chica que su tamaño real
+    const PREVIEW_SCALE = 0.65;
     // Punto de disparo: se calcula proyectando un rayo desde un punto FIJO de
     // la pantalla (abajo-centro, como una mira/cañón en primera persona) y
     // cruzándolo con el plano del piso. Esto es mucho más robusto que el
@@ -1184,9 +1304,11 @@
       const el = $('winFrame');
       clearTimeout(winFrameTimer);
       el.classList.remove('active');
-      void el.offsetWidth; // fuerza reflow para poder re-disparar la animación si ya estaba activa
-      el.classList.add('active');
-      winFrameTimer = setTimeout(() => el.classList.remove('active'), 3000);
+      // reinicia la animación en el próximo frame (sin forzar reflow síncrono)
+      requestAnimationFrame(() => {
+        el.classList.add('active');
+        winFrameTimer = setTimeout(() => el.classList.remove('active'), 3000);
+      });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1268,6 +1390,134 @@
     // ═══════════════════════════════════════════════════════════
     //  ENTORNO PROCEDURAL (para reflejos de vidrio en las canicas)
     // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
+    //  AUDIO: dos sonidos alternados de colisión — agudo / grave
+    // ═══════════════════════════════════════════════════════════
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    // isHigh llega desde afuera: true = primer golpe de esa canica (agudo),
+    // false = golpes siguientes de la misma canica (grave).
+    function playMarbleHit(intensity, isHigh = true) {
+      try {
+        const ctx = getAudioCtx();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const now = ctx.currentTime;
+        const masterGain = ctx.createGain();
+        masterGain.connect(ctx.destination);
+
+        // Volumen según intensidad
+        const vol = Math.min(0.35, 0.04 + intensity * 0.012);
+        masterGain.gain.setValueAtTime(vol, now);
+        masterGain.gain.exponentialRampToValueAtTime(0.001, now + (isHigh ? 0.25 : 0.45));
+
+        if (isHigh) {
+          // ── SONIDO AGUDO (cristal/canica brillante) ──
+          const freq = 900 + Math.min(1000, intensity * 35);
+
+          // Sine principal
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.25, now + 0.2);
+          osc.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.25);
+
+          // Armónico agudo
+          const osc2 = ctx.createOscillator();
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(freq * 1.6, now);
+          osc2.frequency.exponentialRampToValueAtTime(freq * 0.4, now + 0.15);
+          const g2 = ctx.createGain();
+          g2.gain.setValueAtTime(vol * 0.25, now);
+          g2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+          g2.connect(ctx.destination);
+          osc2.connect(g2);
+          osc2.start(now);
+          osc2.stop(now + 0.2);
+
+          // Clack corto
+          playClack(ctx, now, vol * 0.6, 0.06);
+
+        } else {
+          // ── SONIDO GRAVE (canica pesada/golpe profundo) ──
+          const freq = 180 + Math.min(300, intensity * 15);
+
+          // Sine grave con sustain
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.5, now + 0.35);
+          osc.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.4);
+
+          // Subgrave
+          const oscSub = ctx.createOscillator();
+          oscSub.type = 'sine';
+          oscSub.frequency.setValueAtTime(freq * 0.5, now);
+          oscSub.frequency.exponentialRampToValueAtTime(freq * 0.2, now + 0.3);
+          const gSub = ctx.createGain();
+          gSub.gain.setValueAtTime(vol * 0.5, now);
+          gSub.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          gSub.connect(ctx.destination);
+          oscSub.connect(gSub);
+          oscSub.start(now);
+          oscSub.stop(now + 0.35);
+
+          // Square para cuerpo del sonido
+          const oscSq = ctx.createOscillator();
+          oscSq.type = 'square';
+          oscSq.frequency.setValueAtTime(freq * 0.8, now);
+          const gSq = ctx.createGain();
+          gSq.gain.setValueAtTime(vol * 0.08, now);
+          gSq.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          // Lowpass para suavizar el square
+          const lp = ctx.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.frequency.setValueAtTime(800, now);
+          lp.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+          gSq.connect(lp);
+          lp.connect(ctx.destination);
+          oscSq.connect(gSq);
+          oscSq.start(now);
+          oscSq.stop(now + 0.12);
+
+          // Clack más largo y profundo
+          playClack(ctx, now, vol * 0.4, 0.1, 0.5);
+        }
+
+      } catch (e) { /* audio no disponible, silencioso */ }
+    }
+
+    function playClack(ctx, t, vol, duration, toneFactor = 1.0) {
+      const bufferSize = ctx.sampleRate * duration;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.12));
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(vol, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      // Filtro para ajustar el tono del clack
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(3000 * toneFactor + 500, t);
+      filter.Q.setValueAtTime(1.5, t);
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noise.start(t);
+    }
+
     function buildEnvironment() {
       const envScene = new THREE.Scene();
       function panel(w, h, color, x, y, z, rx, ry, rz) {
@@ -1275,15 +1525,15 @@
         m.position.set(x, y, z); m.rotation.set(rx, ry, rz);
         envScene.add(m);
       }
-      panel(10, 10, 0x1a2740, 0, 0, -7, 0, 0, 0);
-      panel(10, 10, 0xffcf9e, 0, 0, 7, 0, Math.PI, 0);
-      panel(8, 8, 0xff8a5c, -7, 0, 0, 0, Math.PI / 2, 0);
-      panel(8, 8, 0x6fc7ff, 7, 0, 0, 0, -Math.PI / 2, 0);
-      panel(8, 8, 0xd8d8e8, 0, 7, 0, Math.PI / 2, 0, 0);
-      panel(8, 8, 0x0a0a14, 0, -7, 0, -Math.PI / 2, 0, 0);
+      panel(12, 12, 0x1a2030, 0, 0, -8, 0, 0, 0);
+      panel(12, 12, 0xffe8cc, 0, 0, 8, 0, Math.PI, 0);
+      panel(10, 10, 0xff9966, -8, 0, 0, 0, Math.PI / 2, 0);
+      panel(10, 10, 0x88ccff, 8, 0, 0, 0, -Math.PI / 2, 0);
+      panel(10, 10, 0xe8e8f0, 0, 8, 0, Math.PI / 2, 0, 0);
+      panel(10, 10, 0x0a0a14, 0, -8, 0, -Math.PI / 2, 0, 0);
       const pmrem = new THREE.PMREMGenerator(renderer);
       pmrem.compileEquirectangularShader();
-      const rt = pmrem.fromScene(envScene, 0.035);
+      const rt = pmrem.fromScene(envScene, 0.04);
       pmrem.dispose();
       return rt.texture;
     }
@@ -1316,67 +1566,99 @@
       return '#' + ((1 << 24) + (fr << 16) + (fg << 8) + fb).toString(16).slice(1);
     }
 
-    const _marbleTexCache = new Map();
-    function getMarbleTexture(colorHex) {
-      if (_marbleTexCache.has(colorHex)) return _marbleTexCache.get(colorHex);
+    // ═══════════════════════════════════════════════════════════
+    //  CANICAS — ILUSTRACIÓN 2D PLANA CON DEGRADADO (estilo
+    //  "glossy sphere" tipo cómic/borderlands, pero sin nada 3D real):
+    //  relleno con degradado radial (luz arriba-izq, sombra abajo-der),
+    //  highlight puntual y un stroke negro fino. Todo pintado en canvas
+    //  y aplicado como sprite plano que siempre mira a cámara.
+    // ═══════════════════════════════════════════════════════════
+    const _flatMarbleTexCache = new Map();
+    let _preloadedTextures = false;
 
-      const size = 200;
+    function _hexToRgb(hex) {
+      const n = parseInt(hex.replace('#', ''), 16);
+      return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    }
+    // amt > 0 aclara hacia blanco, amt < 0 oscurece hacia negro (amt en -1..1)
+    function _shade(hex, amt) {
+      const { r, g, b } = _hexToRgb(hex);
+      const f = v => amt >= 0 ? Math.round(v + (255 - v) * amt) : Math.round(v * (1 + amt));
+      return `rgb(${f(r)},${f(g)},${f(b)})`;
+    }
+
+    function generateFlatMarbleTexture(colorHex) {
+      if (_flatMarbleTexCache.has(colorHex)) return _flatMarbleTexCache.get(colorHex);
+
+      const size = 256;
       const canvas = document.createElement('canvas');
       canvas.width = size; canvas.height = size;
       const ctx = canvas.getContext('2d');
       const cx = size / 2, cy = size / 2;
-      const strokeW = size * 0.022;          // stroke fino, tipo 1pt
-      const rOuter = size / 2 - 3;
-      const rFill = rOuter - strokeW / 2;
 
-      const shadowTone = complementMultiplyShade(colorHex, 0.08); // sombra: complementario en multiplicar, 8% opacidad
-      const midTone = colorHex;                       // tono medio (color base)
-      const lightTone = shadeColor(colorHex, 0.34);    // luz (tono claro)
+      const strokeW = size * 0.022;          // trazo fino tipo "1px" (proporcional a la canica)
+      const rOuter = size / 2 - 3;           // borde exterior del stroke
+      const rFill = rOuter - strokeW / 2;    // radio del relleno
 
       ctx.clearRect(0, 0, size, size);
 
-      // degradado suave (difuminado) de luz → tono medio → sombra, en vez
-      // de formas planas: el foco de luz arriba-izquierda se funde poco a
-      // poco hacia el tono base y hacia la sombra en el borde opuesto
+      // degradado tipo ilustración: luz arriba-izquierda → sombra abajo-derecha
       const grad = ctx.createRadialGradient(
         cx - rFill * 0.38, cy - rFill * 0.42, rFill * 0.04,
-        cx - rFill * 0.05, cy - rFill * 0.05, rFill * 1.35
+        cx + rFill * 0.10, cy + rFill * 0.16, rFill * 1.3
       );
-      grad.addColorStop(0, lightTone);
-      grad.addColorStop(0.45, midTone);
-      grad.addColorStop(1, shadowTone);
+      grad.addColorStop(0.00, _shade(colorHex, 0.55));
+      grad.addColorStop(0.32, _shade(colorHex, 0.10));
+      grad.addColorStop(0.68, colorHex);
+      grad.addColorStop(1.00, _shade(colorHex, -0.40));
 
       ctx.beginPath();
       ctx.arc(cx, cy, rFill, 0, Math.PI * 2);
       ctx.fillStyle = grad;
       ctx.fill();
 
-      // stroke negro fino (1pt) tipo ilustración
+      // highlight puntual (pop de ilustración, no gradiente difuso)
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, rFill, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.beginPath();
+      ctx.ellipse(cx - rFill * 0.36, cy - rFill * 0.40, rFill * 0.22, rFill * 0.14, -0.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fill();
+      ctx.restore();
+
+      // stroke negro fino (estilo ilustración/cómic 2D)
       ctx.beginPath();
       ctx.arc(cx, cy, rOuter - strokeW / 2, 0, Math.PI * 2);
       ctx.lineWidth = strokeW;
-      ctx.strokeStyle = '#101014';
-      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#0a0a0a';
       ctx.stroke();
 
       const tex = new THREE.CanvasTexture(canvas);
       tex.encoding = THREE.sRGBEncoding;
       tex.minFilter = THREE.LinearFilter;
       tex.magFilter = THREE.LinearFilter;
-      tex.anisotropy = 4;
-      _marbleTexCache.set(colorHex, tex);
+      tex.anisotropy = 8;
+      _flatMarbleTexCache.set(colorHex, tex);
       return tex;
+    }
+
+    function preloadMarbleTextures() {
+      if (_preloadedTextures) return;
+      for (const color of PALETTE) generateFlatMarbleTexture(color);
+      _preloadedTextures = true;
+      console.log('[canicas] Texturas de canica precargadas:', PALETTE.length);
     }
 
     function createMarbleMesh(r, colorHexOrTex) {
       const isCustomTex = colorHexOrTex && colorHexOrTex.isTexture;
-      const tex = isCustomTex ? colorHexOrTex : getMarbleTexture(colorHexOrTex);
       const mat = new THREE.SpriteMaterial({
-        map: tex,
+        map: isCustomTex ? colorHexOrTex : generateFlatMarbleTexture(colorHexOrTex),
         transparent: true,
-        fog: false,          // color plano constante, sin niebla/profundidad
-        toneMapped: false,   // color exacto tal cual el HEX, sin tonemapping
-        rotation: Math.random() * Math.PI * 2
+        fog: false,
+        toneMapped: false,
+        rotation: isCustomTex ? 0 : Math.random() * Math.PI * 2,
       });
       const sprite = new THREE.Sprite(mat);
       sprite.scale.set(r * 2, r * 2, 1);
@@ -1400,7 +1682,8 @@
       return { tex: null, color: randColor() };
     }
     function spriteFromLook(r, look) {
-      return createMarbleMesh(r, look.tex || look.color);
+      if (look.tex) return createMarbleMesh(r, look.tex);
+      return createMarbleMesh(r, look.color);
     }
 
     function loadCustomLook(slot, file) {
@@ -1482,15 +1765,15 @@
     //  proyectado hacia la izquierda de cada canica.
     // ═══════════════════════════════════════════════════════════
     const _shadowGeo = new THREE.CircleGeometry(1, 40);
-    const SHADOW_OFFSET = new THREE.Vector3(-0.9, 0, 0.3); // hacia la izquierda
+    const SHADOW_OFFSET = new THREE.Vector3(-0.4, 0, 0.4); // sombra sutil debajo
     function createGroundShadow(r) {
       const mat = new THREE.MeshBasicMaterial({
-        color: 0x000000, transparent: true, opacity: 0.28,
+        color: 0x000000, transparent: true, opacity: 0.18,
         depthWrite: false, toneMapped: false
       });
       const mesh = new THREE.Mesh(_shadowGeo, mat);
       mesh.rotation.x = -Math.PI / 2;
-      mesh.scale.set(r * 1.55, r * 1.05, 1); // óvalo plano, borde duro, sin blur
+      mesh.scale.set(r * 1.35, r * 1.35, 1);
       mesh.renderOrder = 1;
       mesh.userData.offset = SHADOW_OFFSET.clone().multiplyScalar(r);
       return mesh;
@@ -1503,13 +1786,17 @@
     function refreshPreviewBall() {
       if (previewSprite) {
         scene.remove(previewSprite);
-        previewSprite.material.dispose();
+        previewSprite.traverse(c => {
+          if (c.geometry) c.geometry.dispose();
+          if (c.material) {
+            if (Array.isArray(c.material)) c.material.forEach(m => m.dispose && m.dispose());
+            else c.material.dispose && c.material.dispose();
+          }
+        });
       }
       if (!nextLook) nextLook = rollNextLook();
       previewSprite = spriteFromLook(orbSize * PREVIEW_SCALE, nextLook);
       const lp = getLaunchPoint();
-      // apoyada realmente en el suelo: su centro debe estar a la altura de
-      // su PROPIO radio (más chico que una canica real), no al radio completo
       previewSprite.position.set(lp.x, orbSize * PREVIEW_SCALE, lp.z);
       scene.add(previewSprite);
 
@@ -1540,23 +1827,31 @@
     const BAR_H = 22;       // .win__bar { height: 22px }
 
     function layoutFrame() {
+      const isMobile = window.innerWidth <= 768;
+      const frame = $('frame');
+
+      if (isMobile) {
+        // Mobile: canvas fijo 1080×1350 escalado, sidebar horizontal abajo
+        frame.style.width = '100%';
+        frame.style.height = 'auto';
+        return;
+      }
+
       const stage = $('stage').getBoundingClientRect();
       const sidebarW = $('sidebar').getBoundingClientRect().width;
       const aspect = imgAspect || DEFAULT_ASPECT;
 
       const availW = stage.width, availH = stage.height;
-      const ow = WIN_BORDER;                 // overhead de ancho del panel del canvas
-      const oh = WIN_BORDER + BAR_H;         // overhead de alto (borde + barra de título)
+      const ow = WIN_BORDER;
+      const oh = WIN_BORDER + BAR_H;
       const extraW = ow + FRAME_GAP + sidebarW + FRAME_PAD * 2;
       const extraH = oh + FRAME_PAD * 2;
 
-      // 1) intenta ajustar por altura completa disponible
       let innerH = availH - extraH;
       let innerW = innerH * aspect;
       let frameW = innerW + extraW;
       let frameH = availH;
 
-      // 2) si no entra a lo ancho, ajusta por ancho disponible en su lugar
       if (frameW > availW) {
         frameW = availW;
         innerW = frameW - extraW;
@@ -1564,7 +1859,6 @@
         frameH = innerH + extraH;
       }
 
-      const frame = $('frame');
       frame.style.width = Math.round(frameW) + 'px';
       frame.style.height = Math.round(frameH) + 'px';
     }
@@ -1574,6 +1868,19 @@
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       renderer.setPixelRatio(dpr);
       renderer.setSize(Math.max(1, rect.width), Math.max(1, rect.height), false);
+    }
+
+    function syncCanvasSizeMobile() {
+      const isMobile = window.innerWidth <= 768;
+      if (!isMobile) return;
+      const fit = $('vp-fit');
+      if (!fit) return;
+      const rect = fit.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        renderer.setSize(Math.max(1, rect.width), Math.max(1, rect.height), false);
+        camera.aspect = rect.width / Math.max(1, rect.height);
+        camera.updateProjectionMatrix();
+      }
     }
 
     function syncCameraAspect() {
@@ -1625,33 +1932,43 @@
       renderer.outputEncoding = THREE.sRGBEncoding;
       $('vp-fit').appendChild(renderer.domElement);
 
+      // Environment map para reflejos en canicas
+      envTex = buildEnvironment();
+      scene.environment = envTex;
+
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.target.set(0, tgtY, 0);
       controls.update();
       controls.enabled = false; // cámara fija: sin rotar/zoom/pan, ángulo tal cual la referencia
 
-      // Luces (afectan al suelo/anillo; las canicas son sprites planos sin luz)
-      scene.add(new THREE.AmbientLight(0x1a2a44, 1.1));
-      const dir = new THREE.DirectionalLight(0xffffff, 1.9);
+      // Luces para canicas 3D con vetas
+      scene.add(new THREE.AmbientLight(0x1a1a3a, 0.6));
+      const dir = new THREE.DirectionalLight(0xffffff, 2.5);
       dir.position.set(6, 12, 7); dir.castShadow = true;
       dir.shadow.mapSize.set(2048, 2048);
+      dir.shadow.bias = -0.0001;
       ['left', 'bottom'].forEach(k => dir.shadow.camera[k] = -10);
       ['right', 'top'].forEach(k => dir.shadow.camera[k] = 10);
       dir.shadow.camera.far = 40; scene.add(dir);
-      const p1 = new THREE.PointLight(0x334dff, 4, 18); p1.position.set(-6, 5, -3); scene.add(p1);
-      const p2 = new THREE.PointLight(0xff7733, 2.2, 14); p2.position.set(6, 3, 5); scene.add(p2);
+      const p1 = new THREE.PointLight(0x334dff, 8, 25); p1.position.set(-6, 8, -3); scene.add(p1);
+      const p2 = new THREE.PointLight(0xff4400, 6, 25); p2.position.set(6, 6, 5); scene.add(p2);
+      const p3 = new THREE.PointLight(0xffffff, 5, 20); p3.position.set(0, 10, 0); scene.add(p3);
 
       // Suelo — semi-transparente para que el fondo se vea a través (sin cuadrícula)
       floorMesh = new THREE.Mesh(
         new THREE.CircleGeometry(20, 64),
-        new THREE.MeshStandardMaterial({ color: 0x0a1020, roughness: .9, metalness: .1, transparent: true, opacity: FLOOR_OPACITY_DEFAULT, depthWrite: true })
+        new THREE.MeshStandardMaterial({
+          color: 0x080818, roughness: 0.35, metalness: 0.45,
+          transparent: true, opacity: FLOOR_OPACITY_DEFAULT,
+          depthWrite: true, envMap: envTex, envMapIntensity: 1.5,
+        })
       );
       floorMesh.rotation.x = -Math.PI / 2; floorMesh.receiveShadow = true; scene.add(floorMesh);
 
       makeRingMesh(ringRadius);
 
-      new ResizeObserver(() => { layoutFrame(); syncCameraAspect(); applyRenderScale(); }).observe($('stage'));
-      window.addEventListener('resize', () => { layoutFrame(); syncCameraAspect(); applyRenderScale(); });
+      new ResizeObserver(() => { layoutFrame(); syncCameraAspect(); applyRenderScale(); syncCanvasSizeMobile(); }).observe($('stage'));
+      window.addEventListener('resize', () => { layoutFrame(); syncCameraAspect(); applyRenderScale(); syncCanvasSizeMobile(); });
 
       renderer.domElement.addEventListener('mousedown', onCanvasMouseDown);
       document.addEventListener('mouseup', onGlobalMouseUp);
@@ -1699,6 +2016,7 @@
         const sphere = new Sphere(new Vec3(p.x, orbSize, p.z), orbSize, 0.65, 0.1);
         sphere.sleeping = true;
         sphere.isShotBall = false;
+        sphere.soundHits = 0;
         physics.addSphere(sphere);
         marbles.push({ sphere, group, shadow, isTarget: true, out: false, color });
       }
@@ -1735,32 +2053,47 @@
     }
 
     // dispara una canica apuntando hacia el punto (ndcX, ndcY) en coordenadas
-    // de pantalla normalizadas [-1,1], con una velocidad dada. La usan tanto
-    // el click sostenido del mouse como el control por gesto.
+    // de pantalla normalizadas [-1,1], con una velocidad dada.
+    // La dirección se calcula proyectando un rayo desde la cámara hasta
+    // el plano del suelo, y la canica sale EXACTAMENTE desde el punto de
+    // la línea punteada (aimPoint), no desde un punto fijo.
     function fireFromNDC(ndcX, ndcY, speed, opts) {
-      // origen SIEMPRE fijo (el mismo punto donde se veía la canica lista,
-      // pegada a la cámara)
-      const tp = getLaunchPoint();
-      const dir = computeAimDir(ndcX, ndcY, tp);
+      // Origen: posición actual de la canica preview (donde está el marcador)
+      const lp = getLaunchPoint();
+
+      // Dirección: rayo desde cámara hacia donde apunta el mouse
+      mouseNDC.x = ndcX; mouseNDC.y = ndcY;
+      raycaster.setFromCamera(mouseNDC, camera);
+
+      // Punto de impacto en el plano del suelo (y = orbSize)
+      const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -orbSize);
+      const aimPoint = new THREE.Vector3();
+      const hit = raycaster.ray.intersectPlane(aimPlane, aimPoint);
+      if (!hit) {
+        aimPoint.copy(raycaster.ray.origin).addScaledVector(raycaster.ray.direction, 50);
+        aimPoint.y = orbSize;
+      }
+
+      // La canica sale DESDE la posición de la preview HACIA el aimPoint
+      const dir = aimPoint.clone().sub(lp).normalize();
+      if (dir.y < MIN_LOFT) { dir.y = MIN_LOFT; dir.normalize(); }
 
       const look = nextLook || rollNextLook();
       const color = look.color;
       const group = spriteFromLook(orbSize, look);
-      group.position.copy(tp);
+      group.position.copy(lp);
       scene.add(group);
 
       const shadow = createGroundShadow(orbSize);
-      shadow.position.set(tp.x + shadow.userData.offset.x, 0.004, tp.z + shadow.userData.offset.z);
+      shadow.position.set(lp.x + shadow.userData.offset.x, 0.004, lp.z + shadow.userData.offset.z);
       scene.add(shadow);
 
-      const sphere = new Sphere(new Vec3(tp.x, tp.y, tp.z), orbSize, orbBounce, 0.06);
+      const sphere = new Sphere(new Vec3(lp.x, lp.y, lp.z), orbSize, orbBounce, 0.06);
       sphere.vel = new Vec3(dir.x * speed, dir.y * speed, dir.z * speed);
-      // más fuerza sin más parábola: la componente vertical se limita a un
-      // techo fijo, así el extra de velocidad va todo a empuje horizontal
-      // (tiro más plano y contundente) en vez de a más altura de arco.
       if (opts && opts.maxVelY != null && sphere.vel.y > opts.maxVelY) sphere.vel.y = opts.maxVelY;
       sphere.isShotBall = true;
       sphere.hasHitTarget = false;
+      sphere.soundHits = 0;
       physics.addSphere(sphere);
 
       marbles.push({ sphere, group, shadow, isTarget: false, out: false, color });
@@ -1769,99 +2102,150 @@
       const shotOnly = marbles.filter(m => !m.isTarget);
       if (shotOnly.length > MAX_SHOTS) removeMarble(shotOnly[0]);
 
-      // prepara la siguiente canica "en recámara"
       nextLook = rollNextLook();
       refreshPreviewBall();
     }
 
     // ═══════════════════════════════════════════════════════════
-    //  FLECHITA DE DIRECCIÓN Y POTENCIA — aparece sobre la canica en
-    //  recámara mientras se mantiene presionado el click. Apunta hacia
-    //  donde apunta el mouse y crece/cambia de color según cuánto se
-    //  sostiene el click (más tiempo = más fuerza de disparo).
+    //  LÍNEA PUNTEADA VECTORIAL + POTENCIÓMETRO POR DISTANCIA Y
+    //  La potencia se calcula por qué tan lejos está el mouse
+    //  en el eje Y (vertical) desde la canica de preview:
+    //  - Mouse más arriba (lejos en Y) = MÁS potencia
+    //  - Mouse más cerca (cerca en Y) = MENOS potencia
+    //  La línea cambia de color: verde (baja) → amarillo → rojo (alta)
     // ═══════════════════════════════════════════════════════════
-    let powerArrowGroup = null, powerArrowMat = null;
-    // Silueta de flechita (en el plano XY local, apuntando hacia +X, cola en
-    // x=0, punta en x=1). El mismo set de puntos, agrandado un pelín, se usa
-    // para el contorno negro por debajo — la técnica clásica de "stroke".
-    const ARROW_PTS = [
-      [0, -0.05], [0.66, -0.05], [0.66, -0.16], [1, 0], [0.66, 0.16], [0.66, 0.05], [0, 0.05]
-    ];
-    function buildArrowShape(mul) {
-      const s = new THREE.Shape();
-      s.moveTo(ARROW_PTS[0][0] * mul, ARROW_PTS[0][1] * mul);
-      for (let i = 1; i < ARROW_PTS.length; i++) s.lineTo(ARROW_PTS[i][0] * mul, ARROW_PTS[i][1] * mul);
-      s.closePath();
-      return s;
-    }
-    function buildPowerArrow() {
+    let aimLineGroup = null, aimDotMesh = null;
+    let currentPower = 0; // 0..1
+
+    function buildAimLine() {
       const g = new THREE.Group();
 
-      // contorno negro (stroke ~1px): misma silueta, un poco más grande,
-      // renderizado justo debajo del relleno de color
-      const outlineMesh = new THREE.Mesh(
-        new THREE.ShapeGeometry(buildArrowShape(1.3)),
-        new THREE.MeshBasicMaterial({ color: 0x0a0a0a, toneMapped: false, side: THREE.DoubleSide })
-      );
-      outlineMesh.rotation.x = -Math.PI / 2;
-      outlineMesh.position.y = 0;
-      g.add(outlineMesh);
+      // Línea punteada: serie de puntos pequeños
+      const dotCount = 24;
+      const dotGeo = new THREE.SphereGeometry(0.012, 6, 6);
 
-      // relleno de color, encima del contorno
-      powerArrowMat = new THREE.MeshBasicMaterial({ color: 0x8fd8ff, toneMapped: false, side: THREE.DoubleSide });
-      const fillMesh = new THREE.Mesh(new THREE.ShapeGeometry(buildArrowShape(1)), powerArrowMat);
-      fillMesh.rotation.x = -Math.PI / 2;
-      fillMesh.position.y = 0.003; // apenas arriba del contorno, evita z-fighting
-      g.add(fillMesh);
+      for (let i = 0; i < dotCount; i++) {
+        const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false, transparent: true }));
+        dot.userData.dotIndex = i;
+        dot.userData.isAimDot = true;
+        g.add(dot);
+      }
 
-      g.visible = false;
+      // Círculo en el punto de mira
+      const ringGeo = new THREE.RingGeometry(0.035, 0.048, 16);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff, toneMapped: false, side: THREE.DoubleSide, transparent: true, opacity: 0.9
+      });
+      aimDotMesh = new THREE.Mesh(ringGeo, ringMat);
+      aimDotMesh.rotation.x = -Math.PI / 2;
+      aimDotMesh.userData.isAimRing = true;
+      g.add(aimDotMesh);
+
+      // Punto central
+      const centerGeo = new THREE.SphereGeometry(0.01, 6, 6);
+      const centerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+      const centerDot = new THREE.Mesh(centerGeo, centerMat);
+      centerDot.userData.isAimCenter = true;
+      g.add(centerDot);
+
+      g.visible = true;
       g.renderOrder = 999;
       g.frustumCulled = false;
       scene.add(g);
       return g;
     }
 
+    // Color del indicador de potencia: blanco fijo (el nivel de potencia
+    // ya se ve por el tamaño del aro y la opacidad de los puntos)
+    function powerColor() {
+      return new THREE.Color(0xffffff);
+    }
+
     let isCharging = false, chargeStart = 0, chargeStartClientX = 0, chargeStartClientY = 0;
     let lastMouseClientX = 0, lastMouseClientY = 0;
-    const CHARGE_MAX_TIME = 1100;  // ms sostenido para llegar a potencia máxima
-    const DRAG_CANCEL_PX = 10;     // si te movés más que esto, se interpreta como rotar cámara, no disparo
-    const MOUSE_MIN_SPEED = 12;    // fuerza mínima con un click rápido, sin cargar
+    const DRAG_CANCEL_PX = 10;
+    const MIN_POWER_SPEED = 15;   // velocidad mínima
+    const MAX_POWER_SPEED = 65;   // velocidad máxima
+    const POWER_DEADZONE = 60;    // px mínimos de distancia Y para empezar a cargar
+    const POWER_MAX_DIST = 350;   // px de distancia Y para potencia máxima
 
-    // dispara con la potencia acumulada (holdT: 0..1) apuntando al punto de
-    // pantalla (clientX, clientY). La usan tanto soltar el click como el
-    // auto-disparo al llegar a potencia máxima.
-    function fireCharged(clientX, clientY, holdT) {
+    function fireCharged(clientX, clientY) {
       const rect = renderer.domElement.getBoundingClientRect();
       const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
       const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
-      const speed = MOUSE_MIN_SPEED + holdT * Math.max(0, orbSpeed - MOUSE_MIN_SPEED);
+      // Velocidad según potencia acumulada
+      const speed = MIN_POWER_SPEED + currentPower * (MAX_POWER_SPEED - MIN_POWER_SPEED);
       fireFromNDC(ndcX, ndcY, speed);
     }
 
-    function updatePowerArrow() {
-      if (!powerArrowGroup) powerArrowGroup = buildPowerArrow();
+    function updateAimLine() {
+      if (!aimLineGroup) aimLineGroup = buildAimLine();
 
-      // si se sostiene el click hasta el tope de carga, dispara solo — no
-      // hace falta soltar el mouse para que la canica salga.
-      if (isCharging && performance.now() - chargeStart >= CHARGE_MAX_TIME) {
-        isCharging = false;
-        fireCharged(lastMouseClientX, lastMouseClientY, 1);
+      const rect = renderer.domElement.getBoundingClientRect();
+      let ndcX, ndcY;
+
+      if (gestureActive) {
+        ndcX = gestAimNDC.x;
+        ndcY = gestAimNDC.y;
+      } else {
+        ndcX = ((lastMouseClientX - rect.left) / rect.width) * 2 - 1;
+        ndcY = -((lastMouseClientY - rect.top) / rect.height) * 2 + 1;
       }
 
-      // la flechita siempre está visible y sigue el mouse, esté cargando o no
-      const rect = renderer.domElement.getBoundingClientRect();
-      const ndcX = ((lastMouseClientX - rect.left) / rect.width) * 2 - 1;
-      const ndcY = -((lastMouseClientY - rect.top) / rect.height) * 2 + 1;
       const lp = getLaunchPoint();
-      const dir = computeAimDir(ndcX, ndcY, lp);
-      const holdT = isCharging ? Math.min(1, (performance.now() - chargeStart) / CHARGE_MAX_TIME) : 0;
 
-      powerArrowGroup.visible = true;
-      powerArrowGroup.position.set(lp.x, lp.y + orbSize * PREVIEW_SCALE * 2.6, lp.z);
-      powerArrowGroup.rotation.set(0, -Math.atan2(dir.z, dir.x), 0);
-      const len = 0.45 + holdT * 1.15;
-      powerArrowGroup.scale.set(len, 1, 1);
-      if (powerArrowMat) powerArrowMat.color.copy(new THREE.Color(0x8fd8ff).lerp(new THREE.Color(0xff2222), holdT));
+      // ── CALCULAR EL MISMO aimPoint QUE USA EL DISPARO ──
+      // Proyectar rayo desde cámara hacia el plano del suelo
+      mouseNDC.x = ndcX; mouseNDC.y = ndcY;
+      raycaster.setFromCamera(mouseNDC, camera);
+      const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -orbSize);
+      const aimPoint = new THREE.Vector3();
+      const hit = raycaster.ray.intersectPlane(aimPlane, aimPoint);
+      if (!hit) {
+        aimPoint.copy(raycaster.ray.origin).addScaledVector(raycaster.ray.direction, 50);
+        aimPoint.y = orbSize;
+      }
+
+      // ── CALCULAR POTENCIA por distancia en eje Y del mouse ──
+      const previewScreenY = rect.bottom - rect.height * 0.15;
+      const distY = previewScreenY - lastMouseClientY;
+      let power = 0;
+      if (distY > POWER_DEADZONE) {
+        power = Math.min(1, (distY - POWER_DEADZONE) / (POWER_MAX_DIST - POWER_DEADZONE));
+      }
+      currentPower = power;
+
+      // Color según potencia
+      const pColor = powerColor(power);
+
+      // La línea va desde la canica preview HASTA el aimPoint exacto
+      // (el mismo punto donde va a caer la canica)
+      const dotCount = 24;
+      aimLineGroup.traverse(child => {
+        if (child.userData.isAimDot) {
+          const t = child.userData.dotIndex / (dotCount - 1);
+          const pos = lp.clone().lerp(aimPoint, t);
+          child.position.copy(pos);
+          const dashPhase = (t * 10 + performance.now() * 0.002) % 1;
+          child.material.color.copy(pColor);
+          child.material.opacity = dashPhase < 0.5 ? 0.7 + power * 0.2 : 0.1;
+        }
+        if (child.userData.isAimRing) {
+          child.position.copy(aimPoint);
+          child.position.y += 0.003;
+          child.rotation.x = -Math.PI / 2;
+          child.material.color.copy(pColor);
+          const ringScale = 1 + power * 0.5;
+          child.scale.set(ringScale, ringScale, 1);
+        }
+        if (child.userData.isAimCenter) {
+          child.position.copy(aimPoint);
+          child.position.y += 0.004;
+          child.material.color.copy(pColor);
+        }
+      });
+
+      aimLineGroup.visible = true;
     }
 
     function onCanvasMouseDown(e) {
@@ -1874,10 +2258,9 @@
     function onGlobalMouseUp(e) {
       if (!isCharging) return;
       const moved = Math.hypot(e.clientX - chargeStartClientX, e.clientY - chargeStartClientY);
-      const holdT = Math.min(1, (performance.now() - chargeStart) / CHARGE_MAX_TIME);
       isCharging = false;
-      if (moved > DRAG_CANCEL_PX) return; // fue un arrastre para rotar la cámara, no un disparo
-      fireCharged(e.clientX, e.clientY, holdT);
+      if (moved > DRAG_CANCEL_PX) return;
+      fireCharged(e.clientX, e.clientY);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1991,8 +2374,7 @@
       updateGestHudPosition(ndcX, ndcY);
 
       if (pinchDist < PINCH_CLOSED_T && !pinchWasClosed) {
-        const speed = GEST_MIN_SPEED + gestForce * (GEST_MAX_SPEED - GEST_MIN_SPEED);
-        fireFromNDC(gestAimNDC.x, gestAimNDC.y, speed, { maxVelY: GEST_MAX_VEL_Y });
+        fireFromNDC(gestAimNDC.x, gestAimNDC.y, orbSpeed, { maxVelY: GEST_MAX_VEL_Y });
         pinchWasClosed = true;
       } else if (pinchDist > PINCH_OPEN_T) {
         pinchWasClosed = false;
@@ -2001,7 +2383,13 @@
 
     function removeMarble(m) {
       scene.remove(m.group);
-      m.group.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material !== envTex) c.material.dispose && c.material.dispose(); });
+      m.group.traverse(c => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) {
+          if (Array.isArray(c.material)) c.material.forEach(mat => mat.dispose && mat.dispose());
+          else c.material.dispose && c.material.dispose();
+        }
+      });
       if (m.shadow) {
         scene.remove(m.shadow);
         m.shadow.material.dispose();
@@ -2036,28 +2424,70 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    //  CONFETI DE COLISIÓN — cuadraditos planos de colores random,
-    //  sin sombreado (look pixel-art), tipo confeti. Se dispara en
-    //  cada golpe (mismo evento que el video/marco de impacto).
+    //  CONFETI DE COLISIÓN — puntos redondos estilo ilustración
+    //  (relleno sólido + stroke negro fino, como las canicas), como
+    //  sprites: SIEMPRE de cara a cámara, nunca se ven "de canto".
+    //  Textura cacheada por color + tope de partículas activas para
+    //  que no se acumulen y generen lag en ráfagas de disparos.
     // ═══════════════════════════════════════════════════════════
-    const _confettiGeo = new THREE.PlaneGeometry(1, 1);
-    const CONFETTI_COLORS = ['#ff4d4d', '#ffd93d', '#4dff88', '#4da6ff', '#c34dff', '#ff8a3d', '#3ddbd9', '#ff4dc4'];
+    const _confettiTexCache = new Map();
+    function getConfettiTexture(colorHex) {
+      if (_confettiTexCache.has(colorHex)) return _confettiTexCache.get(colorHex);
+      const size = 64;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const cx = size / 2, cy = size / 2;
+      const strokeW = size * 0.10;
+      const rOuter = size / 2 - 2;
+      const rFill = rOuter - strokeW / 2;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, rFill, 0, Math.PI * 2);
+      ctx.fillStyle = colorHex;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, rOuter - strokeW / 2, 0, Math.PI * 2);
+      ctx.lineWidth = strokeW;
+      ctx.strokeStyle = '#0a0a0a';
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      _confettiTexCache.set(colorHex, tex);
+      return tex;
+    }
+
+    const CONFETTI_COLORS = ['#FF3600', '#FFD400', '#00CE45', '#2B7FFF', '#FA43FF'];
+    let confettiSize = 0.18;
+    const MAX_CONFETTI = 130; // tope de partículas de confeti activas a la vez
+
+    function preloadConfettiTextures() {
+      for (const c of CONFETTI_COLORS) getConfettiTexture(c);
+    }
+
     function spawnConfetti(pos) {
       if (!pos) return;
-      const count = 14 + Math.floor(Math.random() * 8);
+      const count = 12 + Math.floor(Math.random() * 8);
       for (let i = 0; i < count; i++) {
+        if (particles.length >= MAX_CONFETTI) {
+          const oldest = particles.shift();
+          scene.remove(oldest.mesh);
+          oldest.mesh.material.dispose();
+        }
         const hex = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-        const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(hex), transparent: true, toneMapped: false, side: THREE.DoubleSide });
-        const m = new THREE.Mesh(_confettiGeo, mat);
-        const size = 0.07 + Math.random() * 0.07; // cuadraditos grandes, bien visibles
-        m.scale.set(size, size, size);
+        const mat = new THREE.SpriteMaterial({ map: getConfettiTexture(hex), transparent: true, toneMapped: false, fog: false });
+        const m = new THREE.Sprite(mat);
+        const size = confettiSize * (0.6 + Math.random() * 0.8);
+        m.scale.set(size, size, 1);
         m.position.set(pos.x, pos.y, pos.z);
-        m.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
         scene.add(m);
-        const ang = Math.random() * Math.PI * 2, spd = 2 + Math.random() * 4.5;
-        const vel = new THREE.Vector3(Math.cos(ang) * spd, (Math.random() * .8 + .8) * 5.5, Math.sin(ang) * spd);
-        const spin = new THREE.Vector3((Math.random() - .5) * 12, (Math.random() - .5) * 12, (Math.random() - .5) * 12);
-        particles.push({ mesh: m, vel, life: 1.0, decay: 1.15, spin });
+        const ang = Math.random() * Math.PI * 2, spd = 3 + Math.random() * 5.5;
+        const vel = new THREE.Vector3(Math.cos(ang) * spd, (Math.random() * .8 + .8) * 6.5, Math.sin(ang) * spd);
+        particles.push({ mesh: m, vel, life: 1.0, decay: 1.05 });
       }
     }
 
@@ -2067,11 +2497,7 @@
         p.life -= dt * (p.decay || 1.8);
         p.vel.y -= 16 * dt;
         p.mesh.position.addScaledVector(p.vel, dt);
-        if (p.spin) {
-          p.mesh.rotation.x += p.spin.x * dt;
-          p.mesh.rotation.y += p.spin.y * dt;
-          p.mesh.rotation.z += p.spin.z * dt;
-        }
+        // Sin rotación — solo posición 3D
         p.mesh.material.opacity = Math.max(0, p.life);
         if (p.life <= 0) { scene.remove(p.mesh); p.mesh.material.dispose(); particles.splice(i, 1); }
       }
@@ -2110,6 +2536,12 @@
 
       physics.step(dt);
 
+      if (_pendingHits.length) {
+        const p = _pendingHits[_pendingHits.length - 1]; // varios golpes en el mismo frame → uno solo
+        _pendingHits.length = 0;
+        triggerWinFrame(); triggerHitVideo(); spawnConfetti(p);
+      }
+
       if (previewSprite) {
         const lp = getLaunchPoint();
         previewSprite.position.set(lp.x, orbSize * PREVIEW_SCALE, lp.z);
@@ -2133,7 +2565,9 @@
         }
         const v = m.sphere.vel;
         const speed = Math.sqrt(v.x * v.x + v.z * v.z);
-        if (speed > 0.015) {
+
+        // giro 2D del sprite al rodar (simula rotación sin ser 3D real)
+        if (speed > 0.015 && m.group.material && m.group.material.rotation !== undefined) {
           const spin = (speed * dt) / Math.max(0.02, m.sphere.r);
           m.group.material.rotation -= (v.x >= 0 ? 1 : -1) * spin;
         }
@@ -2141,7 +2575,7 @@
 
       checkRingOut();
       updateParticles(dt);
-      updatePowerArrow();
+      updateAimLine();
       updateGestureControl();
       controls.update();
       renderer.render(scene, camera);
@@ -2175,6 +2609,7 @@
       $('clrb').addEventListener('click', clearShots);
       $('rrb').addEventListener('click', spawnTargets);
       $('gestb').addEventListener('click', toggleGestureControl);
+      $('cfr').addEventListener('input', e => { confettiSize = +e.target.value; $('cfv').textContent = confettiSize.toFixed(2); });
 
       for (let i = 0; i < 4; i++) {
         $('lookFile' + i).addEventListener('change', (e) => {
@@ -2191,7 +2626,7 @@
       });
       $('qbg').addEventListener('click', () => {
         $('bg-layer').style.backgroundImage = 'none';
-        $('bg-layer').style.background = '#07070e';
+        $('bg-layer').style.background = '#000000';
         imgAspect = null;
         layoutFrame();
         syncCameraAspect();
@@ -2222,7 +2657,7 @@
         layoutFrame();
         syncCameraAspect();
         applyRenderScale();
-        $('bg-layer').style.background = '#07070e';
+        $('bg-layer').style.background = '#000000';
         $('bg-layer').style.backgroundImage = `url("${url}")`;
         $('bg-layer').style.backgroundSize = 'contain';
         $('bg-layer').style.backgroundPosition = 'center';
@@ -2265,6 +2700,8 @@
     initSliderFills();
     layoutFrame();
     initThree();
+    preloadMarbleTextures(); // precarga texturas para evitar lag al disparar
+    preloadConfettiTextures(); // precarga texturas de confeti para evitar lag en el primer golpe
     bindUI();
     loadDefaultBackground();
     loadDefaultLooks();
