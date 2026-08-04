@@ -348,7 +348,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      z-index: 65;
+      z-index: 1;
       pointer-events: none;
       opacity: 0;
       object-fit: fill;
@@ -365,7 +365,7 @@
       width: 100%;
       height: 100%;
       display: block;
-      z-index: 1;
+      z-index: 2;
       cursor: none;
     }
 
@@ -419,6 +419,12 @@
       background: linear-gradient(to right, var(--red) var(--val, 50%), rgba(255, 1, 0, .2) var(--val, 50%));
       outline: none;
       cursor: pointer;
+    }
+
+    input[type=range]:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+      filter: grayscale(1);
     }
 
     input[type=range]::-webkit-slider-thumb {
@@ -928,24 +934,24 @@
             <button class="gbtn" id="rrb">REINICIAR RONDA</button>
             <div class="sep"></div>
 
-            <div class="plabel">Cámara (ajuste fino)</div>
+            <div class="plabel">Cámara (bloqueada)</div>
             <div class="cr">
               <div class="plabel">FOV <span class="vbadge" id="cfovv">53</span></div>
-              <input type="range" id="cfovr" min="30" max="85" step="1" value="53">
+              <input type="range" id="cfovr" min="30" max="85" step="1" value="53" disabled>
             </div>
             <div class="cr">
               <div class="plabel">Altura cámara <span class="vbadge" id="camyv">1.6</span></div>
-              <input type="range" id="camyr" min="1" max="14" step="0.1" value="1.6">
+              <input type="range" id="camyr" min="1" max="14" step="0.1" value="1.6" disabled>
             </div>
             <div class="cr">
               <div class="plabel">Distancia cámara <span class="vbadge" id="camzv">13.2</span></div>
-              <input type="range" id="camzr" min="3" max="22" step="0.1" value="13.2">
+              <input type="range" id="camzr" min="3" max="22" step="0.1" value="13.2" disabled>
             </div>
             <div class="cr">
               <div class="plabel">Altura objetivo <span class="vbadge" id="tgtyv">2.60</span></div>
-              <input type="range" id="tgtyr" min="-2" max="4" step="0.05" value="2.6">
+              <input type="range" id="tgtyr" min="-2" max="4" step="0.05" value="2.6" disabled>
             </div>
-            <div class="cdnote">Ajusta esto mientras ves el fondo cargado hasta que el círculo/POV calcen con la imagen</div>
+            <div class="cdnote">Ángulo de cámara fijo — sin control del usuario</div>
           </div>
         </div>
 
