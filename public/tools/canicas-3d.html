@@ -1251,6 +1251,7 @@
     //  ESTADO
     // ═══════════════════════════════════════════════════════════
     let scene, camera, renderer, controls, clock, envTex, floorMesh;
+    let webglContextLost = false;
     const FLOOR_OPACITY_DEFAULT = 0.28;
     let camFov = 53, camY = 1.6, camZ = 13.2, tgtY = 2.60;
     let physics = new Physics();
@@ -1401,6 +1402,13 @@
       function onOk() {
         cleanup();
         console.info('[canicas] ✅ VIDEO listo desde', candidates[i - 1]);
+        // precalienta el decodificador: reproduce+pausa en silencio (opacity
+        // sigue en 0 hasta que .playing se active de verdad) para que el
+        // primer golpe real no tenga que decodificar el primer frame recién ahí
+        const warm = v.play();
+        if (warm && warm.then) {
+          warm.then(() => { v.pause(); v.currentTime = 0; }).catch(() => { });
+        }
       }
       function onFail() {
         const err = v.error;
@@ -1905,7 +1913,7 @@
 
     function applyRenderScale() {
       const rect = $('vp-fit').getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, isMobileDevice ? 1.5 : 2);
       renderer.setPixelRatio(dpr);
       renderer.setSize(Math.max(1, rect.width), Math.max(1, rect.height), false);
     }
@@ -1962,15 +1970,29 @@
       camera.position.set(0, camY, camZ);
       scene.add(camera); // necesario para que los hijos de la cámara (canica de preview) se rendericen
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias: !isMobileDevice, alpha: true, powerPreference: 'default' });
       renderer.setClearColor(0x000000, 0);
       applyRenderScale();
-      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.enabled = !isMobileDevice; // sombras dinámicas apagadas en mobile (caras de GPU)
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.15;
       renderer.outputEncoding = THREE.sRGBEncoding;
       $('vp-fit').appendChild(renderer.domElement);
+
+      // Si el navegador (típico en mobile con poca memoria de GPU) mata el
+      // contexto WebGL, esto evita que la app quede rota/tirando errores en
+      // bucle: se pausa el loop y se avisa, en vez de crashear en silencio.
+      renderer.domElement.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault();
+        console.warn('[canicas] contexto WebGL perdido — pausando');
+        webglContextLost = true;
+        showMsg('⚠ SE PERDIÓ EL CONTEXTO GRÁFICO — RECARGANDO...', 6000);
+      });
+      renderer.domElement.addEventListener('webglcontextrestored', () => {
+        console.info('[canicas] contexto WebGL restaurado');
+        webglContextLost = false;
+      });
 
       // Environment map para reflejos en canicas
       envTex = buildEnvironment();
@@ -2504,31 +2526,70 @@
 
     const CONFETTI_COLORS = ['#FF3600', '#FFD400', '#00CE45', '#2B7FFF', '#FA43FF'];
     let confettiSize = 0.18;
-    const MAX_CONFETTI = 130; // tope de partículas de confeti activas a la vez
+
+    // Mobile: menos partículas y ráfagas más chicas — en varios navegadores
+    // móviles, crear/destruir muchos sprites+materiales seguido agota
+    // memoria de golpe y tira la pestaña. Un pool fijo lo evita del todo.
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      ((navigator.maxTouchPoints || 0) > 1 && window.innerWidth < 900);
+    const CONFETTI_POOL_SIZE = isMobileDevice ? 36 : 120;
+    const CONFETTI_BURST_MIN = isMobileDevice ? 6 : 12;
+    const CONFETTI_BURST_RANGE = isMobileDevice ? 5 : 8;
 
     function preloadConfettiTextures() {
       for (const c of CONFETTI_COLORS) getConfettiTexture(c);
     }
 
+    // Pool de sprites reutilizables: se crean UNA sola vez al arrancar y
+    // nunca más se destruyen ni se crean de nuevo — cada golpe solo
+    // "reactiva" algunos slots existentes. Cero allocations/GC en juego.
+    const _confettiPool = [];
+    let _confettiCursor = 0;
+
+    function initConfettiPool() {
+      for (let i = 0; i < CONFETTI_POOL_SIZE; i++) {
+        const mat = new THREE.SpriteMaterial({
+          map: getConfettiTexture(CONFETTI_COLORS[0]),
+          transparent: true, toneMapped: false, fog: false,
+          opacity: 0, depthWrite: false,
+        });
+        const spr = new THREE.Sprite(mat);
+        spr.visible = false;
+        scene.add(spr);
+        _confettiPool.push({ mesh: spr, vel: new THREE.Vector3(), life: 0, active: false });
+      }
+    }
+
     function spawnConfetti(pos) {
-      if (!pos) return;
-      const count = 12 + Math.floor(Math.random() * 8);
+      if (!pos || !_confettiPool.length) return;
+      const count = Math.min(CONFETTI_BURST_MIN + Math.floor(Math.random() * CONFETTI_BURST_RANGE), _confettiPool.length);
       for (let i = 0; i < count; i++) {
-        if (particles.length >= MAX_CONFETTI) {
-          const oldest = particles.shift();
-          scene.remove(oldest.mesh);
-          oldest.mesh.material.dispose();
-        }
+        const p = _confettiPool[_confettiCursor];
+        _confettiCursor = (_confettiCursor + 1) % _confettiPool.length;
+
         const hex = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-        const mat = new THREE.SpriteMaterial({ map: getConfettiTexture(hex), transparent: true, toneMapped: false, fog: false });
-        const m = new THREE.Sprite(mat);
+        p.mesh.material.map = getConfettiTexture(hex);
+        p.mesh.material.opacity = 1;
+        p.mesh.visible = true;
         const size = confettiSize * (0.6 + Math.random() * 0.8);
-        m.scale.set(size, size, 1);
-        m.position.set(pos.x, pos.y, pos.z);
-        scene.add(m);
+        p.mesh.scale.set(size, size, 1);
+        p.mesh.position.set(pos.x, pos.y, pos.z);
         const ang = Math.random() * Math.PI * 2, spd = 3 + Math.random() * 5.5;
-        const vel = new THREE.Vector3(Math.cos(ang) * spd, (Math.random() * .8 + .8) * 6.5, Math.sin(ang) * spd);
-        particles.push({ mesh: m, vel, life: 1.0, decay: 1.05 });
+        p.vel.set(Math.cos(ang) * spd, (Math.random() * .8 + .8) * 6.5, Math.sin(ang) * spd);
+        p.life = 1.0;
+        p.active = true;
+      }
+    }
+
+    function updateConfetti(dt) {
+      for (let i = 0; i < _confettiPool.length; i++) {
+        const p = _confettiPool[i];
+        if (!p.active) continue;
+        p.life -= dt * 1.05;
+        p.vel.y -= 16 * dt;
+        p.mesh.position.addScaledVector(p.vel, dt);
+        p.mesh.material.opacity = Math.max(0, p.life);
+        if (p.life <= 0) { p.active = false; p.mesh.visible = false; }
       }
     }
 
@@ -2573,6 +2634,7 @@
     const _axis = new THREE.Vector3();
     function loop() {
       requestAnimationFrame(loop);
+      if (webglContextLost) return; // contexto perdido: no tocar física/render hasta que se restaure
       const dt = Math.min(clock.getDelta(), .05);
 
       physics.step(dt);
@@ -2616,6 +2678,7 @@
 
       checkRingOut();
       updateParticles(dt);
+      updateConfetti(dt);
       updateAimLine();
       updateGestureControl();
       controls.update();
@@ -2693,6 +2756,7 @@
     // arrastrados/seleccionados como para la carga automática de bg.png.
     function applyBackgroundImage(url, { silent = false } = {}) {
       const img = new Image();
+      img.decoding = 'async'; // decodifica fuera del hilo principal: menos jank con PNGs pesados
       img.onload = () => {
         imgAspect = img.naturalWidth / img.naturalHeight;
         layoutFrame();
@@ -2746,6 +2810,7 @@
     initThree();
     preloadMarbleTextures(); // precarga texturas para evitar lag al disparar
     preloadConfettiTextures(); // precarga texturas de confeti para evitar lag en el primer golpe
+    initConfettiPool(); // pool fijo: cero allocations durante el juego (evita crash en mobile)
     bindUI();
     loadDefaultBackground();
     loadDefaultLooks();
