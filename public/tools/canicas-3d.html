@@ -1791,24 +1791,11 @@
     }
     function loadDefaultLooks() {
       // Mismo mecanismo de sondeo que usa BG_FINAL: prueba varias
-      // ubicaciones y extensiones típicas de /public y usa la primera
-      // que exista.
+      // ubicaciones y extensiones típicas de /public (incluida la
+      // carpeta CANICAS/) y usa la primera que exista.
       const names = ['c1-01', 'c2-01', 'c3-01', 'c4-01', 'c5-01'];
       names.forEach((name, slot) => {
-        const exts = ['webp', 'png'];
-        const candidates = [];
-        for (const ext of exts) {
-          candidates.push(`./${name}.${ext}`, `./assets/${name}.${ext}`, `/${name}.${ext}`, `/assets/${name}.${ext}`);
-        }
-        let i = 0;
-        (function tryNext() {
-          if (i >= candidates.length) return; // no está en ninguna ruta: slot queda vacío
-          const path = candidates[i++];
-          const probe = new Image();
-          probe.onload = () => loadCustomLookFromURL(slot, path);
-          probe.onerror = tryNext;
-          probe.src = path;
-        })();
+        resolveAssetUrl(name, url => loadCustomLookFromURL(slot, url), ['CANICAS/', '']);
       });
     }
 
@@ -2181,16 +2168,17 @@
     //  La línea cambia de color: verde (baja) → amarillo → rojo (alta)
     // ═══════════════════════════════════════════════════════════
     let aimLineGroup = null, aimDotMesh = null;
+    const AIM_DOT_COUNT = 90; // pool grande: el trazo siempre alcanza al puntero, sin estirarse
+    const AIM_DOT_SPACING = 0.16; // espaciado FIJO entre puntos, nunca cambia
     let currentPower = 0; // 0..1
 
     function buildAimLine() {
       const g = new THREE.Group();
 
       // Línea punteada: serie de puntos pequeños
-      const dotCount = 24;
       const dotGeo = new THREE.SphereGeometry(0.012, 6, 6);
 
-      for (let i = 0; i < dotCount; i++) {
+      for (let i = 0; i < AIM_DOT_COUNT; i++) {
         const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0x000000, toneMapped: false, transparent: true }));
         dot.userData.dotIndex = i;
         dot.userData.isAimDot = true;
@@ -2287,10 +2275,9 @@
       const pColor = powerColor(power);
 
       // La línea apunta HACIA aimPoint, pero el espaciado entre puntos es
-      // SIEMPRE el mismo (no se estiran ni se separan con la potencia) —
-      // solo el color (negro→rojo) indica cuánta potencia hay acumulada.
-      const dotCount = 24;
-      const DOT_SPACING = 0.16; // espaciado fijo en unidades de mundo
+      // SIEMPRE el mismo (no se estiran) — el trazo simplemente muestra
+      // más puntos (crece) hasta alcanzar al puntero; solo el color
+      // (negro→rojo) indica cuánta potencia hay acumulada.
       const dir = aimPoint.clone().sub(lp);
       const dist = dir.length();
       if (dist > 0.0001) dir.divideScalar(dist); // normalizar
@@ -2298,7 +2285,7 @@
       aimLineGroup.traverse(child => {
         if (child.userData.isAimDot) {
           const i = child.userData.dotIndex;
-          const along = i * DOT_SPACING;
+          const along = i * AIM_DOT_SPACING;
           const visible = along <= dist;
           child.visible = visible;
           if (visible) {
@@ -2488,11 +2475,16 @@
     const HIT_MILESTONE_FILENAMES = { 1: 'hit1-02', 2: 'hit2-02', 3: 'hit3-02', 4: 'hit4-02' };
     const hitMilestoneUrls = {};
 
-    function resolveAssetUrl(name, onFound) {
+    function resolveAssetUrl(name, onFound, folders = ['']) {
       const exts = ['webp', 'png'];
+      const roots = ['./', '/', './assets/', '/assets/'];
       const candidates = [];
-      for (const ext of exts) {
-        candidates.push(`./${name}.${ext}`, `./assets/${name}.${ext}`, `/${name}.${ext}`, `/assets/${name}.${ext}`);
+      for (const folder of folders) {
+        for (const ext of exts) {
+          for (const root of roots) {
+            candidates.push(`${root}${folder}${name}.${ext}`);
+          }
+        }
       }
       let i = 0;
       (function tryNext() {
@@ -2506,7 +2498,7 @@
     }
 
     function preloadHitMilestoneImages() {
-      HIT_MILESTONES.forEach(n => resolveAssetUrl(HIT_MILESTONE_FILENAMES[n], url => { hitMilestoneUrls[n] = url; }));
+      HIT_MILESTONES.forEach(n => resolveAssetUrl(HIT_MILESTONE_FILENAMES[n], url => { hitMilestoneUrls[n] = url; }, ['HITS/', '']));
     }
 
     function showHitMilestonePopup(url) {
