@@ -187,6 +187,30 @@
       initial-value: 0deg;
     }
 
+    #hitPopups {
+      position: absolute;
+      inset: 0;
+      z-index: 46;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .hit-popup {
+      position: absolute;
+      max-width: 24%;
+      max-height: 24%;
+      width: auto;
+      height: auto;
+      transform: translate(-50%, -50%) scale(.4);
+      opacity: 0;
+      transition: transform .35s cubic-bezier(.2, 1.4, .4, 1), opacity .3s ease;
+    }
+
+    .hit-popup.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
     #winFrame {
       position: absolute;
       inset: 0;
@@ -895,6 +919,7 @@
               <circle cx="0" cy="0" r="2.5" fill="#FF0100"></circle>
             </svg>
           </div>
+          <div id="hitPopups"></div>
           </div>
           <div id="winFrame"></div>
         </div>
@@ -1024,8 +1049,13 @@
                 <label for="lookFile3" class="lookthumb" id="lookThumb3"></label>
                 <span class="lookclear" id="lookClear3">✕</span>
               </div>
+              <div class="lookslot">
+                <input type="file" id="lookFile4" class="lookfile" accept="image/png">
+                <label for="lookFile4" class="lookthumb" id="lookThumb4"></label>
+                <span class="lookclear" id="lookClear4">✕</span>
+              </div>
             </div>
-            <div class="cdnote">Sube 1 a 4 PNG — si hay alguno cargado, se usan esos looks en vez del color</div>
+            <div class="cdnote">Sube 1 a 5 PNG — si hay alguno cargado, se usan esos looks en vez del color</div>
 
             <div class="sep"></div>
 
@@ -1096,7 +1126,6 @@
     document.addEventListener('mousemove', e => {
       dot.style.left = e.clientX + 'px'; dot.style.top = e.clientY + 'px';
       lastMouseClientX = e.clientX; lastMouseClientY = e.clientY;
-      scrubHitVideoFromClientY(e.clientY, e.clientX);
     });
     document.addEventListener('mousedown', e => { if (e.target.closest('#canvas-inner')) dot.classList.add('drag'); });
     document.addEventListener('mouseup', () => dot.classList.remove('drag'));
@@ -1322,38 +1351,12 @@
 
     // ═══════════════════════════════════════════════════════════
     //  VIDEO DE IMPACTO — VIDEO.(webm/mov/mp4), centrado en el canvas,
-    //  por encima del fondo (#bg-layer). Dos modos:
-    //   1) SCRUB — mientras no hay golpe, mover el mouse (o el pinch
-    //      en el eje Y) adelanta/retrocede el video como si fuera un
-    //      timeline: arriba = principio, abajo = final.
-    //   2) GOLPE — al golpear por primera vez una canica que estaba
-    //      dentro del círculo, se reproduce completo de una, sin que
-    //      el scrub lo interrumpa hasta que termina.
+    //  por encima del fondo (#bg-layer). SOLO se muestra/reproduce al
+    //  golpear por primera vez una canica que estaba dentro del
+    //  círculo — el resto del tiempo permanece oculto (opacity 0).
     //  VIDEO.* debe ir en la MISMA carpeta que este .html (o en assets/).
     // ═══════════════════════════════════════════════════════════
     let lastHitVideoAt = 0;
-    let videoHitPlaying = false;
-
-    function scrubHitVideoFromNormY(normY) {
-      if (videoHitPlaying) return; // no pelear con la reproducción completa por golpe
-      const v = $('hitVideo');
-      if (!v || !v.duration || isNaN(v.duration)) return;
-      const t = Math.max(0, Math.min(1, normY)) * v.duration;
-      v.classList.add('playing'); // visible mientras se scrubea
-      try { v.pause(); v.currentTime = t; } catch (e) { /* aún sin metadata cargada */ }
-    }
-
-    function scrubHitVideoFromClientY(clientY, clientX) {
-      const box = $('vp-fit') ? $('vp-fit').getBoundingClientRect() : null;
-      if (!box || box.height <= 0) return;
-      const inside = clientY >= box.top && clientY <= box.bottom &&
-        (clientX === undefined || (clientX >= box.left && clientX <= box.right));
-      if (!inside) {
-        if (!videoHitPlaying) { const v = $('hitVideo'); if (v) v.classList.remove('playing'); }
-        return;
-      }
-      scrubHitVideoFromNormY((clientY - box.top) / box.height);
-    }
 
     function triggerHitVideo() {
       const now = performance.now();
@@ -1361,14 +1364,12 @@
       lastHitVideoAt = now;
       const v = $('hitVideo');
       if (!v) return;
-      videoHitPlaying = true;
       v.classList.add('playing');
       try { v.currentTime = 0; } catch (e) { /* aún no cargó metadata, no pasa nada */ }
       const p = v.play();
       if (p && p.catch) p.catch(() => { });
     }
     document.getElementById('hitVideo') && document.getElementById('hitVideo').addEventListener('ended', () => {
-      videoHitPlaying = false;
       $('hitVideo').classList.remove('playing');
     });
 
@@ -1718,7 +1719,7 @@
     //  al menos uno cargado, las canicas usan esas imágenes (elegidas
     //  al azar) en vez del look procedural de color.
     // ═══════════════════════════════════════════════════════════
-    const customLooks = [null, null, null, null]; // THREE.Texture o null por slot
+    const customLooks = [null, null, null, null, null]; // THREE.Texture o null por slot
 
     function rollNextLook() {
       const filled = customLooks.filter(Boolean);
@@ -1789,9 +1790,9 @@
       img.src = url;
     }
     function loadDefaultLooks() {
-      // Mismo mecanismo de sondeo que usa bg.png: prueba varias
+      // Mismo mecanismo de sondeo que usa BG_FINAL: prueba varias
       // ubicaciones típicas de /public y usa la primera que exista.
-      const names = ['1c.png', '2c.png', '3c.png', '4c.png'];
+      const names = ['c1.png', 'c2.png', 'c3.png', 'c4.png', 'c5.png'];
       names.forEach((name, slot) => {
         const candidates = [`./${name}`, `./assets/${name}`, `/${name}`, `/assets/${name}`];
         let i = 0;
@@ -2046,7 +2047,7 @@
     // ═══════════════════════════════════════════════════════════
     function spawnTargets() {
       [...marbles].filter(m => m.isTarget).forEach(removeMarble);
-      ejected = 0; totalTargets = targetCount;
+      ejected = 0; totalTargets = targetCount; hitCount = 0;
       $('hc').textContent = 0; $('tc').textContent = totalTargets;
 
       const placed = [];
@@ -2185,7 +2186,7 @@
       const dotGeo = new THREE.SphereGeometry(0.012, 6, 6);
 
       for (let i = 0; i < dotCount; i++) {
-        const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false, transparent: true }));
+        const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0x000000, toneMapped: false, transparent: true }));
         dot.userData.dotIndex = i;
         dot.userData.isAimDot = true;
         g.add(dot);
@@ -2194,7 +2195,7 @@
       // Círculo en el punto de mira
       const ringGeo = new THREE.RingGeometry(0.035, 0.048, 16);
       const ringMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff, toneMapped: false, side: THREE.DoubleSide, transparent: true, opacity: 0.9
+        color: 0x000000, toneMapped: false, side: THREE.DoubleSide, transparent: true, opacity: 0.9
       });
       aimDotMesh = new THREE.Mesh(ringGeo, ringMat);
       aimDotMesh.rotation.x = -Math.PI / 2;
@@ -2203,7 +2204,7 @@
 
       // Punto central
       const centerGeo = new THREE.SphereGeometry(0.01, 6, 6);
-      const centerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+      const centerMat = new THREE.MeshBasicMaterial({ color: 0x000000, toneMapped: false });
       const centerDot = new THREE.Mesh(centerGeo, centerMat);
       centerDot.userData.isAimCenter = true;
       g.add(centerDot);
@@ -2215,10 +2216,10 @@
       return g;
     }
 
-    // Color del indicador de potencia: blanco fijo (el nivel de potencia
+    // Color del indicador de potencia: negro fijo (el nivel de potencia
     // ya se ve por el tamaño del aro y la opacidad de los puntos)
     function powerColor() {
-      return new THREE.Color(0xffffff);
+      return new THREE.Color(0x000000);
     }
 
     let isCharging = false, chargeStart = 0, chargeStartClientX = 0, chargeStartClientY = 0;
@@ -2429,7 +2430,6 @@
       const ndcY = Math.max(-1, Math.min(1, -dy * GEST_SENSITIVITY * 2));
       gestAimNDC.x = ndcX; gestAimNDC.y = ndcY;
       gestForce = Math.min(1, Math.hypot(dx, dy) / 0.35);
-      scrubHitVideoFromNormY((1 - ndcY) / 2);
 
       // la mira sigue el centro del pinch — ahí es donde se dirige la canica
       updateGestHudPosition(ndcX, ndcY);
@@ -2457,6 +2457,50 @@
       }
       physics.removeSphere(m.sphere);
       marbles.splice(marbles.indexOf(m), 1);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  POPUPS DE HITOS — hit1.png, hit3.png, hit5.png, hit10.png.
+    //  Se muestran en pantalla, en una posición al azar (distinta
+    //  cada vez), apenas se llega a esa cantidad total de golpes
+    //  contra canicas que estaban dentro del círculo.
+    //  Deben ir en la MISMA carpeta que este .html (o en assets/).
+    // ═══════════════════════════════════════════════════════════
+    let hitCount = 0;
+    const HIT_MILESTONES = [1, 3, 5, 10];
+    const hitMilestoneUrls = {};
+
+    function resolveAssetUrl(name, onFound) {
+      const candidates = [`./${name}.png`, `./assets/${name}.png`, `/${name}.png`, `/assets/${name}.png`];
+      let i = 0;
+      (function tryNext() {
+        if (i >= candidates.length) return; // no está en ninguna ruta: se ignora
+        const path = candidates[i++];
+        const probe = new Image();
+        probe.onload = () => onFound(path);
+        probe.onerror = tryNext;
+        probe.src = path;
+      })();
+    }
+
+    function preloadHitMilestoneImages() {
+      HIT_MILESTONES.forEach(n => resolveAssetUrl('hit' + n, url => { hitMilestoneUrls[n] = url; }));
+    }
+
+    function showHitMilestonePopup(url) {
+      const layer = $('hitPopups');
+      if (!layer || !url) return;
+      const img = document.createElement('img');
+      img.src = url;
+      img.className = 'hit-popup';
+      img.style.left = (10 + Math.random() * 80).toFixed(1) + '%';
+      img.style.top = (10 + Math.random() * 80).toFixed(1) + '%';
+      layer.appendChild(img);
+      requestAnimationFrame(() => img.classList.add('show'));
+      setTimeout(() => {
+        img.classList.remove('show');
+        setTimeout(() => img.remove(), 400);
+      }, 1600);
     }
 
     function clearShots() {
@@ -2639,9 +2683,14 @@
       physics.step(dt);
 
       if (_pendingHits.length) {
-        const p = _pendingHits[_pendingHits.length - 1]; // varios golpes en el mismo frame → uno solo
+        const p = _pendingHits[_pendingHits.length - 1]; // varios golpes en el mismo frame → uno solo se usa de posición
+        const prevHitCount = hitCount;
+        hitCount += _pendingHits.length;
         _pendingHits.length = 0;
         triggerWinFrame(); triggerHitVideo(); spawnConfetti(p);
+        for (const m of HIT_MILESTONES) {
+          if (prevHitCount < m && hitCount >= m) showHitMilestonePopup(hitMilestoneUrls[m]);
+        }
       }
 
       if (previewSprite) {
@@ -2714,7 +2763,7 @@
       $('gestb').addEventListener('click', toggleGestureControl);
       $('cfr').addEventListener('input', e => { confettiSize = +e.target.value; $('cfv').textContent = confettiSize.toFixed(2); });
 
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 5; i++) {
         $('lookFile' + i).addEventListener('change', (e) => {
           const f = e.target.files && e.target.files[0];
           if (f) loadCustomLook(i, f);
@@ -2814,6 +2863,7 @@
     loadDefaultBackground();
     loadDefaultLooks();
     loadDefaultHitVideo();
+    preloadHitMilestoneImages();
     loop();
   </script>
 </body>
