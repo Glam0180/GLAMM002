@@ -203,24 +203,22 @@
       -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       mask-composite: exclude;
-      filter: drop-shadow(0 0 12px rgba(255,255,255,.6)) drop-shadow(0 0 28px rgba(255,0,0,.5)) drop-shadow(0 0 48px rgba(0,255,0,.4)) drop-shadow(0 0 68px rgba(0,0,255,.3));
       transition: opacity .45s ease;
     }
 
     #winFrame.active {
       opacity: 1;
-      filter: drop-shadow(0 0 20px rgba(255,255,255,.8)) drop-shadow(0 0 40px rgba(255,0,0,.6)) drop-shadow(0 0 60px rgba(0,255,0,.5)) drop-shadow(0 0 80px rgba(0,0,255,.4));
-      animation: winSpin .6s linear infinite, glowPulseRainbow .7s ease-out;
+      animation: winSpin .6s linear infinite;
+      box-shadow: 0 0 18px 3px rgba(255, 255, 255, .35);
+    }
+
+    /* En mobile ni siquiera el glow liviano: solo el aro, sin sombra */
+    body.mobile-lite #winFrame.active {
+      box-shadow: none;
     }
 
     @keyframes winSpin {
       to { --wa: 360deg; }
-    }
-
-    @keyframes glowPulseRainbow {
-      0% { box-shadow: 0 0 0 0 rgba(255,255,255,0), 0 0 0 0 rgba(255,0,0,0), 0 0 0 0 rgba(0,255,0,0), 0 0 0 0 rgba(0,0,255,0); }
-      15% { box-shadow: 0 0 70px 18px rgba(255,255,255,.55), 0 0 150px 44px rgba(255,0,0,.35), 0 0 200px 60px rgba(0,255,0,.25), 0 0 260px 80px rgba(0,0,255,.2); }
-      100% { box-shadow: 0 0 22px 4px rgba(255,255,255,.14), 0 0 40px 10px rgba(255,0,0,.1), 0 0 60px 16px rgba(0,255,0,.08), 0 0 80px 22px rgba(0,0,255,.06); }
     }
 
     /* ───────── COMPONENTE VENTANA ───────── */
@@ -2532,6 +2530,7 @@
     // memoria de golpe y tira la pestaña. Un pool fijo lo evita del todo.
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
       ((navigator.maxTouchPoints || 0) > 1 && window.innerWidth < 900);
+    document.body.classList.toggle('mobile-lite', isMobileDevice);
     const CONFETTI_POOL_SIZE = isMobileDevice ? 36 : 120;
     const CONFETTI_BURST_MIN = isMobileDevice ? 6 : 12;
     const CONFETTI_BURST_RANGE = isMobileDevice ? 5 : 8;
