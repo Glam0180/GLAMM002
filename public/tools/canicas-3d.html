@@ -1731,10 +1731,12 @@
 
     function rollNextLook() {
       const filled = customLooks.filter(Boolean);
+      // SIEMPRE usa texturas — nunca colores planos
       if (filled.length) {
         return { tex: filled[Math.floor(Math.random() * filled.length)], color: '#ffffff' };
       }
-      return { tex: null, color: randColor() };
+      // Fallback de emergencia: genera una textura procedural al vuelo
+      return { tex: generateProceduralMarbleTexture(Math.floor(Math.random() * 5)), color: '#ffffff' };
     }
     function spriteFromLook(r, look) {
       if (look.tex) return createMarbleMesh(r, look.tex);
@@ -1773,6 +1775,196 @@
       $('lookFile' + slot).value = '';
     }
 
+
+    // ═══════════════════════════════════════════════════════════
+    //  LOOKS PROCEDURALES POR DEFECTO — 5 diseños de canica
+    //  Se generan en canvas al arrancar para que SIEMPRE haya
+    //  texturas disponibles, sin depender de archivos externos.
+    // ═══════════════════════════════════════════════════════════
+    function generateProceduralMarbleTexture(index) {
+      const size = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const cx = size / 2, cy = size / 2;
+
+      // Fondo base oscuro
+      ctx.fillStyle = '#0a0a12';
+      ctx.fillRect(0, 0, size, size);
+
+      const r = size * 0.46;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+
+      if (index === 0) {
+        // ── OJO DE GATO AZUL ──
+        const grad = ctx.createRadialGradient(cx - 30, cy - 30, 8, cx + 20, cy + 20, r);
+        grad.addColorStop(0, '#1a3a5c');
+        grad.addColorStop(0.4, '#0d1f33');
+        grad.addColorStop(1, '#050a10');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
+        // Vetas blancas paralelas
+        ctx.strokeStyle = 'rgba(200,220,255,0.35)';
+        ctx.lineWidth = 2.5;
+        for (let i = -3; i <= 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(cx - r, cy + i * 18);
+          ctx.bezierCurveTo(cx - r * 0.3, cy + i * 18 - 12, cx + r * 0.3, cy + i * 18 + 12, cx + r, cy + i * 18);
+          ctx.stroke();
+        }
+        // Brillo central
+        ctx.beginPath();
+        ctx.ellipse(cx - 35, cy - 35, 18, 10, -0.4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fill();
+      } else if (index === 1) {
+        // ── ÁGATA ROSA/MORADA ──
+        const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, r);
+        grad.addColorStop(0, '#4a2a3a');
+        grad.addColorStop(0.5, '#2a1a2a');
+        grad.addColorStop(1, '#120a12');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
+        // Bandas concéntricas irregulares
+        for (let i = 5; i > 0; i--) {
+          ctx.beginPath();
+          ctx.arc(cx + (i % 2) * 8, cy + (i % 3) * 6, r * (i / 5.5), 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255,140,180,${0.08 + i * 0.04})`;
+          ctx.lineWidth = 3 + i;
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.ellipse(cx - 30, cy - 30, 14, 8, -0.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,200,220,0.2)';
+        ctx.fill();
+      } else if (index === 2) {
+        // ── MÁRMOL BLANCO/NEGRO ──
+        ctx.fillStyle = '#1a1a1e'; ctx.fillRect(0, 0, size, size);
+        // Vetas grises orgánicas
+        ctx.strokeStyle = 'rgba(180,180,190,0.18)';
+        ctx.lineWidth = 4;
+        for (let i = 0; i < 8; i++) {
+          ctx.beginPath();
+          let x = cx - r + Math.random() * r * 2;
+          let y = cy - r + Math.random() * r * 2;
+          ctx.moveTo(x, y);
+          for (let j = 0; j < 5; j++) {
+            x += (Math.random() - 0.5) * 60;
+            y += (Math.random() - 0.5) * 60;
+            ctx.quadraticCurveTo(x + (Math.random()-0.5)*30, y + (Math.random()-0.5)*30, x, y);
+          }
+          ctx.stroke();
+        }
+        // Manchas blancas
+        for (let i = 0; i < 12; i++) {
+          ctx.beginPath();
+          ctx.arc(cx + (Math.random()-0.5)*r*1.2, cy + (Math.random()-0.5)*r*1.2, 3 + Math.random()*8, 0, Math.PI*2);
+          ctx.fillStyle = `rgba(220,220,230,${0.05 + Math.random()*0.1})`;
+          ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.ellipse(cx - 28, cy - 28, 16, 9, -0.4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fill();
+      } else if (index === 3) {
+        // ── SWIRL NARANJA/DORADO ──
+        const grad = ctx.createRadialGradient(cx - 20, cy - 20, 5, cx + 10, cy + 10, r);
+        grad.addColorStop(0, '#5c3a1a');
+        grad.addColorStop(0.4, '#3a220a');
+        grad.addColorStop(1, '#120800');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
+        // Espiral dorada
+        ctx.strokeStyle = 'rgba(255,180,60,0.22)';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (let a = 0; a < Math.PI * 8; a += 0.08) {
+          const radius = 4 + a * 3.5;
+          const x = cx + Math.cos(a) * radius;
+          const y = cy + Math.sin(a) * radius;
+          if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        // Segunda espiral invertida
+        ctx.strokeStyle = 'rgba(255,120,40,0.14)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        for (let a = 0; a < Math.PI * 6; a += 0.1) {
+          const radius = 6 + a * 4;
+          const x = cx + Math.cos(-a - 1) * radius;
+          const y = cy + Math.sin(-a - 1) * radius;
+          if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(cx - 32, cy - 32, 15, 8, -0.4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,220,160,0.2)';
+        ctx.fill();
+      } else {
+        // ── NEBULA VERDE/AZUL ──
+        const grad = ctx.createRadialGradient(cx + 15, cy - 15, 6, cx - 10, cy + 10, r);
+        grad.addColorStop(0, '#1a3a2a');
+        grad.addColorStop(0.5, '#0d1a2a');
+        grad.addColorStop(1, '#050810');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
+        // Nubes de color
+        for (let i = 0; i < 20; i++) {
+          const x = cx + (Math.random() - 0.5) * r * 1.6;
+          const y = cy + (Math.random() - 0.5) * r * 1.6;
+          const rad = 8 + Math.random() * 25;
+          const hue = Math.random() > 0.5 ? '100,220,160' : '80,160,220';
+          ctx.beginPath();
+          ctx.arc(x, y, rad, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${hue},${0.04 + Math.random() * 0.08})`;
+          ctx.fill();
+        }
+        // Estrellas/motas brillantes
+        for (let i = 0; i < 30; i++) {
+          const x = cx + (Math.random() - 0.5) * r * 1.4;
+          const y = cy + (Math.random() - 0.5) * r * 1.4;
+          ctx.beginPath();
+          ctx.arc(x, y, 0.8 + Math.random() * 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(200,255,220,${0.15 + Math.random() * 0.25})`;
+          ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.ellipse(cx - 30, cy - 30, 14, 8, -0.4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(160,255,200,0.15)';
+        ctx.fill();
+      }
+
+      ctx.restore();
+
+      // Stroke exterior sutil
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 1, 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.anisotropy = 8;
+      return tex;
+    }
+
+    function initProceduralLooks() {
+      for (let i = 0; i < 5; i++) {
+        if (!customLooks[i]) {
+          customLooks[i] = generateProceduralMarbleTexture(i);
+          const thumb = $('lookThumb' + i);
+          if (thumb) {
+            thumb.style.backgroundImage = `url(${generateProceduralMarbleTexture(i).image.src})`;
+            thumb.classList.add('filled');
+            $('lookClear' + i).style.display = 'inline-block';
+          }
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // Carga automática de los looks por defecto (c1.png, c2.png, c3.png,
     // c4.png). Deben ir en la MISMA carpeta que este archivo .html. Si
     // alguno no existe, ese slot simplemente queda vacío (sin errores
@@ -2038,8 +2230,6 @@
 
       nextLook = rollNextLook();
       refreshPreviewBall();
-
-      spawnTargets();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -2183,29 +2373,39 @@
     function buildAimLine() {
       const g = new THREE.Group();
 
-      // Línea punteada: serie de puntos pequeños
-      const dotGeo = new THREE.SphereGeometry(0.012, 6, 6);
+      // Línea punteada: puntos pequeños y elegantes
+      const dotGeo = new THREE.SphereGeometry(0.008, 6, 6);
 
       for (let i = 0; i < AIM_DOT_COUNT; i++) {
-        const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0x000000, toneMapped: false, transparent: true }));
+        const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false, transparent: true, opacity: 0.45 }));
         dot.userData.dotIndex = i;
         dot.userData.isAimDot = true;
         g.add(dot);
       }
 
-      // Círculo en el punto de mira
-      const ringGeo = new THREE.RingGeometry(0.035, 0.048, 16);
+      // Círculo en el punto de mira — fino y sutil
+      const ringGeo = new THREE.RingGeometry(0.028, 0.032, 32);
       const ringMat = new THREE.MeshBasicMaterial({
-        color: 0x000000, toneMapped: false, side: THREE.DoubleSide, transparent: true, opacity: 0.9
+        color: 0xffffff, toneMapped: false, side: THREE.DoubleSide, transparent: true, opacity: 0.75
       });
       aimDotMesh = new THREE.Mesh(ringGeo, ringMat);
       aimDotMesh.rotation.x = -Math.PI / 2;
       aimDotMesh.userData.isAimRing = true;
       g.add(aimDotMesh);
 
+      // Glow sutil detrás del aro
+      const glowGeo = new THREE.RingGeometry(0.032, 0.055, 32);
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xff5a4a, toneMapped: false, side: THREE.DoubleSide, transparent: true, opacity: 0.12
+      });
+      const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+      glowMesh.rotation.x = -Math.PI / 2;
+      glowMesh.userData.isAimGlow = true;
+      g.add(glowMesh);
+
       // Punto central
-      const centerGeo = new THREE.SphereGeometry(0.01, 6, 6);
-      const centerMat = new THREE.MeshBasicMaterial({ color: 0x000000, toneMapped: false });
+      const centerGeo = new THREE.SphereGeometry(0.006, 6, 6);
+      const centerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false, transparent: true, opacity: 0.9 });
       const centerDot = new THREE.Mesh(centerGeo, centerMat);
       centerDot.userData.isAimCenter = true;
       g.add(centerDot);
@@ -2219,10 +2419,11 @@
 
     // Color del indicador de potencia: negro fijo (el nivel de potencia
     // ya se ve por el tamaño del aro y la opacidad de los puntos)
-    // Color según potencia: negro (baja) → rojo (alta) — el espaciado de
-    // los puntos NUNCA cambia, solo el color indica cuánta potencia hay.
+    // Color según potencia: blanco sutil (baja) → coral cálido (alta)
     function powerColor(power) {
-      return new THREE.Color(0x000000).lerp(new THREE.Color(0xFF0100), power);
+      const cool = new THREE.Color(0xffffff);
+      const warm = new THREE.Color(0xff5a4a);
+      return cool.clone().lerp(warm, power * 0.7);
     }
 
     let isCharging = false, chargeStart = 0, chargeStartClientX = 0, chargeStartClientY = 0;
@@ -2293,6 +2494,11 @@
       const VISIBLE_DOTS = 40;
       const step = dist / Math.max(1, VISIBLE_DOTS - 1);
 
+      // Color sutil: blanco base que se calienta a coral según potencia
+      const baseColor = new THREE.Color(0xffffff);
+      const hotColor = new THREE.Color(0xff5a4a);
+      const aimColor = baseColor.clone().lerp(hotColor, power * 0.6);
+
       aimLineGroup.traverse(child => {
         if (child.userData.isAimDot) {
           const i = child.userData.dotIndex;
@@ -2301,23 +2507,33 @@
           if (visible) {
             const along = i * step;
             child.position.copy(lp).addScaledVector(dir, along);
-            const dashPhase = (along * 3 + performance.now() * 0.002) % 1;
-            child.material.color.copy(pColor);
-            child.material.opacity = dashPhase < 0.5 ? 0.85 : 0.15;
+            // Fade progresivo: más opacos cerca del origen, más transparentes lejos
+            const fade = 1 - (i / VISIBLE_DOTS) * 0.6;
+            child.material.color.copy(aimColor);
+            child.material.opacity = fade * (0.35 + 0.35 * Math.sin(performance.now() * 0.004 + i * 0.4));
           }
         }
         if (child.userData.isAimRing) {
           child.position.copy(aimPoint);
           child.position.y += 0.003;
           child.rotation.x = -Math.PI / 2;
-          child.material.color.copy(pColor);
-          const ringScale = 1 + power * 0.5;
+          child.material.color.copy(aimColor);
+          const ringScale = 1 + power * 0.35;
           child.scale.set(ringScale, ringScale, 1);
+        }
+        if (child.userData.isAimGlow) {
+          child.position.copy(aimPoint);
+          child.position.y += 0.002;
+          child.rotation.x = -Math.PI / 2;
+          child.material.opacity = 0.08 + power * 0.18;
+          const glowScale = 1 + power * 0.5;
+          child.scale.set(glowScale, glowScale, 1);
         }
         if (child.userData.isAimCenter) {
           child.position.copy(aimPoint);
           child.position.y += 0.004;
-          child.material.color.copy(pColor);
+          child.material.color.copy(aimColor);
+          child.material.opacity = 0.7 + power * 0.3;
         }
       });
 
@@ -2880,15 +3096,18 @@
     // ═══════════════════════════════════════════════════════════
     initSliderFills();
     layoutFrame();
+    initProceduralLooks(); // precarga texturas ANTES de crear canicas
     initThree();
+    initProceduralLooks(); // precarga 5 texturas de canica procedural — siempre hay looks
     preloadMarbleTextures(); // precarga texturas para evitar lag al disparar
     preloadConfettiTextures(); // precarga texturas de confeti para evitar lag en el primer golpe
     initConfettiPool(); // pool fijo: cero allocations durante el juego (evita crash en mobile)
     bindUI();
     loadDefaultBackground();
-    loadDefaultLooks();
+    loadDefaultLooks(); // intenta cargar PNGs del usuario si existen (reemplazan los procedurales)
     loadDefaultHitVideo();
     preloadHitMilestoneImages();
+    spawnTargets(); // crea las canicas del círculo con texturas ya cargadas
     loop();
   </script>
 </body>
