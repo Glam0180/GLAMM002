@@ -866,7 +866,6 @@
     }
 
   </style>
-<base target="_blank">
 </head>
 
 <body>
@@ -1960,7 +1959,7 @@
     // c4.png). Deben ir en la MISMA carpeta que este archivo .html. Si
     // alguno no existe, ese slot simplemente queda vacío (sin errores
     // visibles) y las canicas usan el look procedural de color.
-    function loadCustomLookFromURL(slot, url) {
+    function loadCustomLookFromURL(slot, url, onDone) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
@@ -1976,17 +1975,30 @@
         thumb.style.backgroundImage = `url(${url})`;
         thumb.classList.add('filled');
         $('lookClear' + slot).style.display = 'inline-block';
+        onDone && onDone();
       };
-      img.onerror = () => { /* no está esa imagen junto al html — se ignora */ };
+      img.onerror = () => { onDone && onDone(); /* no cargó: se ignora igual */ };
       img.src = url;
     }
-    function loadDefaultLooks() {
+    function loadDefaultLooks(onAllSettled) {
       // Mismo mecanismo de sondeo que usa BG_FINAL: prueba varias
       // ubicaciones y extensiones típicas de /public (incluida la
-      // carpeta CANICAS/) y usa la primera que exista.
+      // carpeta CANICAS/) y usa la primera que exista. Avisa cuando
+      // las 5 terminaron de resolverse (encontradas o no) para poder
+      // arrancar el juego recién ahí, con las texturas reales listas.
       const names = ['c1-01', 'c2-01', 'c3-01', 'c4-01', 'c5-01'];
+      let pending = names.length;
+      function settle() {
+        pending--;
+        if (pending <= 0) onAllSettled && onAllSettled();
+      }
       names.forEach((name, slot) => {
-        resolveAssetUrl(name, url => loadCustomLookFromURL(slot, url), ['CANICAS/', '']);
+        resolveAssetUrl(
+          name,
+          url => loadCustomLookFromURL(slot, url, settle),
+          ['CANICAS/', ''],
+          settle
+        );
       });
     }
 
@@ -2667,7 +2679,7 @@
     const HIT_MILESTONE_FILENAMES = { 1: 'hit2-02', 3: 'hit1-02', 6: 'hit3-02', 10: 'hit4-02' };
     const hitMilestoneUrls = {};
 
-    function resolveAssetUrl(name, onFound, folders = ['']) {
+    function resolveAssetUrl(name, onFound, folders = [''], onNotFound = null) {
       const exts = ['webp', 'png'];
       const roots = ['./', '/', './assets/', '/assets/'];
       const candidates = [];
@@ -2680,7 +2692,7 @@
       }
       let i = 0;
       (function tryNext() {
-        if (i >= candidates.length) return; // no está en ninguna ruta: se ignora
+        if (i >= candidates.length) { onNotFound && onNotFound(); return; } // agotó rutas: se ignora
         const path = candidates[i++];
         const probe = new Image();
         probe.onload = () => onFound(path);
@@ -3062,16 +3074,29 @@
     initSliderFills();
     layoutFrame();
     initThree();
-    initProceduralLooks(); // precarga 5 texturas de canica procedural
     preloadMarbleTextures(); // precarga texturas para evitar lag al disparar
     preloadConfettiTextures(); // precarga texturas de confeti para evitar lag en el primer golpe
     initConfettiPool(); // pool fijo: cero allocations durante el juego (evita crash en mobile)
     bindUI();
     loadDefaultBackground();
-    loadDefaultLooks(); // si hay PNGs del usuario, reemplazan los procedurales
     loadDefaultHitVideo();
     preloadHitMilestoneImages();
-    spawnTargets(); // crea canicas del círculo con texturas ya cargadas
+
+    // Las canicas del círculo arrancan recién cuando las 5 texturas reales
+    // (c1-01..c5-01) terminaron de resolverse — así el juego siempre abre
+    // con las texturas puestas, nunca con un relleno provisorio. Si algo
+    // no carga, hay un máximo de espera de seguridad para no dejar el
+    // juego colgado.
+    let _gameStarted = false;
+    function startGameWhenReady() {
+      if (_gameStarted) return;
+      _gameStarted = true;
+      spawnTargets();
+    }
+    showMsg('CARGANDO TEXTURAS DE LAS CANICAS...', 8000);
+    loadDefaultLooks(startGameWhenReady);
+    setTimeout(startGameWhenReady, 4000); // seguridad: arranca igual si algo tarda/falta
+
     loop();
   </script>
 </body>
