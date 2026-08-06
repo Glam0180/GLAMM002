@@ -190,7 +190,13 @@
     #hitPopups {
       position: absolute;
       inset: 0;
-      z-index: 46;
+      /* Antes en 46: quedaba TAPADO por el visor de puntería del modo
+         cámara (#gestHud, z-index 55) y por el overlay de soltar imagen
+         (#dropzone, z-index 50) — en esos modos el cartel de hito se
+         dibujaba pero visualmente quedaba debajo. Ahora va por encima de
+         todo el overlay de juego (aim/gesto/mensajes) para que se vea
+         siempre, sea cual sea el modo de disparo. */
+      z-index: 90;
       pointer-events: none;
       overflow: hidden;
     }
@@ -2119,6 +2125,36 @@
 
       renderer.domElement.addEventListener('mousedown', onCanvasMouseDown);
       document.addEventListener('mouseup', onGlobalMouseUp);
+
+      // ── PARIDAD TÁCTIL — antes solo había listeners de mouse, así que
+      // en celulares/tablets (mobile vertical) el disparo dependía de que
+      // el navegador sintetice mousedown/mousemove/mouseup a partir del
+      // toque, algo que varía según navegador y no siempre pasa (sobre
+      // todo el mousemove continuo que necesita la línea de puntería para
+      // seguir al dedo). Con listeners de touch explícitos el disparo y
+      // la puntería funcionan igual de bien con dedo que con mouse.
+      function touchXY(e) {
+        const t = e.touches[0] || e.changedTouches[0];
+        return t ? { x: t.clientX, y: t.clientY } : null;
+      }
+      renderer.domElement.addEventListener('touchstart', e => {
+        const p = touchXY(e);
+        if (!p) return;
+        onCanvasMouseDown({ target: renderer.domElement, button: 0, clientX: p.x, clientY: p.y });
+      }, { passive: true });
+      document.addEventListener('touchmove', e => {
+        if (!isCharging) return;
+        const p = touchXY(e);
+        if (!p) return;
+        lastMouseClientX = p.x; lastMouseClientY = p.y;
+      }, { passive: true });
+      document.addEventListener('touchend', e => {
+        if (!isCharging) return;
+        const p = touchXY(e);
+        if (!p) return;
+        onGlobalMouseUp({ clientX: p.x, clientY: p.y });
+      });
+      document.addEventListener('touchcancel', () => { isCharging = false; });
       document.addEventListener('keydown', e => { if (e.key === 'r' || e.key === 'R') clearShots(); });
       clock = new THREE.Clock();
     }
