@@ -1915,8 +1915,9 @@
       if (filled.length) {
         return { tex: filled[Math.floor(Math.random() * filled.length)], color: '#ffffff' };
       }
-      // Fallback: genera una textura procedural al vuelo
-      return { tex: generateProceduralMarbleTexture(Math.floor(Math.random() * 5)), color: '#ffffff' };
+      // Respaldo de emergencia (solo si de verdad falta algún c1-05): color
+      // plano brillante de la paleta, nunca el mármol oscuro procedural.
+      return { tex: null, color: randColor() };
     }
     function spriteFromLook(r, look) {
       if (look.tex) return createMarbleMesh(r, look.tex);
@@ -2230,9 +2231,6 @@
       document.addEventListener('mouseup', onGlobalMouseUp);
       document.addEventListener('keydown', e => { if (e.key === 'r' || e.key === 'R') clearShots(); });
       clock = new THREE.Clock();
-
-      nextLook = rollNextLook();
-      refreshPreviewBall();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -3092,6 +3090,8 @@
       if (_gameStarted) return;
       _gameStarted = true;
       spawnTargets();
+      nextLook = rollNextLook();
+      refreshPreviewBall();
     }
     showMsg('CARGANDO TEXTURAS DE LAS CANICAS...', 8000);
     loadDefaultLooks(startGameWhenReady);
