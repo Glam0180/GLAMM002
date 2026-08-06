@@ -1306,17 +1306,23 @@
     // exactamente al nivel del piso, sin importar el ángulo/zoom de cámara.
     const launchRaycaster = new THREE.Raycaster();
     const LAUNCH_NDC = { x: 0, y: -0.82 };
+    // Se llama una vez por frame (para la canica de preview) además de en
+    // cada disparo, así que reutiliza el mismo Plane/Vector3 en vez de
+    // crear objetos nuevos cada vez (menos presión de garbage collector
+    // a 60fps). Solo se actualiza la constante del plano, que depende
+    // de orbSize y puede cambiar con el slider de tamaño.
+    const _launchPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const _launchPoint = new THREE.Vector3();
     function getLaunchPoint() {
       launchRaycaster.setFromCamera(LAUNCH_NDC, camera);
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -orbSize); // plano y = orbSize
-      const p = new THREE.Vector3();
-      const hit = launchRaycaster.ray.intersectPlane(plane, p);
+      _launchPlane.constant = -orbSize; // plano y = orbSize
+      const hit = launchRaycaster.ray.intersectPlane(_launchPlane, _launchPoint);
       if (!hit) {
         // si la cámara mirara hacia arriba (no debería pasar, está fija) usamos un punto de respaldo
-        p.copy(launchRaycaster.ray.origin).addScaledVector(launchRaycaster.ray.direction, 5);
-        p.y = orbSize;
+        _launchPoint.copy(launchRaycaster.ray.origin).addScaledVector(launchRaycaster.ray.direction, 5);
+        _launchPoint.y = orbSize;
       }
-      return p;
+      return _launchPoint;
     }
     let msgTimer;
     const MAX_SHOTS = 60;
@@ -1337,6 +1343,40 @@
     }
 
     const $ = id => document.getElementById(id);
+
+    // ═══════════════════════════════════════════════════════════
+    //  ATAJO DE CARGA — sondeo de rutas EN PARALELO.
+    //  Antes, cada asset (looks de canicas, popups de hitos, fondo)
+    //  probaba sus rutas candidatas UNA POR UNA, esperando el 404 de
+    //  cada intento fallido antes de lanzar el siguiente. Con 4 raíces
+    //  × 2 extensiones × 1-2 carpetas eso eran hasta 16 round-trips
+    //  secuenciales por imagen (¡y se hace para 5 canicas + 4 popups
+    //  + el fondo!). Ahora se disparan TODAS las rutas candidatas a la
+    //  vez y se toma la primera que exista, respetando el orden de
+    //  prioridad original. El tiempo total pasa de "suma de todos los
+    //  intentos" a "el más lento de todos", que es básicamente un solo
+    //  round-trip — la carga inicial del juego arranca mucho antes.
+    function probeImageCandidates(candidates) {
+      return Promise.allSettled(candidates.map(path => new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(path);
+        img.onerror = () => resolve(null);
+        img.src = path;
+      }))).then(results => {
+        for (const r of results) if (r.value) return r.value;
+        return null;
+      });
+    }
+
+    // Igual que arriba pero para archivos que no son imágenes (video):
+    // usa HEAD para chequear existencia sin descargar el archivo entero.
+    // Si fetch no está disponible o falla (p.ej. file:// local), se
+    // resuelve como "no encontrado" y el llamador cae a su propio respaldo.
+    function probeFileExists(path) {
+      return fetch(path, { method: 'HEAD', cache: 'no-store' })
+        .then(r => (r.ok ? path : null))
+        .catch(() => null);
+    }
     function showMsg(t, d = 2600) { const e = $('msg'); e.textContent = t; e.classList.add('on'); clearTimeout(msgTimer); msgTimer = setTimeout(() => e.classList.remove('on'), d); }
 
     // ═══════════════════════════════════════════════════════════
@@ -1396,38 +1436,52 @@
         // .mp4: respaldo final, siempre se reproduce pero SIN transparencia
         './VIDEO.mp4', './assets/VIDEO.mp4', '/VIDEO.mp4', '/assets/VIDEO.mp4'
       ];
-      let i = 0;
-      let timeoutId = null;
 
-      function cleanup() {
-        clearTimeout(timeoutId);
-        v.removeEventListener('loadeddata', onOk);
-        v.removeEventListener('canplay', onOk);
-        v.removeEventListener('error', onFail);
-      }
-      function onOk() {
-        cleanup();
-        console.info('[canicas] ✅ VIDEO listo desde', candidates[i - 1]);
-        // precalienta el decodificador: reproduce+pausa en silencio (opacity
-        // sigue en 0 hasta que .playing se active de verdad) para que el
-        // primer golpe real no tenga que decodificar el primer frame recién ahí
-        const warm = v.play();
-        if (warm && warm.then) {
-          warm.then(() => { v.pause(); v.currentTime = 0; }).catch(() => { });
-        }
-      }
-      function onFail() {
-        const err = v.error;
-        console.warn('[canicas] falló', candidates[i - 1], err ? `(code ${err.code}: ${mediaErrName(err.code)})` : '(timeout, sin evento error)');
-        cleanup();
-        tryNext();
-      }
-      function tryNext() {
-        if (i >= candidates.length) {
+      // Paso 1 (rápido, en paralelo): chequear con HEAD cuáles rutas existen
+      // de verdad, en vez de cargar el <video> real una por una con 4s de
+      // timeout cada intento (podía tardar hasta ~48s en el peor caso).
+      // Paso 2: sobre esa lista ya filtrada (normalmente 0 o 1 resultado),
+      // se prueba cargarlas de verdad en el <video>, en orden de prioridad,
+      // por si el archivo existe pero el navegador no puede decodificarlo.
+      Promise.allSettled(candidates.map(probeFileExists)).then(results => {
+        const existing = candidates.filter((_, idx) => results[idx].value != null);
+        if (!existing.length) {
           console.warn('[canicas] ❌ no se encontró VIDEO.webm / VIDEO.mov / VIDEO.mp4 en ninguna ruta probada:', candidates);
           return;
         }
-        const path = candidates[i++];
+        tryLoad(existing, 0);
+      });
+
+      function tryLoad(list, i) {
+        if (i >= list.length) {
+          console.warn('[canicas] ❌ ninguna de las rutas encontradas pudo decodificarse:', list);
+          return;
+        }
+        const path = list[i];
+        let timeoutId = null;
+        function cleanup() {
+          clearTimeout(timeoutId);
+          v.removeEventListener('loadeddata', onOk);
+          v.removeEventListener('canplay', onOk);
+          v.removeEventListener('error', onFail);
+        }
+        function onOk() {
+          cleanup();
+          console.info('[canicas] ✅ VIDEO listo desde', path);
+          // precalienta el decodificador: reproduce+pausa en silencio (opacity
+          // sigue en 0 hasta que .playing se active de verdad) para que el
+          // primer golpe real no tenga que decodificar el primer frame recién ahí
+          const warm = v.play();
+          if (warm && warm.then) {
+            warm.then(() => { v.pause(); v.currentTime = 0; }).catch(() => { });
+          }
+        }
+        function onFail() {
+          const err = v.error;
+          console.warn('[canicas] falló', path, err ? `(code ${err.code}: ${mediaErrName(err.code)})` : '(timeout, sin evento error)');
+          cleanup();
+          tryLoad(list, i + 1);
+        }
         v.addEventListener('loadeddata', onOk, { once: true });
         v.addEventListener('canplay', onOk, { once: true });
         v.addEventListener('error', onFail, { once: true });
@@ -1435,7 +1489,6 @@
         v.src = path;
         v.load();
       }
-      tryNext();
     }
     function mediaErrName(code) {
       return { 1: 'ABORTED', 2: 'NETWORK (no se encontró/descargó el archivo)', 3: 'DECODE (el navegador no puede decodificar ese archivo)', 4: 'SRC_NOT_SUPPORTED (formato/códec no soportado)' }[code] || 'desconocido';
@@ -1641,187 +1694,11 @@
       return `rgb(${f(r)},${f(g)},${f(b)})`;
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  LOOKS PROCEDURALES — 5 diseños de canica precargados
-    //  Usan el mismo patrón robusto que generateFlatMarbleTexture.
-    // ═══════════════════════════════════════════════════════════
-    const _procTexCache = [];
-
-    function generateProceduralMarbleTexture(index) {
-      if (_procTexCache[index]) return _procTexCache[index];
-
-      const size = 256;
-      const canvas = document.createElement('canvas');
-      canvas.width = size; canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      const cx = size / 2, cy = size / 2;
-      const strokeW = size * 0.022;
-      const rOuter = size / 2 - 3;
-      const rFill = rOuter - strokeW / 2;
-
-      ctx.clearRect(0, 0, size, size);
-
-      // Degradado base según diseño
-      let grad;
-      if (index === 0) {
-        // Ojo de gato azul
-        grad = ctx.createRadialGradient(cx - rFill * 0.38, cy - rFill * 0.42, rFill * 0.04, cx + rFill * 0.10, cy + rFill * 0.16, rFill * 1.3);
-        grad.addColorStop(0.00, '#2a6a9a');
-        grad.addColorStop(0.30, '#1a3a5a');
-        grad.addColorStop(0.65, '#0a1a2a');
-        grad.addColorStop(1.00, '#020508');
-      } else if (index === 1) {
-        // Ágata rosa
-        grad = ctx.createRadialGradient(cx - rFill * 0.30, cy - rFill * 0.35, rFill * 0.05, cx + rFill * 0.15, cy + rFill * 0.20, rFill * 1.25);
-        grad.addColorStop(0.00, '#8a3a5a');
-        grad.addColorStop(0.35, '#4a1a3a');
-        grad.addColorStop(0.70, '#1a0a1a');
-        grad.addColorStop(1.00, '#080408');
-      } else if (index === 2) {
-        // Mármol blanco/negro
-        grad = ctx.createRadialGradient(cx - rFill * 0.25, cy - rFill * 0.30, rFill * 0.06, cx + rFill * 0.12, cy + rFill * 0.18, rFill * 1.2);
-        grad.addColorStop(0.00, '#3a3a42');
-        grad.addColorStop(0.40, '#1a1a22');
-        grad.addColorStop(0.75, '#0a0a12');
-        grad.addColorStop(1.00, '#030308');
-      } else if (index === 3) {
-        // Swirl dorado
-        grad = ctx.createRadialGradient(cx - rFill * 0.35, cy - rFill * 0.30, rFill * 0.04, cx + rFill * 0.10, cy + rFill * 0.15, rFill * 1.3);
-        grad.addColorStop(0.00, '#8a5a1a');
-        grad.addColorStop(0.32, '#4a2a0a');
-        grad.addColorStop(0.68, '#1a0a02');
-        grad.addColorStop(1.00, '#080300');
-      } else {
-        // Nebula verde/azul
-        grad = ctx.createRadialGradient(cx + rFill * 0.20, cy - rFill * 0.25, rFill * 0.05, cx - rFill * 0.10, cy + rFill * 0.20, rFill * 1.25);
-        grad.addColorStop(0.00, '#1a5a3a');
-        grad.addColorStop(0.35, '#0a2a1a');
-        grad.addColorStop(0.70, '#030a08');
-        grad.addColorStop(1.00, '#010302');
-      }
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, rFill, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // Patrón decorativo según diseño (dibujado dentro del círculo)
-      if (index === 0) {
-        // Vetas blancas curvas
-        ctx.strokeStyle = 'rgba(200,220,255,0.22)';
-        ctx.lineWidth = 2;
-        for (let v = -3; v <= 3; v++) {
-          ctx.beginPath();
-          ctx.moveTo(cx - rFill * 0.9, cy + v * 26);
-          ctx.bezierCurveTo(cx - rFill * 0.3, cy + v * 26 - 16, cx + rFill * 0.3, cy + v * 26 + 16, cx + rFill * 0.9, cy + v * 26);
-          ctx.stroke();
-        }
-      } else if (index === 1) {
-        // Bandas concéntricas
-        for (let b = 5; b > 0; b--) {
-          ctx.beginPath();
-          ctx.arc(cx + (b % 2) * 8, cy + (b % 3) * 6, rFill * (b / 5.8), 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(255,140,200,${0.06 + b * 0.032})`;
-          ctx.lineWidth = 2 + b * 0.6;
-          ctx.stroke();
-        }
-      } else if (index === 2) {
-        // Vetas grises
-        ctx.strokeStyle = 'rgba(180,180,195,0.12)';
-        ctx.lineWidth = 3;
-        const seeds = [0.1, 0.7, 0.3, 0.9, 0.5, 0.2, 0.8];
-        for (let v = 0; v < 7; v++) {
-          let x = cx - rFill + seeds[v] * rFill * 2;
-          let y = cy - rFill + ((seeds[v] * 7) % 1) * rFill * 2;
-          ctx.beginPath(); ctx.moveTo(x, y);
-          for (let s = 0; s < 4; s++) {
-            x += (Math.sin(seeds[v] * 10 + s) * 0.5) * 70;
-            y += (Math.cos(seeds[v] * 10 + s) * 0.5) * 70;
-            ctx.quadraticCurveTo(x + Math.sin(seeds[v]*20+s)*35, y + Math.cos(seeds[v]*20+s)*35, x, y);
-          }
-          ctx.stroke();
-        }
-        // Manchas blancas
-        for (let s = 0; s < 8; s++) {
-          ctx.beginPath();
-          ctx.arc(cx + Math.sin(s*1.3)*rFill*0.7, cy + Math.cos(s*1.7)*rFill*0.7, 2 + (s%3)*3, 0, Math.PI*2);
-          ctx.fillStyle = `rgba(220,220,235,${0.04 + (s%4)*0.025})`;
-          ctx.fill();
-        }
-      } else if (index === 3) {
-        // Espiral dorada
-        ctx.strokeStyle = 'rgba(255,180,40,0.14)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        for (let a = 0; a < Math.PI * 8; a += 0.07) {
-          const radius = 4 + a * 3.4;
-          const x = cx + Math.cos(a) * radius;
-          const y = cy + Math.sin(a) * radius;
-          if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,100,20,0.08)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        for (let a = 0; a < Math.PI * 6; a += 0.09) {
-          const radius = 6 + a * 4;
-          const x = cx + Math.cos(-a - 1.2) * radius;
-          const y = cy + Math.sin(-a - 1.2) * radius;
-          if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      } else {
-        // Nubes de color
-        for (let c = 0; c < 14; c++) {
-          const x = cx + Math.sin(c*2.1)*rFill*0.8;
-          const y = cy + Math.cos(c*1.7)*rFill*0.8;
-          const rad = 6 + (c%4)*5;
-          const hue = c % 2 === 0 ? '80,200,140' : '60,140,200';
-          ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${hue},${0.03 + (c%3)*0.02})`;
-          ctx.fill();
-        }
-        // Estrellas
-        for (let s = 0; s < 20; s++) {
-          const x = cx + Math.sin(s*3.1)*rFill*0.7;
-          const y = cy + Math.cos(s*2.3)*rFill*0.7;
-          ctx.beginPath(); ctx.arc(x, y, 0.6 + (s%3)*0.8, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(180,255,210,${0.08 + (s%4)*0.04})`;
-          ctx.fill();
-        }
-      }
-
-      // Highlight puntual (mismo que generateFlatMarbleTexture)
-      ctx.beginPath();
-      ctx.ellipse(cx - rFill * 0.36, cy - rFill * 0.40, rFill * 0.22, rFill * 0.14, -0.5, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.65)';
-      ctx.fill();
-
-      // Stroke negro fino
-      ctx.beginPath();
-      ctx.arc(cx, cy, rOuter - strokeW / 2, 0, Math.PI * 2);
-      ctx.lineWidth = strokeW;
-      ctx.strokeStyle = '#0a0a0a';
-      ctx.stroke();
-
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.encoding = THREE.sRGBEncoding;
-      tex.minFilter = THREE.LinearFilter;
-      tex.magFilter = THREE.LinearFilter;
-      tex.anisotropy = 8;
-      _procTexCache[index] = tex;
-      return tex;
-    }
-
-    function initProceduralLooks() {
-      for (let i = 0; i < 5; i++) {
-        if (!customLooks[i]) {
-          const tex = generateProceduralMarbleTexture(i);
-          customLooks[i] = tex;
-        }
-      }
-    }
-
+    // (Nota de optimización: el generador de looks procedurales
+    //  [generateProceduralMarbleTexture / initProceduralLooks] se quitó
+    //  de aquí porque nunca se invocaba — las canicas siempre usan
+    //  generateFlatMarbleTexture o los looks PNG cargados. Código muerto
+    //  eliminado para reducir el tamaño del script y el tiempo de parseo.)
     // ═══════════════════════════════════════════════════════════
     function generateFlatMarbleTexture(colorHex) {
       if (_flatMarbleTexCache.has(colorHex)) return _flatMarbleTexCache.get(colorHex);
@@ -2224,8 +2101,21 @@
 
       makeRingMesh(ringRadius);
 
-      new ResizeObserver(() => { layoutFrame(); syncCameraAspect(); applyRenderScale(); syncCanvasSizeMobile(); }).observe($('stage'));
-      window.addEventListener('resize', () => { layoutFrame(); syncCameraAspect(); applyRenderScale(); syncCanvasSizeMobile(); });
+      // ResizeObserver (#stage) y window 'resize' suelen dispararse juntos
+      // (el resize de ventana cambia el tamaño de #stage). Se coalescen con
+      // un flag + rAF para no recalcular layout/cámara dos veces en el
+      // mismo frame cuando ambos eventos llegan casi simultáneos.
+      let _resizePending = false;
+      function onViewportResize() {
+        if (_resizePending) return;
+        _resizePending = true;
+        requestAnimationFrame(() => {
+          _resizePending = false;
+          layoutFrame(); syncCameraAspect(); applyRenderScale(); syncCanvasSizeMobile();
+        });
+      }
+      new ResizeObserver(onViewportResize).observe($('stage'));
+      window.addEventListener('resize', onViewportResize);
 
       renderer.domElement.addEventListener('mousedown', onCanvasMouseDown);
       document.addEventListener('mouseup', onGlobalMouseUp);
@@ -2688,15 +2578,11 @@
           }
         }
       }
-      let i = 0;
-      (function tryNext() {
-        if (i >= candidates.length) { onNotFound && onNotFound(); return; } // agotó rutas: se ignora
-        const path = candidates[i++];
-        const probe = new Image();
-        probe.onload = () => onFound(path);
-        probe.onerror = tryNext;
-        probe.src = path;
-      })();
+      // sondeo en paralelo (ver probeImageCandidates más arriba): todas las
+      // rutas se disparan a la vez, se toma la primera que exista
+      probeImageCandidates(candidates).then(path => {
+        if (path) onFound(path); else onNotFound && onNotFound();
+      });
     }
 
     function preloadHitMilestoneImages() {
@@ -2945,7 +2831,12 @@
       updateConfetti(dt);
       updateAimLine();
       updateGestureControl();
-      controls.update();
+      // controls.update() NO se llama acá: la cámara está fija
+      // (controls.enabled = false, sin damping/autoRotate) y solo cambia
+      // cuando el usuario mueve los sliders de cámara, que ya llaman a
+      // controls.update() ellos mismos vía applyCameraFraming(). Ahorra
+      // un recálculo completo de OrbitControls en cada uno de los ~60
+      // frames por segundo sin ningún efecto visual.
       renderer.render(scene, camera);
     }
 
@@ -3055,15 +2946,10 @@
       const candidates = exts.flatMap(ext => [
         `./BG_FINAL.${ext}`, `./assets/BG_FINAL.${ext}`, `/BG_FINAL.${ext}`, `/assets/BG_FINAL.${ext}`
       ]);
-      let i = 0;
-      (function tryNext() {
-        if (i >= candidates.length) return; // no se encontró ninguna: sigue sin fondo
-        const path = candidates[i++];
-        const probe = new Image();
-        probe.onload = () => applyBackgroundImage(path, { silent: true });
-        probe.onerror = tryNext;
-        probe.src = path;
-      })();
+      // sondeo en paralelo: ver probeImageCandidates
+      probeImageCandidates(candidates).then(path => {
+        if (path) applyBackgroundImage(path, { silent: true }); // si no hay ninguna, sigue sin fondo
+      });
     }
 
     // ═══════════════════════════════════════════════════════════
