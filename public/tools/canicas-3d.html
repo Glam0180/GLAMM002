@@ -732,6 +732,152 @@
     }
     #gestSvg { display: block; }
 
+    /* ───────── RECUADRO DE CÁMARA (mano + puntos de tracking) ───────── */
+    #camPreview {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      width: 176px;
+      height: 132px;
+      border: 2px solid var(--red);
+      background: #000;
+      overflow: hidden;
+      z-index: 56;
+      display: none;
+      box-shadow: 0 0 0 2px rgba(0,0,0,.6);
+    }
+    #camPreview .cptag {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: var(--red);
+      color: var(--black);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      padding: 2px 5px;
+      z-index: 2;
+      text-transform: uppercase;
+    }
+    #camPreview video,
+    #camPreview canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    @media (max-width: 768px) {
+      #camPreview {
+        width: 120px;
+        height: 90px;
+        right: 6px;
+        bottom: 6px;
+      }
+    }
+
+    /* ───────── BARRA DE POTENCIA ───────── */
+    #powerBar {
+      position: absolute;
+      right: 196px;
+      bottom: 10px;
+      width: 7px;
+      height: 132px;
+      z-index: 56;
+      pointer-events: none;
+      opacity: .55;
+      transition: opacity .25s ease;
+    }
+    #powerBar.active { opacity: 1; }
+
+    #powerBar .pbtag {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      color: var(--red-dim);
+      white-space: nowrap;
+    }
+
+    #powerBarTrack {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border: 1px solid rgba(255, 1, 0, .35);
+      background:
+        linear-gradient(to top,
+          #7FDD8C 0%,
+          #B9E273 32%,
+          #F5DE72 50%,
+          #F5A94F 66%,
+          #FF6E4E 80%,
+          #FF2D2D 92%,
+          #FF0A0A 100%);
+      overflow: hidden;
+    }
+
+    /* Máscara negra semitransparente que tapa la parte de arriba del
+       gradiente aún no alcanzada — así se ve como si "llenara" desde
+       abajo, sin perder la referencia de color completa (muy sutil,
+       tenue incluso cuando no se está cargando). */
+    #powerBarFill {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, .72);
+      transform-origin: top;
+      transform: scaleY(1);
+      transition: transform .05s linear;
+    }
+
+    /* Flecha indicadora: sigue la posición del indicador de potencia,
+       apuntando hacia la barra desde ambos lados para que se note bien
+       incluso siendo la barra angosta. */
+    #powerBarIndicator {
+      position: absolute;
+      left: -4px;
+      right: -4px;
+      bottom: 0%;
+      height: 0;
+      transform: translateY(50%);
+      transition: bottom .05s linear;
+    }
+
+    #powerBarIndicator .pbarrow {
+      position: absolute;
+      top: 50%;
+      width: 0;
+      height: 0;
+      transform: translateY(-50%);
+      filter: drop-shadow(0 0 2px rgba(0, 0, 0, .9));
+    }
+    #powerBarIndicator .pbarrow.left {
+      left: -9px;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 7px solid #FFFFFF;
+    }
+    #powerBarIndicator .pbarrow.right {
+      right: -9px;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-right: 7px solid #FFFFFF;
+    }
+
+    @media (max-width: 768px) {
+      #powerBar {
+        width: 5px;
+        height: 90px;
+        right: 132px;
+        bottom: 6px;
+      }
+      #powerBar .pbtag { font-size: 6px; top: -11px; }
+    }
+
     /* ───────── CURSOR ───────── */
     #dot {
       position: fixed;
@@ -918,8 +1064,27 @@
           </div>
           <div id="msg"></div>
 
-          <!-- Video oculto: solo alimenta a MediaPipe, no se muestra -->
-          <video id="gestVideo" playsinline muted style="display:none;"></video>
+          <!-- Barra de potencia: verde (mín) → amarillo → rojo (máx).
+               El indicador sube/baja en rebote mientras se carga (pinch
+               cerrado o click sostenido) y se dispara con la potencia
+               donde haya quedado al soltar. -->
+          <div id="powerBar">
+            <span class="pbtag">POW</span>
+            <div id="powerBarTrack">
+              <div id="powerBarFill"></div>
+              <div id="powerBarIndicator">
+                <span class="pbarrow left"></span>
+                <span class="pbarrow right"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recuadro pequeño con la cámara y los puntos de tracking de la mano -->
+          <div id="camPreview">
+            <span class="cptag">CAM</span>
+            <video id="gestVideo" playsinline muted></video>
+            <canvas id="gestLandmarks"></canvas>
+          </div>
 
           <!-- Mira flat: sigue el centro del pinch, ahí se dirige la canica -->
           <div id="gestHud" style="display:none;">
@@ -968,26 +1133,6 @@
             </div>
             <div class="sep"></div>
             <button class="gbtn" id="rrb">REINICIAR RONDA</button>
-            <div class="sep"></div>
-
-            <div class="plabel">Cámara (bloqueada)</div>
-            <div class="cr">
-              <div class="plabel">FOV <span class="vbadge" id="cfovv">53</span></div>
-              <input type="range" id="cfovr" min="30" max="85" step="1" value="53" disabled>
-            </div>
-            <div class="cr">
-              <div class="plabel">Altura cámara <span class="vbadge" id="camyv">1.6</span></div>
-              <input type="range" id="camyr" min="1" max="14" step="0.1" value="1.6" disabled>
-            </div>
-            <div class="cr">
-              <div class="plabel">Distancia cámara <span class="vbadge" id="camzv">13.2</span></div>
-              <input type="range" id="camzr" min="3" max="22" step="0.1" value="13.2" disabled>
-            </div>
-            <div class="cr">
-              <div class="plabel">Altura objetivo <span class="vbadge" id="tgtyv">2.60</span></div>
-              <input type="range" id="tgtyr" min="-2" max="4" step="0.05" value="2.6" disabled>
-            </div>
-            <div class="cdnote">Ángulo de cámara fijo — sin control del usuario</div>
           </div>
         </div>
 
@@ -1090,33 +1235,15 @@
           </div>
         </div>
 
-        <!-- Info / stats -->
-        <div class="win">
-          <div class="win__bar">
-            <span class="slz">///</span>
-            <div class="win__bar-dot"></div>
-            <span class="win__bar-title">INFO</span>
-            <div class="win__bar-controls">
-              <div class="win__ctrl">✕</div>
-            </div>
-            <span class="slz end">///</span>
-          </div>
-          <div class="win__body" style="gap:10px;">
-            <div class="statrow"><span>Disparos</span><b id="sc">0</b></div>
-            <div class="statrow"><span>Fuera</span><b id="hc">0</b>/<span id="tc">12</span></div>
-            <div class="sep"></div>
-            <div class="hintrow"><span class="hkey">Click</span><span>Disparar (potencia por altura)</span></div>
-            <div class="hintrow"><span class="hkey">Mouse arriba</span><span>Más potencia</span></div>
-            <div class="hintrow"><span class="hkey">Mouse abajo</span><span>Menos potencia</span></div>
-            <div class="hintrow"><span class="hkey">Drag</span><span>Rotar cam.</span></div>
-            <div class="hintrow"><span class="hkey">Scroll</span><span>Zoom</span></div>
-            <div class="hintrow"><span class="hkey">R</span><span>Limpiar mías</span></div>
-            <div class="hintrow"><span class="hkey">Pinch</span><span>Disparo por gesto</span></div>
-          </div>
-        </div>
-
       </div>
     </div>
+  </div>
+
+  <!-- Contadores internos del juego (sin panel visual, el juego los sigue usando) -->
+  <div style="display:none;">
+    <span id="sc">0</span>
+    <span id="hc">0</span>
+    <span id="tc">12</span>
   </div>
 
   <!-- Cursor personalizado -->
@@ -2154,7 +2281,7 @@
         if (!p) return;
         onGlobalMouseUp({ clientX: p.x, clientY: p.y });
       });
-      document.addEventListener('touchcancel', () => { isCharging = false; });
+      document.addEventListener('touchcancel', () => { isCharging = false; endPowerCharge(); });
       document.addEventListener('keydown', e => { if (e.key === 'r' || e.key === 'R') clearShots(); });
       clock = new THREE.Clock();
     }
@@ -2347,15 +2474,65 @@
     const DRAG_CANCEL_PX = 10;
     const MIN_POWER_SPEED = 15;   // velocidad mínima
     const MAX_POWER_SPEED = 65;   // velocidad máxima
-    const POWER_DEADZONE = 60;    // px mínimos de distancia Y para empezar a cargar
-    const POWER_MAX_DIST = 350;   // px de distancia Y para potencia máxima
 
-    function fireCharged(clientX, clientY) {
+    // ═══════════════════════════════════════════════════════════
+    //  BARRA DE POTENCIA — indicador que rebota de min↔max mientras
+    //  se mantiene el pinch cerrado (cámara) o el click presionado
+    //  (mouse). Al soltar, la potencia queda fijada donde se detuvo
+    //  el indicador y la canica sale disparada con esa fuerza.
+    // ═══════════════════════════════════════════════════════════
+    let powerCharging = false;
+    let powerValue = 0;   // 0..1 — posición actual del indicador
+    let powerDir = 1;     // 1 = subiendo, -1 = bajando
+    const POWER_HALF_CYCLE_S = 0.62; // segundos que tarda en ir de 0 a 1 (o de 1 a 0)
+    let _powerResetTimer = null;
+
+    function updatePowerBarUI() {
+      const fill = $('powerBarFill');
+      const ind = $('powerBarIndicator');
+      if (!fill || !ind) return;
+      fill.style.transform = `scaleY(${1 - powerValue})`;
+      ind.style.bottom = (powerValue * 100).toFixed(1) + '%';
+    }
+
+    function stepPowerCharge(dt) {
+      if (!powerCharging) return;
+      powerValue += (powerDir * dt) / POWER_HALF_CYCLE_S;
+      if (powerValue >= 1) { powerValue = 1; powerDir = -1; }
+      else if (powerValue <= 0) { powerValue = 0; powerDir = 1; }
+      updatePowerBarUI();
+    }
+
+    function startPowerCharge() {
+      if (_powerResetTimer) { clearTimeout(_powerResetTimer); _powerResetTimer = null; }
+      powerCharging = true;
+      powerValue = 0;
+      powerDir = 1;
+      $('powerBar').classList.add('active');
+      updatePowerBarUI();
+    }
+
+    // Devuelve la potencia (0..1) en la que estaba el indicador al soltar,
+    // y apaga la carga. El indicador se queda visible un instante en esa
+    // posición (feedback de "acá quedó la potencia") y luego vuelve a 0.
+    function endPowerCharge() {
+      const p = powerValue;
+      powerCharging = false;
+      $('powerBar').classList.remove('active');
+      if (_powerResetTimer) clearTimeout(_powerResetTimer);
+      _powerResetTimer = setTimeout(() => {
+        powerValue = 0;
+        updatePowerBarUI();
+        _powerResetTimer = null;
+      }, 350);
+      return p;
+    }
+
+    function fireCharged(clientX, clientY, power) {
       const rect = renderer.domElement.getBoundingClientRect();
       const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
       const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
-      // Velocidad según potencia acumulada
-      const speed = MIN_POWER_SPEED + currentPower * (MAX_POWER_SPEED - MIN_POWER_SPEED);
+      const speed = MIN_POWER_SPEED + power * (MAX_POWER_SPEED - MIN_POWER_SPEED);
       fireFromNDC(ndcX, ndcY, speed);
     }
 
@@ -2387,13 +2564,9 @@
         aimPoint.y = orbSize;
       }
 
-      // ── CALCULAR POTENCIA por distancia en eje Y del mouse ──
-      const previewScreenY = rect.bottom - rect.height * 0.15;
-      const distY = previewScreenY - lastMouseClientY;
-      let power = 0;
-      if (distY > POWER_DEADZONE) {
-        power = Math.min(1, (distY - POWER_DEADZONE) / (POWER_MAX_DIST - POWER_DEADZONE));
-      }
+      // ── POTENCIA: viene de la barra de carga (rebote min↔max), no de
+      // la posición del mouse — 0 si no se está cargando (pinch/click).
+      const power = powerCharging ? powerValue : 0;
       currentPower = power;
 
       // Color según potencia
@@ -2447,13 +2620,15 @@
       chargeStart = performance.now();
       chargeStartClientX = lastMouseClientX = e.clientX;
       chargeStartClientY = lastMouseClientY = e.clientY;
+      startPowerCharge();
     }
     function onGlobalMouseUp(e) {
       if (!isCharging) return;
       const moved = Math.hypot(e.clientX - chargeStartClientX, e.clientY - chargeStartClientY);
       isCharging = false;
+      const power = endPowerCharge();
       if (moved > DRAG_CANCEL_PX) return;
-      fireCharged(e.clientX, e.clientY);
+      fireCharged(e.clientX, e.clientY, power);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -2508,6 +2683,10 @@
         btn.textContent = '🖐 DESACTIVAR CÁMARA';
         st.textContent = 'Mano derecha: muévela para apuntar, cierra el pinch para disparar';
         $('gestHud').style.display = 'block';
+        $('camPreview').style.display = 'block';
+        const lmCanvas = $('gestLandmarks');
+        lmCanvas.width = lmCanvas.clientWidth;
+        lmCanvas.height = lmCanvas.clientHeight;
       } catch (err) {
         st.textContent = '❌ No se pudo activar la cámara o el modelo de mano';
         console.error(err);
@@ -2521,6 +2700,57 @@
       $('gestb').textContent = '🖐 ACTIVAR CÁMARA (MANO)';
       $('gestst').textContent = 'Apunta y cierra el pinch (pulgar+índice) para disparar';
       $('gestHud').style.display = 'none';
+      $('camPreview').style.display = 'none';
+      const lmCanvas = $('gestLandmarks');
+      const ctx = lmCanvas.getContext('2d');
+      ctx.clearRect(0, 0, lmCanvas.width, lmCanvas.height);
+    }
+
+    // Pares de índices de landmarks que forman el "esqueleto" de la mano
+    // (mismo layout que MediaPipe Hands: 21 puntos, 0 = muñeca).
+    const HAND_CONNECTIONS = [
+      [0,1],[1,2],[2,3],[3,4],
+      [0,5],[5,6],[6,7],[7,8],
+      [0,9],[9,10],[10,11],[11,12],
+      [0,13],[13,14],[14,15],[15,16],
+      [0,17],[17,18],[18,19],[19,20],
+      [5,9],[9,13],[13,17]
+    ];
+
+    // Dibuja los puntos y líneas de tracking de la mano sobre el recuadro
+    // de cámara. El <canvas> ya está espejado por CSS (transform: scaleX(-1))
+    // igual que el <video>, así que se dibuja con las coordenadas normales
+    // de MediaPipe (0..1) sin volver a espejar acá.
+    function drawHandLandmarks(lm) {
+      const canvas = $('gestLandmarks');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      if (!w || !h) return;
+      ctx.clearRect(0, 0, w, h);
+      if (!lm) return;
+
+      ctx.strokeStyle = '#FF0100';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (const [a, b] of HAND_CONNECTIONS) {
+        ctx.moveTo(lm[a].x * w, lm[a].y * h);
+        ctx.lineTo(lm[b].x * w, lm[b].y * h);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#FF0100';
+      for (const p of lm) {
+        ctx.beginPath();
+        ctx.arc(p.x * w, p.y * h, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // pulgar + índice remarcados (son el pellizco que dispara)
+      ctx.fillStyle = '#FFFFFF';
+      [lm[4], lm[8]].forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x * w, p.y * h, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
     }
 
     // ubica la mira exactamente en el punto de pantalla al que apunta el
@@ -2546,6 +2776,7 @@
 
       const result = handLandmarker.detectForVideo(video, performance.now());
       const lm = result && result.landmarks && result.landmarks[0];
+      drawHandLandmarks(lm || null);
       if (!lm) return;
 
       const thumb = lm[4], index = lm[8], wrist = lm[0], midMcp = lm[9];
@@ -2567,10 +2798,13 @@
       updateGestHudPosition(ndcX, ndcY);
 
       if (pinchDist < PINCH_CLOSED_T && !pinchWasClosed) {
-        fireFromNDC(gestAimNDC.x, gestAimNDC.y, orbSpeed, { maxVelY: GEST_MAX_VEL_Y });
         pinchWasClosed = true;
-      } else if (pinchDist > PINCH_OPEN_T) {
+        startPowerCharge();
+      } else if (pinchDist > PINCH_OPEN_T && pinchWasClosed) {
         pinchWasClosed = false;
+        const power = endPowerCharge();
+        const speed = MIN_POWER_SPEED + power * (MAX_POWER_SPEED - MIN_POWER_SPEED);
+        fireFromNDC(gestAimNDC.x, gestAimNDC.y, speed, { maxVelY: GEST_MAX_VEL_Y });
       }
     }
 
@@ -2819,6 +3053,7 @@
       const dt = Math.min(clock.getDelta(), .05);
 
       physics.step(dt);
+      stepPowerCharge(dt);
 
       if (_pendingHits.length) {
         const p = _pendingHits[_pendingHits.length - 1]; // varios golpes en el mismo frame → uno solo se usa de posición
@@ -2895,11 +3130,6 @@
         makeRingMesh(ringRadius);
       });
       $('cntr').addEventListener('input', e => { targetCount = +e.target.value; $('cntv').textContent = targetCount; });
-
-      $('cfovr').addEventListener('input', e => { camFov = +e.target.value; $('cfovv').textContent = camFov; applyCameraFraming(); });
-      $('camyr').addEventListener('input', e => { camY = +e.target.value; $('camyv').textContent = camY.toFixed(1); applyCameraFraming(); });
-      $('camzr').addEventListener('input', e => { camZ = +e.target.value; $('camzv').textContent = camZ.toFixed(1); applyCameraFraming(); });
-      $('tgtyr').addEventListener('input', e => { tgtY = +e.target.value; $('tgtyv').textContent = tgtY.toFixed(2); applyCameraFraming(); });
 
       $('clrb').addEventListener('click', clearShots);
       $('rrb').addEventListener('click', spawnTargets);
