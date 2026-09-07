@@ -9,6 +9,7 @@ export const TOOLS = [
     tech: ['Canvas API', 'MediaPipe', 'Hand Tracking'],
     path: '/tools/floralis',
     index: '001',
+    thumbnail: '/tool-thumbnails/aguzate-01.webp',
   },
   {
     id: "002",
@@ -17,7 +18,8 @@ export const TOOLS = [
     tech: ['Three.js', 'MediaPipe'], // Usa array si Floralis lo usa
     path: '/tools/canicas-3d',      // <--- ASEGÚRATE DE QUE SE LLAME 'path'
     description: "Laboratorio de físicas y control gestual.",
-    index: '002' // Si Floralis tiene index, agrégalo aquí también
+    index: '002', // Si Floralis tiene index, agrégalo aquí también
+    thumbnail: '/tool-thumbnails/bg-final-ig.webp',
   },
   {
     id: 'tipografia-adaptativa',
@@ -29,6 +31,7 @@ export const TOOLS = [
     tech: ['Canvas API', 'Variable Fonts'],
     path: '/tools/tipografia-adaptativa',
     index: '002',
+    thumbnail: '/tool-thumbnails/1p.webp',
   },
   {
     id: 'poster-generativo',

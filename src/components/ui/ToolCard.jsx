@@ -29,13 +29,13 @@ export default function ToolCard({ tool, index }) {
     <article className="tc">
       {isActive ? (
         <Link to={path} className="tc__inner">
-          {label}
           {media}
+          {label}
         </Link>
       ) : (
         <div className="tc__inner tc__inner--soon">
-          {label}
           {media}
+          {label}
         </div>
       )}
     </article>

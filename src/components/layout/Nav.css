@@ -20,7 +20,7 @@
 .nav__group {
   display: flex;
   align-items: center;
-  gap: var(--space-12);          /* mas separacion entre apartados */
+  gap: calc(var(--space-12) + 5px); /* 5px más de separación entre apartados */
 }
 .nav__group--left  { grid-column: 1; justify-self: start; }
 .nav__group--right { justify-self: end; }
