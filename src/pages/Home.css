@@ -5,6 +5,13 @@
   gap: var(--space-4);
 }
 
+/* Los contenedores del Home deben llenar el ancho disponible,
+   sin el tope de --container-max que usa .page-container global */
+.home .page-container {
+  max-width: none;
+  width: 100%;
+}
+
 /* ── Hero ── */
 .hero { }
 .hero__win { width: 100%; }
