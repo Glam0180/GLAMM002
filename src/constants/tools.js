@@ -83,9 +83,9 @@ export const TOOL_STATUS = {
 }
 
 export const LAB_META = {
-  name: 'NOTAS AMANO LAB',
-  shortName: 'NAL',
-  tagline: 'Laboratorio de diseño gráfico interactivo',
+  name: 'GLAM.LAB',
+  shortName: 'GLAM',
+  tagline: 'Laboratorio de diseño interactivo',
   version: '0.2.0',
   year: '2025',
 }
