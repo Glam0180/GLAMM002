@@ -2,6 +2,13 @@
 
 html { scroll-behavior: smooth; }
 
+html, body {
+  max-width: 100%;
+  overflow-x: hidden; /* nunca debe aparecer scroll horizontal */
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
   background-color: var(--color-bg);
   color: var(--color-text-primary);
@@ -30,6 +37,11 @@ body {
 /* Containers */
 .page-container    { max-width: var(--container-max);     margin: 0 auto; padding: 0 var(--space-8); }
 .content-container { max-width: var(--container-content); margin: 0 auto; padding: 0 var(--space-8); }
+
+@media (max-width: 640px) {
+  .page-container, .content-container { padding: 0 var(--space-4); }
+  .win__bar-subtitle, .win__bar-sep { display: none; }
+}
 
 /* Label */
 .label {
@@ -98,6 +110,7 @@ body {
   text-transform: uppercase;
   color: #fff;
   flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -107,6 +120,7 @@ body {
   color: rgba(255,255,255,0.35);
   font-size: var(--text-2xs);
   padding: 0 var(--space-2);
+  flex-shrink: 0;
 }
 
 .win__bar-subtitle {
@@ -115,6 +129,7 @@ body {
   color: rgba(255,255,255,0.7);
   letter-spacing: var(--tracking-wide);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Botones de ventana —□✕ */
