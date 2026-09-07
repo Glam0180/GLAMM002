@@ -20,7 +20,7 @@ export default function Home() {
             <span className="win__bar-dot" />
             <span className="win__bar-title">/FIRST LOVE</span>
             <span className="win__bar-sep">|</span>
-            <span className="win__bar-subtitle">NOTAS AMANO LAB — DISEÑO GRÁFICO INTERACTIVO</span>
+            <span className="win__bar-subtitle">GLAM.LAB — DISEÑO GRÁFICO INTERACTIVO</span>
             <div className="win__bar-controls">
               <span className="win__ctrl">—</span>
               <span className="win__ctrl">□</span>
@@ -38,9 +38,8 @@ export default function Home() {
               </div>
 
               <h1 className="hero__title">
-                <span className="hero__title-w">NOTAS</span>
-                <span className="hero__title-w hero__title-w--red">AMANO</span>
-                <span className="hero__title-w">LAB</span>
+                <span className="hero__title-w">GLAM</span>
+                <span className="hero__title-w hero__title-w--red">.LAB</span>
               </h1>
 
               <p className="hero__desc">
