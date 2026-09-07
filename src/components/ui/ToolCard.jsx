@@ -18,8 +18,10 @@ export default function ToolCard({ tool, index }) {
 
   const label = (
     <div className="tc__label">
+      <span className="tc__slz">///</span>
       <span className="tc__num">{num}</span>
       <span className="tc__name">{name}</span>
+      <span className="tc__slz tc__slz--end">///</span>
     </div>
   )
 
@@ -27,13 +29,13 @@ export default function ToolCard({ tool, index }) {
     <article className="tc">
       {isActive ? (
         <Link to={path} className="tc__inner">
-          {media}
           {label}
+          {media}
         </Link>
       ) : (
         <div className="tc__inner tc__inner--soon">
-          {media}
           {label}
+          {media}
         </div>
       )}
     </article>

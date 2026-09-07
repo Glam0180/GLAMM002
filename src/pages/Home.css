@@ -15,12 +15,15 @@
 }
 
 .hero__note {
+  display: inline-block;
   font-family: var(--font-flat);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-flat-fg);
+  color: var(--color-flat-on-red);
+  background: var(--color-red);
+  padding: 4px 8px;
 }
 
 /* ── Herramientas ── */
