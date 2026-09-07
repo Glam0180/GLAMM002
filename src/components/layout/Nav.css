@@ -1,11 +1,11 @@
-/* ─── NAV — flat, full width, SOLO rojo/negro, fondo negro ─────── */
+/* ─── NAV — bloque rojo con texto negro (estilo master-bar) ─────── */
 
 .nav {
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
   width: 100%;
-  background: var(--color-red);              /* bloque rojo sólido, estilo master-bar */
+  background: var(--color-red);
   border-bottom: 2px solid var(--color-flat-on-red);
 }
 
@@ -28,35 +28,35 @@
 .nav__link {
   font-family: var(--font-flat);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 700;                 /* bold, siempre */
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(0,0,0,0.55);      /* texto negro sobre rojo, como el subtítulo del master-bar */
+  color: var(--color-flat-on-red);  /* negro pleno sobre el bloque rojo */
   white-space: nowrap;
-  transition: color var(--duration-fast);
+  transition: opacity var(--duration-fast);
+  opacity: 1;
 }
-a.nav__link:hover      { color: var(--color-flat-on-red); }
-.nav__link--active     { color: var(--color-flat-on-red); }
-.nav__link--off        { cursor: default; color: rgba(0,0,0,0.3); }
+a.nav__link:hover  { opacity: 0.6; }
+.nav__link--active { text-decoration: underline; text-underline-offset: 3px; }
 
 .nav__count {
   font-size: 8px;
+  font-weight: 700;
   bottom: 0;
 }
 
-/* Logo central — bloque negro con borde/texto rojo, como los controles del master-bar */
+/* Logo central — el svg negro directo sobre el bloque rojo, sin caja */
 .nav__logo {
   grid-column: 2;
   justify-self: center;
-  font-family: var(--font-flat);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-flat-fg);
-  background: var(--color-flat-on-red);
-  border: 1px solid var(--color-flat-fg);
-  padding: 6px 18px;
+  display: flex;
+  align-items: center;
+  line-height: 0;
+}
+.nav__logo-img {
+  height: 20px;
+  width: auto;
+  display: block;
 }
 
 .nav__right {
@@ -106,17 +106,16 @@ a.nav__link:hover      { color: var(--color-flat-on-red); }
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(0,0,0,0.65);
+  color: var(--color-flat-on-red);
   padding: var(--space-3) var(--space-6);
   border-top: 1px solid var(--color-flat-on-red);
 }
-.nav__drawer-link--off { cursor: default; color: rgba(0,0,0,0.3); }
 
 @media (max-width: 640px) {
   .nav__row { padding: 0 var(--space-4); min-height: 56px; }
   .nav__group--left  { display: none; }
   .nav__group--right { display: none; }
   .nav__menu-btn      { display: flex; }
-  .nav__logo { font-size: 12px; padding: 5px 14px; }
+  .nav__logo-img { height: 16px; }
   :root { --nav-height: 57px; }
 }
