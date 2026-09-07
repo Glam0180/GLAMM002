@@ -1,13 +1,15 @@
 import { TOOLS } from '@constants/tools'
 import ToolCard from '@components/ui/ToolCard'
+import HeroSphereScene from '@components/hero/HeroSphereScene'
 import './Home.css'
 
 export default function Home() {
   return (
     <div className="home">
 
-      {/* ── HERO — espacio negro pendiente ── */}
-      <section className="hero" aria-label="Hero pendiente" />
+      <section className="hero" aria-label="Vitrina interactiva de esferas 3D">
+        <HeroSphereScene />
+      </section>
 
       {/* ── HERRAMIENTAS ── */}
       <section className="tools-section" id="tools">
