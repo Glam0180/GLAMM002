@@ -1,14 +1,14 @@
 import { TOOLS } from '@constants/tools'
 import ToolCard from '@components/ui/ToolCard'
-import HeroSphereScene from '@components/hero/HeroSphereScene'
+import HeroTapeScene from '@components/hero/HeroTapeScene'
 import './Home.css'
 
 export default function Home() {
   return (
     <div className="home">
 
-      <section className="hero" aria-label="Vitrina interactiva de esferas 3D">
-        <HeroSphereScene />
+      <section className="hero" aria-label="Escenario de cinta roja">
+        <HeroTapeScene />
       </section>
 
       {/* ── HERRAMIENTAS ── */}
