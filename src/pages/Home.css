@@ -1,26 +1,26 @@
-/* ─── HOME — flat design, solo negro/rojo, full width ─────────── */
+/* ─── HOME — flat design, SOLO rojo/negro, fondo negro, tipografía bold ─── */
 
 .home {
   display: flex;
   flex-direction: column;
-  background: var(--color-flat-white);
-  color: var(--color-flat-black);
+  background: var(--color-flat-bg);
+  color: var(--color-flat-fg);
 }
 
-/* ── Hero — placeholder en blanco ── */
+/* ── Hero — placeholder ── */
 .hero {
   min-height: 55vh;
   padding: var(--space-6);
-  border-bottom: 1px solid var(--color-flat-black);
+  border-bottom: 1px solid var(--color-flat-fg);
 }
 
 .hero__note {
   font-family: var(--font-flat);
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-flat-black);
+  color: var(--color-flat-fg);
 }
 
 /* ── Herramientas ── */
@@ -29,13 +29,13 @@
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid var(--color-flat-black);
-  border-left: 1px solid var(--color-flat-black);
+  border-top: 1px solid var(--color-flat-fg);
+  border-left: 1px solid var(--color-flat-fg);
 }
 
 /* ── Manifiesto ── */
 .manifesto {
-  border-bottom: 1px solid var(--color-flat-black);
+  border-bottom: 1px solid var(--color-flat-fg);
   padding: var(--space-20) var(--space-8);
   display: flex;
   align-items: center;
@@ -50,7 +50,7 @@
   letter-spacing: 0.01em;
   line-height: 1.4;
   text-transform: uppercase;
-  color: var(--color-flat-black);
+  color: var(--color-flat-fg);
   max-width: 900px;
 }
 

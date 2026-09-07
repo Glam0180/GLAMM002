@@ -52,10 +52,16 @@
   --font-mono:    'DM Mono', monospace;
   --font-win:     'DM Mono', monospace;  /* fuente de títulos de ventana */
 
-  /* Fuente plana para Home/Nav — solo negro y rojo, sin intermedios */
-  --font-flat: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --color-flat-black: #000000;
-  --color-flat-white: #ffffff;
+  /* Fuente plana para Home/Nav — SOLO rojo y negro, fondo negro, sin blanco */
+  --font-flat: 'Space Mono', monospace;
+  --color-flat-bg:      #000000;  /* fondo — negro */
+  --color-flat-fg:      #FF0100;  /* texto/bordes sobre negro — rojo */
+  --color-flat-on-red:  #000000;  /* texto sobre superficies rojas — negro */
+  --color-flat-faint:   rgba(255,1,0,0.18);  /* separadores sutiles */
+  --color-flat-ghost:   rgba(255,1,0,0.10);  /* fondos hover sutiles */
+  /* alias legacy, se mantienen para no romper referencias existentes */
+  --color-flat-black: var(--color-flat-fg);
+  --color-flat-white: var(--color-flat-bg);
 
   /* Tamaños — textos pequeños estilo referencia */
   --text-2xs:  0.5625rem;   /* 9px  — para labels de titlebar */

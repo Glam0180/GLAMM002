@@ -1,12 +1,12 @@
-/* ─── NAV — flat, full width, solo negro/rojo/blanco ─────────── */
+/* ─── NAV — flat, full width, SOLO rojo/negro, fondo negro ─────── */
 
 .nav {
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
   width: 100%;
-  background: var(--color-flat-white);
-  border-bottom: 1px solid var(--color-flat-black);
+  background: var(--color-flat-bg);
+  border-bottom: 1px solid var(--color-flat-fg);
 }
 
 .nav__row {
@@ -28,23 +28,23 @@
 .nav__link {
   font-family: var(--font-flat);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-flat-black);
+  color: var(--color-flat-fg);
   white-space: nowrap;
   transition: color var(--duration-fast);
 }
-a.nav__link:hover      { color: var(--color-red); }
-.nav__link--active     { color: var(--color-red); }
-.nav__link--off        { cursor: default; }
+a.nav__link:hover      { color: var(--color-red-dark); }
+.nav__link--active     { color: var(--color-red-dark); }
+.nav__link--off        { cursor: default; color: var(--color-flat-faint); }
 
 .nav__count {
   font-size: 8px;
   bottom: 0;
 }
 
-/* Logo central */
+/* Logo central — invertido: fondo rojo, texto negro (única excepción de contraste) */
 .nav__logo {
   grid-column: 2;
   justify-self: center;
@@ -53,8 +53,9 @@ a.nav__link:hover      { color: var(--color-red); }
   font-size: 13px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-flat-black);
-  border: 1px solid var(--color-flat-black);
+  color: var(--color-flat-on-red);
+  background: var(--color-red);
+  border: 1px solid var(--color-flat-fg);
   padding: 6px 18px;
 }
 
@@ -73,9 +74,10 @@ a.nav__link:hover      { color: var(--color-red); }
   width: 32px;
   height: 32px;
   background: transparent;
-  border: 1px solid var(--color-flat-black);
-  color: var(--color-flat-black);
+  border: 1px solid var(--color-flat-fg);
+  color: var(--color-flat-fg);
   font-family: var(--font-flat);
+  font-weight: 700;
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
@@ -88,8 +90,8 @@ a.nav__link:hover      { color: var(--color-red); }
 .nav__drawer {
   display: none;
   flex-direction: column;
-  background: var(--color-flat-white);
-  border-bottom: 1px solid var(--color-flat-black);
+  background: var(--color-flat-bg);
+  border-bottom: 1px solid var(--color-flat-fg);
   transform: translateY(-4px);
   opacity: 0;
   pointer-events: none;
@@ -100,14 +102,14 @@ a.nav__link:hover      { color: var(--color-red); }
 .nav__drawer-link {
   font-family: var(--font-flat);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-flat-black);
+  color: var(--color-flat-fg);
   padding: var(--space-3) var(--space-6);
-  border-top: 1px solid var(--color-flat-black);
+  border-top: 1px solid var(--color-flat-fg);
 }
-.nav__drawer-link--off { cursor: default; }
+.nav__drawer-link--off { cursor: default; color: var(--color-flat-faint); }
 
 @media (max-width: 640px) {
   .nav__row { padding: 0 var(--space-4); min-height: 56px; }
