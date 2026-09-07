@@ -18,10 +18,8 @@ export default function ToolCard({ tool, index }) {
 
   const label = (
     <div className="tc__label">
-      <span className="tc__slz">///</span>
       <span className="tc__num">{num}</span>
       <span className="tc__name">{name}</span>
-      <span className="tc__slz tc__slz--end">///</span>
     </div>
   )
 

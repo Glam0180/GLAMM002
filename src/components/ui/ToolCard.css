@@ -16,20 +16,13 @@
 .tc__label {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 6px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
   height: 22px;
   background: var(--color-red);
   border-top: 2px solid var(--color-flat-on-red);
 }
-
-.tc__slz {
-  font-size: 8px;
-  font-weight: 700;
-  color: rgba(0,0,0,0.5);
-  flex-shrink: 0;
-}
-.tc__slz--end { margin-left: auto; }
 
 .tc__num {
   font-family: var(--font-flat);
@@ -48,6 +41,8 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-flat-on-red);
+  margin-left: auto;
+  text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

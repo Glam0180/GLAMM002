@@ -1,23 +1,18 @@
-import React, { Suspense, lazy } from 'react'
 import { TOOLS } from '@constants/tools'
 import ToolCard from '@components/ui/ToolCard'
 import './Home.css'
-
-const SplineSceneEmbed = lazy(() =>
-  import('@components/hero/SplineSceneEmbed').then(m => ({ default: m.SplineSceneEmbed }))
-)
 
 export default function Home() {
   return (
     <div className="home">
 
-      {/* ── HERO — escena 3D interactiva (Spline) ── */}
-      <section className="hero" aria-label="Hero — escena interactiva">
-        <div className="hero__embed">
-          <Suspense fallback={null}>
-            <SplineSceneEmbed />
-          </Suspense>
-        </div>
+      {/* ── HERO — imagen estática para una carga ligera ── */}
+      <section className="hero" aria-label="Hero de GLAM.LAB">
+        <img
+          src="/BG_FINAL.png"
+          alt="Ilustración de GLAM.LAB"
+          className="hero__image"
+        />
       </section>
 
       {/* ── HERRAMIENTAS ── */}
