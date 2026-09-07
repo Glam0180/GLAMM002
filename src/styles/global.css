@@ -13,6 +13,8 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text-primary);
   font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   /* Scanline sutil */
@@ -23,6 +25,13 @@ body {
     rgba(0,0,0,0.08) 2px,
     rgba(0,0,0,0.08) 3px
   );
+}
+
+/* El sistema visual usa Open Sans en negrita y mayúsculas en todos los textos. */
+body, body * {
+  font-family: 'Open Sans', sans-serif !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
 }
 
 /* Scrollbar estilo retro */

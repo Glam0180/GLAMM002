@@ -48,13 +48,13 @@
   --color-tag-green-t: #5a8c5a;
 
   /* ── Tipografía ── */
-  --font-display: 'Syne', sans-serif;
-  --font-mono:    'DM Mono', monospace;
-  --font-win:     'DM Mono', monospace;  /* fuente de títulos de ventana */
+  --font-display: 'Open Sans', sans-serif;
+  --font-mono:    'Open Sans', sans-serif;
+  --font-win:     'Open Sans', sans-serif;
 
   /* Fuente plana para Home/Nav — SOLO rojo y negro, fondo negro, sin blanco */
-  --font-flat: 'Space Mono', monospace;
-  --font-nav:  'Helvetica Neue', Helvetica, Arial, sans-serif;  /* nav: palo seco */
+  --font-flat: 'Open Sans', sans-serif;
+  --font-nav:  'Open Sans', sans-serif;
   --color-flat-bg:      #000000;  /* fondo — negro */
   --color-flat-fg:      #FF0100;  /* texto/bordes sobre negro — rojo */
   --color-flat-on-red:  #000000;  /* texto sobre superficies rojas — negro */
