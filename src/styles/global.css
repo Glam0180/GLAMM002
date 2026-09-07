@@ -27,9 +27,9 @@ body {
   );
 }
 
-/* El sistema visual usa Open Sans en negrita y mayúsculas en todos los textos. */
+/* El sistema visual usa Montserrat en negrita y mayúsculas en todos los textos. */
 body, body * {
-  font-family: 'Open Sans', sans-serif !important;
+  font-family: 'Montserrat', sans-serif !important;
   font-weight: 700 !important;
   text-transform: uppercase;
 }
