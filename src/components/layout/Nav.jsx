@@ -60,6 +60,15 @@ export default function Nav() {
           <span className="nav__link nav__link--off">about</span>
         </nav>
         <span className="nav__version">v{LAB_META.version} — BETA</span>
+        <button
+          type="button"
+          className="nav__menu-btn"
+          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(o => !o)}
+        >
+          {menuOpen ? '✕' : '☰'}
+        </button>
       </div>
 
       {/* Mobile drawer */}
