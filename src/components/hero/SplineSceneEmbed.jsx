@@ -93,6 +93,7 @@ export function SplineSceneEmbed() {
   return (
     <div className="spline-embed" onClick={handleClick}>
       <Spline scene={sceneUrl} onLoad={handleLoad} className="spline-embed__canvas" />
+      <div className="spline-embed__badge-cover" aria-hidden="true" />
     </div>
   )
 }

@@ -14,7 +14,7 @@ export default function Home() {
       {/* ── HERO — escena 3D interactiva (Spline) ── */}
       <section className="hero" aria-label="Hero — escena interactiva">
         <div className="hero__embed">
-          <Suspense fallback={<div className="hero__loading">// CARGANDO ESCENA</div>}>
+          <Suspense fallback={null}>
             <SplineSceneEmbed />
           </Suspense>
         </div>
