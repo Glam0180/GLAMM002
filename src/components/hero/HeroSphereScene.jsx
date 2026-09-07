@@ -68,9 +68,17 @@ export default function HeroSphereScene() {
       const star = new THREE.Mesh(geometry, materials[index % materials.length])
       star.scale.setScalar(radius)
       star.position.set((Math.random() - 0.5) * 16, (Math.random() - 0.5) * 6.8, (Math.random() - 0.5) * 0.42)
+      star.rotation.x = (Math.random() - 0.5) * 0.55
+      star.rotation.y = (Math.random() - 0.5) * 0.55
       star.rotation.z = Math.random() * Math.PI * 2
       group.add(star)
-      stars.push({ mesh: star, radius, velocity: new THREE.Vector3((Math.random() - 0.5) * 0.028, (Math.random() - 0.5) * 0.028, 0), spin: (Math.random() - 0.5) * 0.008 })
+      stars.push({
+        mesh: star,
+        radius,
+        velocity: new THREE.Vector3((Math.random() - 0.5) * 0.028, (Math.random() - 0.5) * 0.028, 0),
+        spin: (Math.random() - 0.5) * 0.008,
+        tilt: (Math.random() - 0.5) * 0.004,
+      })
     }
 
     scene.add(new THREE.HemisphereLight('#ffffff', '#120000', 2.8))
@@ -129,6 +137,8 @@ export default function HeroSphereScene() {
         velocity.multiplyScalar(Math.pow(0.987, step))
         mesh.position.addScaledVector(velocity, step)
         mesh.rotation.z += star.spin * step + velocity.x * 0.04
+        mesh.rotation.x += star.tilt * step
+        mesh.rotation.y += star.tilt * 0.7 * step
         if (mesh.position.x > halfWidth - radius || mesh.position.x < -halfWidth + radius) {
           mesh.position.x = THREE.MathUtils.clamp(mesh.position.x, -halfWidth + radius, halfWidth - radius)
           velocity.x *= -0.7
