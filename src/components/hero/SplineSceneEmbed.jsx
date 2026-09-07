@@ -1,6 +1,5 @@
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Spline from "@splinetool/react-spline"
-import "./SplineSceneEmbed.css"
 
 export function SplineSceneEmbed() {
   const splineAppRef = useRef(null)
@@ -91,9 +90,8 @@ export function SplineSceneEmbed() {
   }, [])
 
   return (
-    <div className="spline-embed" onClick={handleClick}>
-      <Spline scene={sceneUrl} onLoad={handleLoad} className="spline-embed__canvas" />
-      <div className="spline-embed__badge-cover" aria-hidden="true" />
+    <div style={{ width: "100%", height: "100%" }} onClick={handleClick}>
+      <Spline scene={sceneUrl} onLoad={handleLoad} />
     </div>
   )
 }
