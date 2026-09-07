@@ -15,7 +15,7 @@ export default function Footer() {
           <div className="win__bar">
             <span className="win__bar-slash">///</span>
             <span className="win__bar-dot" />
-            <span className="win__bar-title">/NOTAS AMANO LAB</span>
+            <span className="win__bar-title">/GLAM.LAB</span>
             <span className="win__bar-sep">|</span>
             <span className="win__bar-subtitle">FOOTER.SYS</span>
             <div className="win__bar-controls">
