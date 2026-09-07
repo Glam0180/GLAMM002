@@ -54,6 +54,7 @@
 
   /* Fuente plana para Home/Nav — SOLO rojo y negro, fondo negro, sin blanco */
   --font-flat: 'Space Mono', monospace;
+  --font-nav:  'Helvetica Neue', Helvetica, Arial, sans-serif;  /* nav: palo seco */
   --color-flat-bg:      #000000;  /* fondo — negro */
   --color-flat-fg:      #FF0100;  /* texto/bordes sobre negro — rojo */
   --color-flat-on-red:  #000000;  /* texto sobre superficies rojas — negro */
