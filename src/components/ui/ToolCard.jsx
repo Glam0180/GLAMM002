@@ -1,50 +1,41 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { TOOL_STATUS } from '@constants/tools'
 import './ToolCard.css'
 
-export default function ToolCard({ tool }) {
-  const { name, description, status, tech, path, index } = tool
-  const statusInfo = TOOL_STATUS[status] || TOOL_STATUS.soon
+export default function ToolCard({ tool, index }) {
+  const { name, path, thumbnail, status } = tool
   const isActive = status === 'live' || status === 'wip'
+  const num = String(index).padStart(3, '0')
+
+  const media = (
+    <div className="tc__media">
+      {thumbnail
+        ? <img src={thumbnail} alt={name} className="tc__img" />
+        : <div className="tc__placeholder" aria-hidden="true" />
+      }
+    </div>
+  )
+
+  const label = (
+    <div className="tc__label">
+      <span className="tc__num">{num}</span>
+      <span className="tc__name">{name}</span>
+    </div>
+  )
 
   return (
-    <article className={`tc ${isActive ? 'tc--active' : 'tc--soon'}`}>
-      <Link to={path} className="tc__inner" tabIndex={isActive ? 0 : -1}>
-
-        {/* Mini titlebar */}
-        <div className="tc__bar">
-          <span className="tc__bar-slash">///</span>
-          <span className="tc__bar-dot" />
-          <span className="tc__bar-idx">{index}</span>
-          <span className="tc__bar-sep">|</span>
-          <span className={`tc__status tc__status--${statusInfo.color}`}>
-            {statusInfo.label}
-          </span>
-          <div className="tc__bar-ctrls">
-            <span className="tc__ctrl">—</span>
-            <span className="tc__ctrl">□</span>
-            <span className="tc__ctrl tc__ctrl--x">✕</span>
-          </div>
+    <article className="tc">
+      {isActive ? (
+        <Link to={path} className="tc__inner">
+          {media}
+          {label}
+        </Link>
+      ) : (
+        <div className="tc__inner tc__inner--soon">
+          {media}
+          {label}
         </div>
-
-        {/* Content */}
-        <div className="tc__body">
-          <h3 className="tc__name">{name}</h3>
-          <p  className="tc__desc">{description}</p>
-          <div className="tc__tech">
-            {tech.map(t => (
-              <span key={t} className="tc__tech-item">{t}</span>
-            ))}
-          </div>
-        </div>
-
-        {/* Statusbar */}
-        <div className="tc__statusbar">
-          <span className="tc__statusbar-txt">ABRIR →</span>
-        </div>
-
-      </Link>
+      )}
     </article>
   )
 }

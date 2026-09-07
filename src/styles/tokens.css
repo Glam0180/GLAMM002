@@ -52,6 +52,11 @@
   --font-mono:    'DM Mono', monospace;
   --font-win:     'DM Mono', monospace;  /* fuente de títulos de ventana */
 
+  /* Fuente plana para Home/Nav — solo negro y rojo, sin intermedios */
+  --font-flat: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --color-flat-black: #000000;
+  --color-flat-white: #ffffff;
+
   /* Tamaños — textos pequeños estilo referencia */
   --text-2xs:  0.5625rem;   /* 9px  — para labels de titlebar */
   --text-xs:   0.625rem;    /* 10px */

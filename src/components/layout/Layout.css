@@ -1,2 +1,4 @@
 .layout { display: flex; flex-direction: column; min-height: 100vh; }
-.layout__main { flex: 1; padding-top: var(--nav-height); }
+/* El Nav ahora es "sticky" y ocupa su propio espacio en el flujo,
+   por eso el <main> ya no necesita padding-top compensatorio. */
+.layout__main { flex: 1; }
