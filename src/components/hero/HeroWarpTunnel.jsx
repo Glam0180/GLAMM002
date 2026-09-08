@@ -10,14 +10,14 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import './HeroWarpTunnel.css'
 
 const WORDS = ['GLAM', 'LAB']
-const TOTAL_COUNT = 300 // mas cantidad
-const RINGS = 15 // 15 anillos en profundidad = separación en Z
-const PER_RING = TOTAL_COUNT / RINGS // 20 por anillo
-const FAR_BACK = 500 // mas lejania
+const TOTAL_COUNT = 320 // mas particulas
+const RINGS = 16
+const PER_RING = TOTAL_COUNT / RINGS // 20 por anillo = separación
+const FAR_BACK = 500
 const TUNNEL_RADIUS = 11
 const CAMERA_Z = 6
 const TEXT_SIZE = 0.85
-const SCROLL_SPEED = 2.2 // baja velocidad
+const SCROLL_SPEED = 6.5 // velocidad media rapida, no lenta
 
 export default function HeroWarpTunnel() {
   const mountRef = useRef(null)
@@ -36,7 +36,6 @@ export default function HeroWarpTunnel() {
     renderer.domElement.style.cursor = 'grab'
     mount.appendChild(renderer.domElement)
 
-    // ROTACION CAMARA EN SU EJE
     let yaw = 0, pitch = 0, isDragging = false, lastX = 0, lastY = 0
     const onDown = (e) => { isDragging = true; const p = e.touches? e.touches[0] : e; lastX = p.clientX; lastY = p.clientY; renderer.domElement.style.cursor = 'grabbing' }
     const onMove = (e) => {
@@ -62,21 +61,17 @@ export default function HeroWarpTunnel() {
     const basisX = new THREE.Vector3(), basisY = new THREE.Vector3(), basisZ = new THREE.Vector3()
     const basisMatrix = new THREE.Matrix4(), flowQuat = new THREE.Quaternion()
 
-    // DISTRIBUCION CON SEPARACION
     const spokes = []
     for (let ring = 0; ring < RINGS; ring++) {
-      const baseZ = - (ring / RINGS) * FAR_BACK - 20 - Math.random() * 10 // separación en Z de ~33 unidades
+      const baseZ = - (ring / RINGS) * FAR_BACK - 10
       for (let i = 0; i < PER_RING; i++) {
-        // separación angular: 360/20 = 18 grados entre cada texto + jitter pequeño
         const angleStep = (Math.PI * 2) / PER_RING
-        const angle = i * angleStep + (Math.random() - 0.5) * 0.25
-
-        // separación radial: bandas para que no se encimen
-        const radialBand = (i % 4) / 4 // 0, 0.25, 0.5, 0.75
-        const radius = TUNNEL_RADIUS * (0.15 + radialBand * 0.7 + Math.random() * 0.15)
-
+        const angle = i * angleStep + (Math.random() - 0.5) * 0.3 // separación angular 18°
+        const radialBand = (i % 4) / 4
+        const radius = TUNNEL_RADIUS * (0.15 + radialBand * 0.7 + Math.random() * 0.12)
         spokes.push({
-          angle, radius, z: baseZ, speed: 0.6 + Math.random() * 0.6, // velocidad baja y pareja
+          angle, radius, z: baseZ - Math.random() * 15,
+          speed: 0.9 + Math.random() * 0.8,
           word: WORDS[(ring + i) % WORDS.length],
           phase: Math.random() * Math.PI * 2,
         })
@@ -98,14 +93,22 @@ export default function HeroWarpTunnel() {
     loader.load('/fonts/helvetiker_bold.typeface.json', (font) => {
       if (disposed) return
       WORDS.forEach((word) => {
-        const shapes = font.generateShapes(word, TEXT_SIZE)
+        const period = measurePeriod(font, word, TEXT_SIZE)
+        // TEXTO CONTINUO LARGO
+        const totalNeeded = FAR_BACK + CAMERA_Z + 50
+        const repeatCount = Math.ceil(totalNeeded / period) + 8 // tira continua de 30-40 repeticiones
+        const shapes = font.generateShapes(word.repeat(repeatCount), TEXT_SIZE)
         const geo = new THREE.ShapeGeometry(shapes, 4)
         geo.computeBoundingBox(); geo.translate(-geo.boundingBox.min.x, 0, 0)
-        const mat = new THREE.MeshBasicMaterial({ color: RED, transparent: true, opacity: 0.92, side: THREE.DoubleSide })
+        const mat = new THREE.MeshBasicMaterial({ color: RED, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
+
         spokes.filter(sp => sp.word === word).forEach((spoke) => {
           const mesh = new THREE.Mesh(geo, mat)
           scene.add(mesh)
-          strips.push({ mesh, angle: spoke.angle, baseRadius: spoke.radius, z: spoke.z, speed: spoke.speed, phase: spoke.phase })
+          strips.push({
+            mesh, period, angle: spoke.angle, baseRadius: spoke.radius,
+            baseZ: spoke.z, scrollOffset: Math.random() * period, speed: spoke.speed, phase: spoke.phase,
+          })
         })
       })
       fontLoaded = true
@@ -113,11 +116,11 @@ export default function HeroWarpTunnel() {
 
     const composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(1,1), 0.6, 0.4, 0.5))
-    composer.addPass(new AfterimagePass(0.55))
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(1,1), 0.75, 0.4, 0.3))
+    composer.addPass(new AfterimagePass(0.58))
     composer.addPass(new FilmPass(0.18, false))
     const warpShader = {
-      uniforms: { tDiffuse: { value: null }, uCenter: { value: new THREE.Vector2(0.5, 0.5) }, uStrength: { value: 0.18 }, uAberration: { value: 0.06 } },
+      uniforms: { tDiffuse: { value: null }, uCenter: { value: new THREE.Vector2(0.5, 0.5) }, uStrength: { value: 0.22 }, uAberration: { value: 0.07 } },
       vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
       fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 uCenter; uniform float uStrength; uniform float uAberration; varying vec2 vUv; void main(){ vec2 dir=vUv-uCenter; float dist=length(dir); vec2 d=dist>0.0001?dir/dist:vec2(0.0); const int S=6; vec3 c=vec3(0.0); float t=0.0; for(int i=0;i<S;i++){ float f=float(i)/float(S-1); float sc=1.0-uStrength*dist*f; vec2 uv=uCenter+dir*sc; float w=1.0-f*0.4; c+=texture2D(tDiffuse,uv).rgb*w; t+=w; } c/=max(t,0.0001); float ab=uAberration*dist*dist; float r=texture2D(tDiffuse,uCenter+d*(dist-ab)).r; float b=texture2D(tDiffuse,uCenter+d*(dist+ab)).b; gl_FragColor=vec4(r,c.g,b,1.0); }`,
     }
@@ -135,20 +138,22 @@ export default function HeroWarpTunnel() {
         basisX.copy(flowDir); basisY.copy(worldUp).sub(basisX.clone().multiplyScalar(worldUp.dot(basisX))).normalize(); basisZ.crossVectors(basisX, basisY).normalize()
         basisMatrix.makeBasis(basisX, basisY, basisZ); flowQuat.setFromRotationMatrix(basisMatrix)
         strips.forEach((strip)=>{
-          strip.z += strip.speed * SCROLL_SPEED * dt
-          if (strip.z > CAMERA_Z + 25) {
-            strip.z = -FAR_BACK - Math.random() * 50
-            // al reciclar mantiene separación angular
-            strip.angle += (Math.random() - 0.5) * 0.2
+          strip.scrollOffset += strip.speed * SCROLL_SPEED * dt
+          strip.scrollOffset %= strip.period
+          const currentZ = strip.baseZ + strip.scrollOffset
+          // recicla cuando pasa por camara
+          if (currentZ > CAMERA_Z + 30) {
+            strip.baseZ = -FAR_BACK - Math.random() * 100
+            strip.scrollOffset = 0
           }
-          const total = CAMERA_Z + FAR_BACK + 25
-          const p = (strip.z + FAR_BACK) / total
+          const total = CAMERA_Z + FAR_BACK + 30
+          const p = (currentZ + FAR_BACK) / total
           const expansion = 0.04 + 0.96 * Math.pow(p, 2.0)
-          const jx = Math.sin(elapsed * 0.8 + strip.phase) * 0.04
-          const jy = Math.cos(elapsed * 0.7 + strip.phase) * 0.04
-          strip.mesh.position.set(Math.cos(strip.angle)*strip.baseRadius*expansion + jx, Math.sin(strip.angle)*strip.baseRadius*expansion + jy, strip.z)
+          const jx = Math.sin(elapsed * 0.8 + strip.phase) * 0.05
+          const jy = Math.cos(elapsed * 0.7 + strip.phase) * 0.05
+          strip.mesh.position.set(Math.cos(strip.angle)*strip.baseRadius*expansion + jx, Math.sin(strip.angle)*strip.baseRadius*expansion + jy, currentZ)
           strip.mesh.quaternion.copy(flowQuat)
-          strip.mesh.scale.x = 1.0 + p * 0.8
+          strip.mesh.scale.x = 1.0 + p * 1.2
         })
       }
       composer.render()
