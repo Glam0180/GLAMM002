@@ -1,0 +1,262 @@
+import { useEffect, useRef } from 'react'
+import * as THREE from 'three'
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { AfterimagePass } from 'three/examples/jsm/postprocessing/AfterimagePass.js'
+import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
+import './HeroWarpTunnel.css'
+
+/*
+ * WARP SPEED TUNNEL — túnel de velocidad hiperespacial de texto 3D.
+ *
+ * · InstancedMesh: cada palabra es UNA geometría (TextGeometry) dibujada
+ *   cientos de veces en un solo draw call, cada instancia con su propia
+ *   matriz de transformación (posición / rotación / escala).
+ * · Cada instancia viaja por un vector de flujo hacia la cámara con
+ *   aceleración exponencial; al cruzar el plano de la cámara se recicla
+ *   al fondo del túnel, dando la ilusión de un flujo infinito.
+ * · Post-proceso (EffectComposer + GLSL propio): Bloom, estela
+ *   (afterimage), grano de película y un pase final que combina
+ *   desenfoque de movimiento radial + aberración cromática.
+ */
+
+const WORDS = ['GLAM', 'LAB']
+const COUNT_PER_WORD = 70
+const TUNNEL_DEPTH = 46
+const TUNNEL_RADIUS = 10.5
+const CAMERA_Z = 6
+
+export default function HeroWarpTunnel() {
+  const mountRef = useRef(null)
+
+  useEffect(() => {
+    const mount = mountRef.current
+    if (!mount) return
+
+    let raf = 0
+    let disposed = false
+    let fontLoaded = false
+
+    // ── Escena base ──────────────────────────────────────────
+    const scene = new THREE.Scene()
+    scene.background = new THREE.Color(0x000000)
+
+    const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 100)
+    camera.position.set(0, 0, CAMERA_Z)
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+    mount.appendChild(renderer.domElement)
+
+    const RED = new THREE.Color('#FF0000')
+    const dummy = new THREE.Object3D()
+    const meshes = [] // { mesh, data(Float32Array), count }
+
+    // data por instancia: [x, y, z, speed, rot]
+    function seedInstance(data, i) {
+      // población inicial: distribuida a lo largo de TODA la profundidad
+      // del túnel, para que se vea poblado desde el primer frame
+      const angle = Math.random() * Math.PI * 2
+      const radius = TUNNEL_RADIUS * (0.3 + Math.random() * 0.7)
+      const idx = i * 5
+      data[idx + 0] = Math.cos(angle) * radius
+      data[idx + 1] = Math.sin(angle) * radius
+      data[idx + 2] = THREE.MathUtils.lerp(-TUNNEL_DEPTH * 1.4, CAMERA_Z - 2, Math.random())
+      data[idx + 3] = 0.5 + Math.random() * 1.0
+      data[idx + 4] = Math.random() * Math.PI * 2
+    }
+
+    function resetInstance(data, i) {
+      // reciclado: siempre vuelve al fondo del túnel
+      const angle = Math.random() * Math.PI * 2
+      const radius = TUNNEL_RADIUS * (0.3 + Math.random() * 0.7)
+      const idx = i * 5
+      data[idx + 0] = Math.cos(angle) * radius
+      data[idx + 1] = Math.sin(angle) * radius
+      data[idx + 2] = -TUNNEL_DEPTH - Math.random() * TUNNEL_DEPTH * 0.5
+      data[idx + 3] = 0.5 + Math.random() * 1.0
+      data[idx + 4] = Math.random() * Math.PI * 2
+    }
+
+    // ── Carga de fuente + construcción de instancias ─────────
+    const loader = new FontLoader()
+    loader.load(
+      '/fonts/helvetiker_bold.typeface.json',
+      (font) => {
+        if (disposed) return
+
+        WORDS.forEach((word) => {
+          const geo = new TextGeometry(word, {
+            font,
+            size: 1,
+            depth: 0.28,
+            curveSegments: 3,
+            bevelEnabled: false,
+          })
+          geo.computeBoundingBox()
+          geo.center()
+
+          const mat = new THREE.MeshBasicMaterial({
+            color: RED,
+            transparent: true,
+            opacity: 0.95,
+          })
+
+          const mesh = new THREE.InstancedMesh(geo, mat, COUNT_PER_WORD)
+          mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+          scene.add(mesh)
+
+          const data = new Float32Array(COUNT_PER_WORD * 5)
+          for (let i = 0; i < COUNT_PER_WORD; i++) seedInstance(data, i)
+
+          meshes.push({ mesh, data, count: COUNT_PER_WORD })
+        })
+
+        fontLoaded = true
+      },
+      undefined,
+      () => { /* si la fuente falla en cargar, el fondo negro queda como fallback silencioso */ }
+    )
+
+    // ── Post-procesado ────────────────────────────────────────
+    const composer = new EffectComposer(renderer)
+    composer.addPass(new RenderPass(scene, camera))
+
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.4, 0.2)
+    composer.addPass(bloomPass)
+
+    const afterimagePass = new AfterimagePass(0.55) // estela / trail
+    composer.addPass(afterimagePass)
+
+    const filmPass = new FilmPass(0.25, false) // grano de película
+    composer.addPass(filmPass)
+
+    // Pase final: desenfoque de movimiento radial + aberración cromática
+    const warpShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        uCenter: { value: new THREE.Vector2(0.5, 0.5) },
+        uStrength: { value: 0.22 },
+        uAberration: { value: 0.1 },
+      },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tDiffuse;
+        uniform vec2 uCenter;
+        uniform float uStrength;
+        uniform float uAberration;
+        varying vec2 vUv;
+
+        void main() {
+          vec2 dir = vUv - uCenter;
+          float dist = length(dir);
+          vec2 dirNorm = dist > 0.0001 ? dir / dist : vec2(0.0);
+
+          const int SAMPLES = 6;
+          vec3 col = vec3(0.0);
+          float total = 0.0;
+          for (int i = 0; i < SAMPLES; i++) {
+            float t = float(i) / float(SAMPLES - 1);
+            float scale = 1.0 - uStrength * dist * t;
+            vec2 uv = uCenter + dir * scale;
+            float w = 1.0 - t * 0.4;
+            col += texture2D(tDiffuse, uv).rgb * w;
+            total += w;
+          }
+          col /= max(total, 0.0001);
+
+          float aberr = uAberration * dist * dist;
+          float rr = texture2D(tDiffuse, uCenter + dirNorm * (dist - aberr)).r;
+          float bb = texture2D(tDiffuse, uCenter + dirNorm * (dist + aberr)).b;
+
+          gl_FragColor = vec4(rr, col.g, bb, 1.0);
+        }
+      `,
+    }
+    const warpPass = new ShaderPass(warpShader)
+    warpPass.renderToScreen = true
+    composer.addPass(warpPass)
+
+    // ── Resize ────────────────────────────────────────────────
+    function resize() {
+      const w = mount.clientWidth || 1
+      const h = mount.clientHeight || 1
+      camera.aspect = w / h
+      camera.updateProjectionMatrix()
+      renderer.setSize(w, h)
+      composer.setSize(w, h)
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    // ── Loop de animación ────────────────────────────────────
+    const clock = new THREE.Clock()
+
+    function animate() {
+      raf = requestAnimationFrame(animate)
+      const dt = Math.min(clock.getDelta(), 0.05)
+
+      if (fontLoaded) {
+        meshes.forEach(({ mesh, data, count }) => {
+          for (let i = 0; i < count; i++) {
+            const idx = i * 5
+            let z = data[idx + 2]
+            const speed = data[idx + 3]
+
+            // proximidad a la cámara → aceleración exponencial
+            const proximity = THREE.MathUtils.clamp(
+              (z + TUNNEL_DEPTH) / TUNNEL_DEPTH, 0, 1
+            )
+            const accel = speed * (0.7 + Math.pow(proximity, 2.4) * 10)
+            z += accel * dt * 5.5
+
+            if (z > CAMERA_Z + 1.2) {
+              resetInstance(data, i)
+              z = data[idx + 2]
+            } else {
+              data[idx + 2] = z
+            }
+
+            const scaleT = THREE.MathUtils.clamp((z + TUNNEL_DEPTH) / TUNNEL_DEPTH, 0, 1)
+            const scale = 0.5 + scaleT * 1.1
+
+            dummy.position.set(data[idx], data[idx + 1], z)
+            dummy.rotation.set(0, data[idx + 4] * 0.35, data[idx + 4])
+            dummy.scale.setScalar(scale)
+            dummy.updateMatrix()
+            mesh.setMatrixAt(i, dummy.matrix)
+          }
+          mesh.instanceMatrix.needsUpdate = true
+        })
+      }
+
+      composer.render()
+    }
+    animate()
+
+    // ── Cleanup ───────────────────────────────────────────────
+    return () => {
+      disposed = true
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', resize)
+      meshes.forEach(({ mesh }) => {
+        mesh.geometry.dispose()
+        mesh.material.dispose()
+      })
+      renderer.dispose()
+      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
+    }
+  }, [])
+
+  return <div ref={mountRef} className="warp-tunnel" aria-label="Túnel de velocidad hiperespacial" />
+}

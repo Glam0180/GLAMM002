@@ -1,0 +1,13 @@
+.warp-tunnel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  overflow: hidden;
+}
+.warp-tunnel canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}

@@ -1,14 +1,14 @@
 import { TOOLS } from '@constants/tools'
 import ToolCard from '@components/ui/ToolCard'
-import HeroTapeScene from '@components/hero/HeroTapeScene'
+import HeroWarpTunnel from '@components/hero/HeroWarpTunnel'
 import './Home.css'
 
 export default function Home() {
   return (
     <div className="home">
 
-      <section className="hero" aria-label="Escenario de cinta roja">
-        <HeroTapeScene />
+      <section className="hero" aria-label="Túnel de velocidad hiperespacial">
+        <HeroWarpTunnel />
       </section>
 
       {/* ── HERRAMIENTAS ── */}

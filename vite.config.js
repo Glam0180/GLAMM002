@@ -16,5 +16,14 @@ export default defineConfig({
       '@constants':  path.resolve(__dirname, './src/constants'),
       '@tools':      path.resolve(__dirname, './src/tools'),
     }
-  }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+        },
+      },
+    },
+  },
 })
