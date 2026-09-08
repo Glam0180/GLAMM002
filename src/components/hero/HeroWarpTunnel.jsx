@@ -11,53 +11,43 @@ import './HeroWarpTunnel.css'
 
 /*
 
-WARP SPEED TUNNEL — túnel de velocidad hiperespacial de texto FLAT (2D).
+WARP SPEED TUNNEL — túnel de velocidad hiperespacial de texto FLAT (2D),
+
+estilo Matrix: UNA sola tira de texto continua por radio, sin cortes.
 
 
 
-· InstancedMesh: cada palabra es UNA geometría PLANA (ShapeGeometry,
+· TIRA ÚNICA (no instancias sueltas): en vez de repetir una palabra como
 
-sin extrusión ni bisel) dibujada cientos de veces en un solo draw call,
+piezas independientes espaciadas "a ojo", se genera con
 
-cada instancia con su propia matriz de transformación.
+font.generateShapes() una única cadena larga ("GLAMGLAMGLAM...") de una
 
-· Las instancias se agrupan en "radios" (spokes): cada radio define
+sola vez. Es el propio motor tipográfico el que calcula el avance entre
 
-una posición fija (x, y) alrededor del centro, y dentro de él las
+glyphs, así que no existe ningún hueco posible entre repeticiones — es
 
-repeticiones de la palabra corren una detrás de otra por el eje Z
+literalmente una sola pieza de geometría continua, no un colage.
 
-—hacia la cámara—, a la MISMA velocidad, formando una hilera
+· Cada radio (spoke) tiene su propia tira (mismo geometry compartido
 
-continua e ininterrumpida ("GLAMGLAMGLAM...") que se ve venir
+entre spokes que usan la misma palabra, para eficiencia) que se desliza
 
-derecho hacia el espectador. Al reciclarse, cada instancia se
+a lo largo del eje de flujo. Al desplazarse exactamente un "período"
 
-vuelve a enganchar justo detrás de la última de su propio radio
+(el ancho medido de una repetición), se resetea silenciosamente: como
 
-(no a una posición aleatoria), así la hilera nunca se corta.
+el patrón es idéntico, el salto es invisible → scroll infinito real.
 
+· Trade-off consciente: al ser una tira RÍGIDA y continua, cada radio se
 
+mueve a velocidad CONSTANTE (ya no acelera letra por letra cerca de la
 
-· CONTINUIDAD GARANTIZADA: cada instancia mantiene su tamaño REAL
-
-constante (sin escalado manual por proximidad). El "crecimiento" al
-
-acercarse a la cámara lo produce únicamente la perspectiva de la
-
-cámara — igual que en la realidad. Como el espaciado entre
-
-repeticiones se calculó con el ancho exacto de la palabra a esa
-
-misma escala constante, las instancias quedan siempre perfectamente
-
-pegadas entre sí, en cualquier punto del túnel, sin huecos ni
-
-superposiciones.
+cámara) — una tira sólida no puede estirarse sin separarse.
 
 
 
-· Orientación del texto (vector de flujo):
+· Orientación del texto (vector de flujo) — SIN CAMBIOS:
 
 
 
@@ -102,6 +92,7 @@ const TUNNEL_DEPTH = 46
 const TUNNEL_RADIUS = 10.5
 const CAMERA_Z = 6
 const TEXT_SIZE = 1             // tamaño real y constante del texto (mundo, no visual)
+const SCROLL_SPEED = 5.5        // multiplicador global de velocidad de scroll
 
 export default function HeroWarpTunnel() {
 const mountRef = useRef(null)
@@ -126,8 +117,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
 mount.appendChild(renderer.domElement)
 
 const RED = new THREE.Color('#FF0000')
-const dummy = new THREE.Object3D()
-const meshes = [] // { mesh, data(Float32Array), count, wordSpokes, tailZ, spacing }
+const strips = [] // { mesh, period, speed, baseZ, scrollOffset }
 
 // ── Base ortogonal de orientación (vector de flujo) ─────────
 // El flujo es puramente a lo largo de Z (fondo del túnel → cámara),
@@ -157,19 +147,21 @@ for (let s = 0; s < SPOKE_COUNT; s++) {
   })
 }
 
-// data por instancia: [x, y, z, spokeIndex]
-function seedChain(data, spokeIndexInWord, spoke, count, spacing) {
-  for (let k = 0; k < count; k++) {
-    const idx = k * 4
-    const x = Math.cos(spoke.angle) * spoke.radius
-    const y = Math.sin(spoke.angle) * spoke.radius
-    data[idx + 0] = x
-    data[idx + 1] = y
-    // distribuidas de una vez a lo largo de TODA la profundidad,
-    // ya en fila, para que se vea poblado y continuo desde el frame 1
-    data[idx + 2] = -TUNNEL_DEPTH * 1.4 + k * spacing
-    data[idx + 3] = spokeIndexInWord
+// Mide el período real (avance por repetición) generando dos longitudes
+// de la misma cadena repetida y comparando sus anchos. Esto usa el MISMO
+// motor de layout que la tira final, así que el valor coincide con
+// exactitud — no depende de bounding boxes de tinta que puedan no
+// coincidir con el avance tipográfico real.
+function measurePeriod(font, word, size) {
+  const build = (n) => {
+    const shapes = font.generateShapes(word.repeat(n), size)
+    const geo = new THREE.ShapeGeometry(shapes)
+    geo.computeBoundingBox()
+    const w = geo.boundingBox.max.x - geo.boundingBox.min.x
+    geo.dispose()
+    return w
   }
+  return build(4) - build(3)
 }
 
 // ── Carga de fuente + construcción de instancias ─────────
@@ -179,21 +171,30 @@ loader.load(
   (font) => {
     if (disposed) return
 
+    const totalSpan = TUNNEL_DEPTH * 1.4 + CAMERA_Z + 2
+
     WORDS.forEach((word) => {
-      // Texto FLAT: shapes 2D puros (sin extrusión ni bisel),
-      // en vez de TextGeometry. Vive en el plano XY local.
-      const shapes = font.generateShapes(word, TEXT_SIZE)
+      // Período exacto de una repetición, medido con el mismo motor
+      // de layout que se usará para construir la tira real.
+      const period = measurePeriod(font, word, TEXT_SIZE)
+
+      // BASE_Z: dónde arranca la tira (con un período extra de colchón
+      // detrás), y TOTAL: longitud mínima que la tira necesita tener
+      // para, en el peor caso del scroll (offset = 0), seguir cubriendo
+      // desde el fondo del túnel hasta más allá de la cámara.
+      const baseZ = -TUNNEL_DEPTH * 1.4 - period
+      const totalNeeded = (CAMERA_Z + 1.2) - baseZ
+      const repeatCount = Math.ceil(totalNeeded / period) + 2
+
+      // Texto FLAT: shapes 2D puros (sin extrusión ni bisel), generados
+      // como UNA sola cadena larga repetida — el layout tipográfico
+      // nativo garantiza cero huecos entre repeticiones.
+      const shapes = font.generateShapes(word.repeat(repeatCount), TEXT_SIZE)
       const geo = new THREE.ShapeGeometry(shapes, 4)
       geo.computeBoundingBox()
-      // ancho real de la palabra ya renderizada: usado como paso de
-      // repetición exacto, así quedan pegadas letra-con-letra
-      // ("GLAMGLAMGLAM..."), sin huecos ni superposición. Como las
-      // instancias YA NO se escalan de forma manual, este ancho es
-      // válido para SIEMPRE, sin importar qué tan cerca estén de la
-      // cámara.
-      const wordWidth = geo.boundingBox.max.x - geo.boundingBox.min.x
-      const spacing = wordWidth
-      geo.center()
+      // Ancla el inicio de la tira en x = 0 para que el cálculo de
+      // posición/scroll sea predecible.
+      geo.translate(-geo.boundingBox.min.x, 0, 0)
 
       const mat = new THREE.MeshBasicMaterial({
         color: RED,
@@ -203,29 +204,19 @@ loader.load(
       })
 
       const wordSpokes = spokes.filter((sp) => sp.word === word)
-      // suficientes repeticiones para cubrir TODO el túnel con este paso,
-      // sin dejar huecos al final de la hilera
-      const totalSpan = TUNNEL_DEPTH * 1.4 + CAMERA_Z + 2
-      const instancesPerSpoke = Math.ceil(totalSpan / spacing) + 4
-      const count = wordSpokes.length * instancesPerSpoke
-
-      const mesh = new THREE.InstancedMesh(geo, mat, count)
-      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
-      scene.add(mesh)
-
-      const data = new Float32Array(count * 4)
-      const tailZ = new Float32Array(wordSpokes.length)
-
-      wordSpokes.forEach((spoke, spokeIndexInWord) => {
-        const offset = spokeIndexInWord * instancesPerSpoke
-        const chainData = new Float32Array(instancesPerSpoke * 4)
-        seedChain(chainData, spokeIndexInWord, spoke, instancesPerSpoke, spacing)
-        data.set(chainData, offset * 4)
-        // cola inicial: justo detrás de la última instancia sembrada
-        tailZ[spokeIndexInWord] = -TUNNEL_DEPTH * 1.4 - spacing
+      wordSpokes.forEach((spoke) => {
+        const mesh = new THREE.Mesh(geo, mat) // geometría y material compartidos entre spokes
+        scene.add(mesh)
+        strips.push({
+          mesh,
+          period,
+          speed: spoke.speed,
+          x: Math.cos(spoke.angle) * spoke.radius,
+          y: Math.sin(spoke.angle) * spoke.radius,
+          baseZ,
+          scrollOffset: Math.random() * period, // desfase inicial para que no arranquen todas alineadas
+        })
       })
-
-      meshes.push({ mesh, data, count, wordSpokes, tailZ, spacing })
     })
 
     fontLoaded = true
@@ -329,42 +320,19 @@ function animate() {
     basisMatrix.makeBasis(basisX, basisY, basisZ)
     flowQuat.setFromRotationMatrix(basisMatrix)
 
-    meshes.forEach(({ mesh, data, count, wordSpokes, tailZ, spacing }) => {
-      for (let i = 0; i < count; i++) {
-        const idx = i * 4
-        let z = data[idx + 2]
-        const spokeIndexInWord = data[idx + 3]
-        const spoke = wordSpokes[spokeIndexInWord]
-        const speed = spoke.speed
+    strips.forEach((strip) => {
+      // Scroll a velocidad constante: al ser una tira rígida y continua
+      // (una sola geometría, sin cortes), no puede acelerar por tramos
+      // sin separarse — cada radio avanza parejo según su propia
+      // velocidad asignada.
+      strip.scrollOffset += strip.speed * SCROLL_SPEED * dt
+      // Wrap infinito: al desplazarse un período completo, el patrón
+      // repetido se ve idéntico, así que el reseteo es invisible.
+      strip.scrollOffset %= strip.period
 
-        // proximidad a la cámara → aceleración exponencial
-        // (misma fórmula para todas las instancias de un radio,
-        // así conservan su orden y la hilera no se rompe)
-        const proximity = THREE.MathUtils.clamp(
-          (z + TUNNEL_DEPTH) / TUNNEL_DEPTH, 0, 1
-        )
-        const accel = speed * (0.7 + Math.pow(proximity, 2.4) * 10)
-        z += accel * dt * 5.5
-
-        if (z > CAMERA_Z + 1.2) {
-          // reciclado continuo: se engancha justo detrás de la última
-          // instancia de SU propio radio, nunca a una posición suelta
-          z = tailZ[spokeIndexInWord]
-          tailZ[spokeIndexInWord] -= spacing
-        }
-        data[idx + 2] = z
-
-        // Sin escalado manual: el tamaño real de cada instancia es
-        // SIEMPRE el mismo (TEXT_SIZE), y es la perspectiva de la
-        // cámara la que la hace ver más grande al acercarse. Esto es
-        // lo que garantiza que la hilera de texto quede perfectamente
-        // pegada y continua en cualquier punto del túnel.
-        dummy.position.set(data[idx], data[idx + 1], z)
-        dummy.quaternion.copy(flowQuat)
-        dummy.updateMatrix()
-        mesh.setMatrixAt(i, dummy.matrix)
-      }
-      mesh.instanceMatrix.needsUpdate = true
+      strip.mesh.position.set(strip.x, strip.y, strip.baseZ + strip.scrollOffset)
+      // Orientación sin cambios: misma rotación (flowQuat) para todas.
+      strip.mesh.quaternion.copy(flowQuat)
     })
   }
 
@@ -377,9 +345,19 @@ return () => {
   disposed = true
   cancelAnimationFrame(raf)
   window.removeEventListener('resize', resize)
-  meshes.forEach(({ mesh }) => {
-    mesh.geometry.dispose()
-    mesh.material.dispose()
+  const disposedGeo = new Set()
+  const disposedMat = new Set()
+  strips.forEach(({ mesh }) => {
+    // geometría y material se comparten entre spokes de la misma
+    // palabra, así que cada uno se libera una sola vez.
+    if (!disposedGeo.has(mesh.geometry)) {
+      mesh.geometry.dispose()
+      disposedGeo.add(mesh.geometry)
+    }
+    if (!disposedMat.has(mesh.material)) {
+      mesh.material.dispose()
+      disposedMat.add(mesh.material)
+    }
   })
   renderer.dispose()
   if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
