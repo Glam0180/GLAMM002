@@ -5,7 +5,7 @@ import './HeroWarpTunnel.css'
 
 const WORDS = ['GLAM', 'LAB']
 const TOTAL = 100 // legible - si quieres 150 cambia a 150
-const RINGS = 50
+const RINGS = 5
 const PER_RING = TOTAL / RINGS // 12 por anillo = 30° de separación
 const FAR_BACK = 450
 const TUNNEL_RADIUS = 11
