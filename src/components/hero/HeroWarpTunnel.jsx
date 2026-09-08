@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
@@ -9,13 +10,26 @@ import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import './HeroWarpTunnel.css'
 
-const WORDS = ['GLAM', 'LAB']
-const SPOKE_COUNT = 28          // tu tenias 16, ahora 28 para mas lineas
-const TUNNEL_DEPTH = 46         // igual que tu original
-const TUNNEL_RADIUS = 10.5      // igual que tu original
-const CAMERA_Z = 6              // igual
-const TEXT_SIZE = 1             // igual
-const SCROLL_SPEED = 5.5        // igual que tu original
+// PARAMETROS DE TUS CAPTURAS
+const PARAMS = {
+  flightSpeed: 0.1,        // Motion & Flow
+  flowDir: { x: 0, y: 0, z: 0.2 },
+  fieldSpread: 6,          // Field Spread
+  acceleration: 5,
+  particleDensity: 350,    // Particle Density
+  baseScale: 0.3,          // Base Scale
+  tailStretch: 10,         // Tail Stretch
+  textContent: "GLAMGLAMGLAMGLAMGLAMGLAMGLAMGLMAGLMA GLMA", // de tu captura Typography
+  textExtrusion: 0.05,     // Text Extrusion
+  textScale: { x: 1.9, y: 4.3, z: 0.8 },
+  trailLength: 0.75,       // Effects Motion & Light
+  blurAmount: 0.35,        // Blur Amount
+  bloomStrength: 1.4,      // Bloom Strength
+  aberrationIntensity: 0.02,
+  vignetteDarkness: 1.2,
+  grainStrength: 0.06,
+  voidColor: 0x000000,
+}
 
 export default function HeroWarpTunnel() {
   const mountRef = useRef(null)
@@ -26,9 +40,11 @@ export default function HeroWarpTunnel() {
     let raf = 0, disposed = false, fontLoaded = false
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x000000)
+    scene.background = new THREE.Color(PARAMS.voidColor)
+
     const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 100)
-    camera.position.set(0, 0, CAMERA_Z)
+    camera.position.set(0, 0, 6)
+
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     mount.appendChild(renderer.domElement)
@@ -36,84 +52,78 @@ export default function HeroWarpTunnel() {
     const RED = new THREE.Color('#FF0000')
     const strips = []
 
-    // ORIENTACION ORIGINAL - NO SE TOCA
-    const flowDir = new THREE.Vector3(0, 0, 1)
+    // Flow Direction de tu captura: X 0, Y 0, Z 0.2
+    const flowDir = new THREE.Vector3(PARAMS.flowDir.x, PARAMS.flowDir.y, PARAMS.flowDir.z).normalize()
+    if (flowDir.length() === 0) flowDir.set(0,0,1)
     const worldUp = new THREE.Vector3(0, 1, 0)
     const basisX = new THREE.Vector3(), basisY = new THREE.Vector3(), basisZ = new THREE.Vector3()
     const basisMatrix = new THREE.Matrix4()
     const flowQuat = new THREE.Quaternion()
 
+    // Field Spread = 6 y Particle Density = 350
     const spokes = []
-    for (let s = 0; s < SPOKE_COUNT; s++) {
-      const angle = (s / SPOKE_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.12
+    for (let s = 0; s < PARAMS.particleDensity; s++) {
+      const angle = (s / PARAMS.particleDensity) * Math.PI * 12 + Math.random() * 0.5
       spokes.push({
         angle,
-        radius: TUNNEL_RADIUS * (0.55 + Math.random() * 0.45),
+        radius: Math.random() * PARAMS.fieldSpread,
         speed: 0.7 + Math.random() * 0.5,
-        word: WORDS[s % WORDS.length],
         phase: Math.random() * Math.PI * 2,
       })
     }
 
-    function measurePeriod(font, word, size) {
-      const build = (n) => {
-        const shapes = font.generateShapes(word.repeat(n), size)
-        const geo = new THREE.ShapeGeometry(shapes)
-        geo.computeBoundingBox()
-        const w = geo.boundingBox.max.x - geo.boundingBox.min.x
-        geo.dispose()
-        return w
-      }
-      return build(4) - build(3)
-    }
-
     const loader = new FontLoader()
-    loader.load('/fonts/helvetiker_bold.typeface.json', (font) => {
+    loader.load('/fonts/helvetiker_bold.typeface.json', (font) => { // Optimer -> helvetiker es el mas cercano, cambia a optimer_bold si lo tienes
       if (disposed) return
-      const totalSpan = TUNNEL_DEPTH * 1.4 + CAMERA_Z + 2
-      WORDS.forEach((word) => {
-        const period = measurePeriod(font, word, TEXT_SIZE)
-        const baseZ = -TUNNEL_DEPTH * 1.4 - period
-        const totalNeeded = (CAMERA_Z + 1.2) - baseZ
-        const repeatCount = Math.ceil(totalNeeded / period) + 2
-        const shapes = font.generateShapes(word.repeat(repeatCount), TEXT_SIZE)
-        const geo = new THREE.ShapeGeometry(shapes, 4)
-        geo.computeBoundingBox()
-        geo.translate(-geo.boundingBox.min.x, 0, 0)
-        const mat = new THREE.MeshBasicMaterial({ color: RED, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
-        
-        spokes.filter(sp => sp.word === word).forEach((spoke) => {
-          const mesh = new THREE.Mesh(geo, mat)
-          scene.add(mesh)
-          strips.push({
-            mesh, period, speed: spoke.speed,
-            angle: spoke.angle, baseRadius: spoke.radius,
-            baseZ, scrollOffset: Math.random() * period,
-            phase: spoke.phase,
-            x: Math.cos(spoke.angle) * spoke.radius,
-            y: Math.sin(spoke.angle) * spoke.radius,
-          })
+
+      // 3D Text con extrusion 0.05 como en tu captura
+      const geo = new TextGeometry(PARAMS.textContent, {
+        font,
+        size: PARAMS.baseScale,
+        height: PARAMS.textExtrusion,
+        curveSegments: 4,
+        bevelEnabled: false,
+      })
+      geo.computeBoundingBox()
+      geo.translate(-geo.boundingBox.min.x, 0, 0)
+
+      const mat = new THREE.MeshBasicMaterial({ color: RED, transparent: true, opacity: 0.95 })
+
+      spokes.forEach((spoke) => {
+        const mesh = new THREE.Mesh(geo, mat)
+        // Text Scale X 1.9 Y 4.3 Z 0.8 de tu captura
+        mesh.scale.set(PARAMS.textScale.x, PARAMS.textScale.y, PARAMS.textScale.z)
+        scene.add(mesh)
+        strips.push({
+          mesh,
+          angle: spoke.angle,
+          baseRadius: spoke.radius,
+          baseZ: -Math.random() * 46,
+          speed: spoke.speed,
+          phase: spoke.phase,
         })
       })
       fontLoaded = true
     })
 
+    // POST-PROCESO con tus valores
     const composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.4, 0.2))
-    composer.addPass(new AfterimagePass(0.65))
-    composer.addPass(new FilmPass(0.25, false))
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(1,1), PARAMS.bloomStrength, 0.4, 0.2)) // Bloom 1.4
+    composer.addPass(new AfterimagePass(PARAMS.trailLength)) // Trail 0.75
+    composer.addPass(new FilmPass(PARAMS.grainStrength, false)) // Grain 0.06
 
     const warpShader = {
       uniforms: {
         tDiffuse: { value: null },
         uCenter: { value: new THREE.Vector2(0.5, 0.5) },
-        uStrength: { value: 0.22 },
-        uAberration: { value: 0.10 },
+        uStrength: { value: PARAMS.blurAmount }, // Blur 0.35
+        uAberration: { value: PARAMS.aberrationIntensity }, // 0.02
+        uVignette: { value: PARAMS.vignetteDarkness }, // 1.2
       },
       vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
       fragmentShader: `
-        uniform sampler2D tDiffuse; uniform vec2 uCenter; uniform float uStrength; uniform float uAberration;
+        uniform sampler2D tDiffuse; uniform vec2 uCenter; uniform float uStrength; uniform float uAberration; uniform float uVignette;
         varying vec2 vUv;
         void main(){
           vec2 dir = vUv - uCenter; float dist = length(dir);
@@ -127,9 +137,10 @@ export default function HeroWarpTunnel() {
           }
           col/=max(total,0.0001);
           float aberr = uAberration * dist * dist;
-          float rr = texture2D(tDiffuse, uCenter + dirNorm*(dist-aberr)).r;
-          float bb = texture2D(tDiffuse, uCenter + dirNorm*(dist+aberr)).b;
-          gl_FragColor = vec4(rr, col.g, bb, 1.0);
+          float rr = texture2D(tDiffuse, vUv - dirNorm*aberr).r;
+          float bb = texture2D(tDiffuse, vUv + dirNorm*aberr).b;
+          float vignette = 1.0 - dist * uVignette * 0.35;
+          gl_FragColor = vec4(rr, col.g, bb, 1.0) * vignette;
         }
       `,
     }
@@ -145,7 +156,6 @@ export default function HeroWarpTunnel() {
       raf = requestAnimationFrame(animate)
       const dt = Math.min(clock.getDelta(), 0.05)
       const elapsed = clock.getElapsedTime()
-
       if(fontLoaded){
         basisX.copy(flowDir)
         basisY.copy(worldUp).sub(basisX.clone().multiplyScalar(worldUp.dot(basisX))).normalize()
@@ -154,31 +164,31 @@ export default function HeroWarpTunnel() {
         flowQuat.setFromRotationMatrix(basisMatrix)
 
         strips.forEach((strip)=>{
-          strip.scrollOffset += strip.speed * SCROLL_SPEED * dt
-          strip.scrollOffset %= strip.period
-          const currentZ = strip.baseZ + strip.scrollOffset
+          // Flight Speed 0.1 + Acceleration 5
+          strip.speed += (PARAMS.acceleration * 0.01) * dt
+          strip.baseZ += strip.speed * PARAMS.flightSpeed * 10 * dt
+          if(strip.baseZ > 7) strip.baseZ = -46
 
-          // --- EFECTOS PEDIDOS, SUTILES ---
-          // 1. Apertura radial cilindrica
-          const total = CAMERA_Z + TUNNEL_DEPTH * 1.4 + strip.period
-          const p = (currentZ + TUNNEL_DEPTH*1.4 + strip.period) / total
-          const expansion = 0.75 + 0.25 * Math.pow(p, 1.8)
+          const p = (strip.baseZ + 46) / 53
+          const expansion = 0.2 + 0.8 * Math.pow(p, 1.5)
 
-          // 2. Jitter micro
-          const jx = Math.sin(elapsed * 1.5 + strip.phase) * 0.04
-          const jy = Math.cos(elapsed * 1.2 + strip.phase) * 0.04
+          const jx = Math.sin(elapsed * 1.2 + strip.phase) * 0.05
+          const jy = Math.cos(elapsed * 1.0 + strip.phase) * 0.05
 
           strip.mesh.position.set(
             Math.cos(strip.angle) * strip.baseRadius * expansion + jx,
             Math.sin(strip.angle) * strip.baseRadius * expansion + jy,
-            currentZ
+            strip.baseZ
           )
-          // 3. Orientacion original intacta
           strip.mesh.quaternion.copy(flowQuat)
 
-          // 4. Velocity Stretch
-          strip.mesh.scale.x = 1.0 + strip.speed * 0.35 * p
-          strip.mesh.scale.y = 1.0
+          // Tail Stretch 10 + Text Scale
+          const tail = 1.0 + p * PARAMS.tailStretch * 0.18
+          strip.mesh.scale.set(
+            PARAMS.textScale.x * tail,
+            PARAMS.textScale.y,
+            PARAMS.textScale.z
+          )
         })
       }
       composer.render()
@@ -187,11 +197,11 @@ export default function HeroWarpTunnel() {
 
     return()=>{
       disposed=true; cancelAnimationFrame(raf); window.removeEventListener('resize',resize)
-      const g=new Set(); strips.forEach(({mesh})=>{ if(!g.has(mesh.geometry)){mesh.geometry.dispose(); g.add(mesh.geometry)} })
+      strips.forEach(({mesh})=>{ mesh.geometry.dispose() })
       renderer.dispose()
       if(mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
     }
   },[])
 
-  return <div ref={mountRef} className="warp-tunnel" aria-label="Túnel de velocidad hiperespacial" />
+  return <div ref={mountRef} className="warp-tunnel" />
 }
