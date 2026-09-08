@@ -16,16 +16,22 @@ import './HeroWarpTunnel.css'
  * · InstancedMesh: cada palabra es UNA geometría (TextGeometry) dibujada
  *   cientos de veces en un solo draw call, cada instancia con su propia
  *   matriz de transformación (posición / rotación / escala).
- * · Cada instancia viaja por un vector de flujo hacia la cámara con
- *   aceleración exponencial; al cruzar el plano de la cámara se recicla
- *   al fondo del túnel, dando la ilusión de un flujo infinito.
+ * · Las instancias se agrupan en "radios" (spokes) fijos alrededor del
+ *   centro: dentro de cada radio, las repeticiones de la palabra viajan
+ *   una detrás de otra a la MISMA velocidad, formando una hilera continua
+ *   e ininterrumpida de texto que fluye hacia la cámara. Al reciclarse,
+ *   cada instancia vuelve a engancharse justo detrás de la última de su
+ *   propio radio (no a una posición aleatoria), así la hilera nunca se
+ *   corta: el flujo es perpetuo.
  * · Post-proceso (EffectComposer + GLSL propio): Bloom, estela
  *   (afterimage), grano de película y un pase final que combina
  *   desenfoque de movimiento radial + aberración cromática.
  */
 
 const WORDS = ['GLAM', 'LAB']
-const COUNT_PER_WORD = 70
+const SPOKE_COUNT = 16          // radios alrededor del centro
+const SPACING = 2.6             // distancia (profundidad) entre repeticiones de una misma hilera
+const INSTANCES_PER_SPOKE = 28  // suficientes para cubrir todo el túnel sin huecos
 const TUNNEL_DEPTH = 46
 const TUNNEL_RADIUS = 10.5
 const CAMERA_Z = 6
@@ -54,32 +60,36 @@ export default function HeroWarpTunnel() {
 
     const RED = new THREE.Color('#FF0000')
     const dummy = new THREE.Object3D()
-    const meshes = [] // { mesh, data(Float32Array), count }
+    const meshes = [] // { mesh, data(Float32Array), count, tailZ(Float32Array por radio) }
 
-    // data por instancia: [x, y, z, speed, rot]
-    function seedInstance(data, i) {
-      // población inicial: distribuida a lo largo de TODA la profundidad
-      // del túnel, para que se vea poblado desde el primer frame
-      const angle = Math.random() * Math.PI * 2
-      const radius = TUNNEL_RADIUS * (0.3 + Math.random() * 0.7)
-      const idx = i * 5
-      data[idx + 0] = Math.cos(angle) * radius
-      data[idx + 1] = Math.sin(angle) * radius
-      data[idx + 2] = THREE.MathUtils.lerp(-TUNNEL_DEPTH * 1.4, CAMERA_Z - 2, Math.random())
-      data[idx + 3] = 0.5 + Math.random() * 1.0
-      data[idx + 4] = Math.random() * Math.PI * 2
+    // ── Definición de los radios (spokes) ──────────────────────
+    // Cada radio tiene ángulo, distancia al centro, velocidad y palabra
+    // fijos — así todas las instancias de un mismo radio avanzan
+    // sincronizadas y la hilera se mantiene continua.
+    const spokes = []
+    for (let s = 0; s < SPOKE_COUNT; s++) {
+      const angle = (s / SPOKE_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.12
+      spokes.push({
+        angle,
+        radius: TUNNEL_RADIUS * (0.55 + Math.random() * 0.45),
+        speed: 0.7 + Math.random() * 0.5,
+        word: WORDS[s % WORDS.length],
+      })
     }
 
-    function resetInstance(data, i) {
-      // reciclado: siempre vuelve al fondo del túnel
-      const angle = Math.random() * Math.PI * 2
-      const radius = TUNNEL_RADIUS * (0.3 + Math.random() * 0.7)
-      const idx = i * 5
-      data[idx + 0] = Math.cos(angle) * radius
-      data[idx + 1] = Math.sin(angle) * radius
-      data[idx + 2] = -TUNNEL_DEPTH - Math.random() * TUNNEL_DEPTH * 0.5
-      data[idx + 3] = 0.5 + Math.random() * 1.0
-      data[idx + 4] = Math.random() * Math.PI * 2
+    // data por instancia: [x, y, z, spokeIndex]
+    function seedChain(data, spokeIndexInWord, spoke, count) {
+      for (let k = 0; k < count; k++) {
+        const idx = k * 4
+        const x = Math.cos(spoke.angle) * spoke.radius
+        const y = Math.sin(spoke.angle) * spoke.radius
+        data[idx + 0] = x
+        data[idx + 1] = y
+        // distribuidas de una vez a lo largo de TODA la profundidad,
+        // ya en fila, para que se vea poblado y continuo desde el frame 1
+        data[idx + 2] = -TUNNEL_DEPTH * 1.4 + k * SPACING
+        data[idx + 3] = spokeIndexInWord
+      }
     }
 
     // ── Carga de fuente + construcción de instancias ─────────
@@ -106,14 +116,26 @@ export default function HeroWarpTunnel() {
             opacity: 0.95,
           })
 
-          const mesh = new THREE.InstancedMesh(geo, mat, COUNT_PER_WORD)
+          const wordSpokes = spokes.filter((sp) => sp.word === word)
+          const count = wordSpokes.length * INSTANCES_PER_SPOKE
+
+          const mesh = new THREE.InstancedMesh(geo, mat, count)
           mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
           scene.add(mesh)
 
-          const data = new Float32Array(COUNT_PER_WORD * 5)
-          for (let i = 0; i < COUNT_PER_WORD; i++) seedInstance(data, i)
+          const data = new Float32Array(count * 4)
+          const tailZ = new Float32Array(wordSpokes.length)
 
-          meshes.push({ mesh, data, count: COUNT_PER_WORD })
+          wordSpokes.forEach((spoke, spokeIndexInWord) => {
+            const offset = spokeIndexInWord * INSTANCES_PER_SPOKE
+            const chainData = new Float32Array(INSTANCES_PER_SPOKE * 4)
+            seedChain(chainData, spokeIndexInWord, spoke, INSTANCES_PER_SPOKE)
+            data.set(chainData, offset * 4)
+            // cola inicial: justo detrás de la última instancia sembrada
+            tailZ[spokeIndexInWord] = -TUNNEL_DEPTH * 1.4 - SPACING
+          })
+
+          meshes.push({ mesh, data, count, wordSpokes, tailZ })
         })
 
         fontLoaded = true
@@ -207,13 +229,17 @@ export default function HeroWarpTunnel() {
       const dt = Math.min(clock.getDelta(), 0.05)
 
       if (fontLoaded) {
-        meshes.forEach(({ mesh, data, count }) => {
+        meshes.forEach(({ mesh, data, count, wordSpokes, tailZ }) => {
           for (let i = 0; i < count; i++) {
-            const idx = i * 5
+            const idx = i * 4
             let z = data[idx + 2]
-            const speed = data[idx + 3]
+            const spokeIndexInWord = data[idx + 3]
+            const spoke = wordSpokes[spokeIndexInWord]
+            const speed = spoke.speed
 
             // proximidad a la cámara → aceleración exponencial
+            // (misma fórmula para todas las instancias de un radio,
+            // así conservan su orden y la hilera no se rompe)
             const proximity = THREE.MathUtils.clamp(
               (z + TUNNEL_DEPTH) / TUNNEL_DEPTH, 0, 1
             )
@@ -221,17 +247,18 @@ export default function HeroWarpTunnel() {
             z += accel * dt * 5.5
 
             if (z > CAMERA_Z + 1.2) {
-              resetInstance(data, i)
-              z = data[idx + 2]
-            } else {
-              data[idx + 2] = z
+              // reciclado continuo: se engancha justo detrás de la última
+              // instancia de SU propio radio, nunca a una posición suelta
+              z = tailZ[spokeIndexInWord]
+              tailZ[spokeIndexInWord] -= SPACING
             }
+            data[idx + 2] = z
 
             const scaleT = THREE.MathUtils.clamp((z + TUNNEL_DEPTH) / TUNNEL_DEPTH, 0, 1)
             const scale = 0.5 + scaleT * 1.1
 
             dummy.position.set(data[idx], data[idx + 1], z)
-            dummy.rotation.set(0, data[idx + 4] * 0.35, data[idx + 4])
+            dummy.rotation.set(0, 0, spoke.angle)
             dummy.scale.setScalar(scale)
             dummy.updateMatrix()
             mesh.setMatrixAt(i, dummy.matrix)
