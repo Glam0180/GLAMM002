@@ -15,8 +15,7 @@ import './HeroWarpTunnel.css'
  *
  * · InstancedMesh: cada palabra es UNA geometría (TextGeometry) dibujada
  *   cientos de veces en un solo draw call, cada instancia con su propia
- *   matriz de transformación (posición / escala — SIN rotación: el
- *   texto siempre queda de pie, de frente a la cámara).
+ *   matriz de transformación.
  * · Las instancias se agrupan en "radios" (spokes): cada radio define
  *   una posición fija (x, y) alrededor del centro, y dentro de él las
  *   repeticiones de la palabra corren una detrás de otra por el eje Z
@@ -25,6 +24,20 @@ import './HeroWarpTunnel.css'
  *   derecho hacia el espectador. Al reciclarse, cada instancia se
  *   vuelve a enganchar justo detrás de la última de su propio radio
  *   (no a una posición aleatoria), así la hilera nunca se corta.
+ *
+ * · Orientación del texto (vector de flujo):
+ *   1. Alineación con flowDir: el eje X local del bloque de texto
+ *      (su eje longitudinal) se orienta siguiendo la trayectoria de
+ *      vuelo, que va del fondo del túnel hacia la cámara.
+ *   2. Base ortogonal perpendicular (makeBasis / Gram-Schmidt): los
+ *      ejes Y (alto) y Z (profundidad) del texto se recalculan cada
+ *      frame perpendiculares a flowDir, para que el bloque nunca se
+ *      retuerza de forma anómala.
+ *   3. Tail Stretch + apertura de perspectiva: a medida que la
+ *      instancia se acerca a la cámara, se estira en su eje de avance
+ *      (proporcional a velocidad × proximidad) y se "abre" en alto/
+ *      profundidad con una curva envolvente suave.
+ *
  * · Post-proceso (EffectComposer + GLSL propio): Bloom, estela
  *   (afterimage), grano de película y un pase final que combina
  *   desenfoque de movimiento radial + aberración cromática.
@@ -35,6 +48,8 @@ const SPOKE_COUNT = 16          // radios alrededor del centro
 const TUNNEL_DEPTH = 46
 const TUNNEL_RADIUS = 10.5
 const CAMERA_Z = 6
+const TAIL_STRETCH = 1.8        // intensidad del estiramiento por velocidad/proximidad
+const OPEN_AMOUNT = 0.6         // cuánto se "abre" el bloque (alto/profundidad) al acercarse
 
 export default function HeroWarpTunnel() {
   const mountRef = useRef(null)
@@ -61,6 +76,19 @@ export default function HeroWarpTunnel() {
     const RED = new THREE.Color('#FF0000')
     const dummy = new THREE.Object3D()
     const meshes = [] // { mesh, data(Float32Array), count, tailZ(Float32Array por radio) }
+
+    // ── Base ortogonal de orientación (vector de flujo) ─────────
+    // El flujo es puramente a lo largo de Z (fondo del túnel → cámara),
+    // así que flowDir es constante para todas las instancias. Se deja
+    // como vector reasignable por si en el futuro el movimiento deja
+    // de ser puramente radial-fijo (p. ej. drift en x/y).
+    const flowDir = new THREE.Vector3(0, 0, 1)
+    const worldUp = new THREE.Vector3(0, 1, 0)
+    const basisX = new THREE.Vector3()
+    const basisY = new THREE.Vector3()
+    const basisZ = new THREE.Vector3()
+    const basisMatrix = new THREE.Matrix4()
+    const flowQuat = new THREE.Quaternion()
 
     // ── Definición de los radios (spokes) ──────────────────────
     // Cada radio tiene ángulo, distancia al centro, velocidad y palabra
@@ -238,6 +266,16 @@ export default function HeroWarpTunnel() {
       const dt = Math.min(clock.getDelta(), 0.05)
 
       if (fontLoaded) {
+        // La base ortogonal (flowDir → basisX/Y/Z → quaternion) es la
+        // misma para TODAS las instancias este frame, porque el flujo es
+        // uniformemente +Z. Se calcula una sola vez fuera del loop de
+        // instancias en vez de recalcularla por cada una.
+        basisX.copy(flowDir)
+        basisY.copy(worldUp).sub(basisX.clone().multiplyScalar(worldUp.dot(basisX))).normalize()
+        basisZ.crossVectors(basisX, basisY).normalize()
+        basisMatrix.makeBasis(basisX, basisY, basisZ)
+        flowQuat.setFromRotationMatrix(basisMatrix)
+
         meshes.forEach(({ mesh, data, count, wordSpokes, tailZ, spacing }) => {
           for (let i = 0; i < count; i++) {
             const idx = i * 4
@@ -266,9 +304,18 @@ export default function HeroWarpTunnel() {
             const scaleT = THREE.MathUtils.clamp((z + TUNNEL_DEPTH) / TUNNEL_DEPTH, 0, 1)
             const scale = 0.5 + scaleT * 1.1
 
+            // Tail Stretch + apertura de perspectiva: cuanto más cerca de
+            // la cámara (mayor proximity) y más rápido el radio, más se
+            // estira en su eje de avance (X local, ya alineado con
+            // flowDir); el alto/profundidad se "abre" con una curva
+            // envolvente suave.
+            const stretch = 1 + proximity * speed * TAIL_STRETCH
+            const openT = Math.pow(proximity, 1.6)
+            const openScale = scale * (1 + openT * OPEN_AMOUNT)
+
             dummy.position.set(data[idx], data[idx + 1], z)
-            dummy.rotation.set(0, 0, 0)   // de pie, sin girar — corre recta por el eje Z hacia la cámara
-            dummy.scale.setScalar(scale)
+            dummy.quaternion.copy(flowQuat)
+            dummy.scale.set(scale * stretch, openScale, openScale)
             dummy.updateMatrix()
             mesh.setMatrixAt(i, dummy.matrix)
           }
