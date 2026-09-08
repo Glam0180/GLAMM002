@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
@@ -12,15 +11,15 @@ import './HeroWarpTunnel.css'
 
 /*
 
-WARP SPEED TUNNEL — túnel de velocidad hiperespacial de texto 3D.
+WARP SPEED TUNNEL — túnel de velocidad hiperespacial de texto FLAT (2D).
 
 
 
-· InstancedMesh: cada palabra es UNA geometría (TextGeometry) dibujada
+· InstancedMesh: cada palabra es UNA geometría PLANA (ShapeGeometry,
 
-cientos de veces en un solo draw call, cada instancia con su propia
+sin extrusión ni bisel) dibujada cientos de veces en un solo draw call,
 
-matriz de transformación.
+cada instancia con su propia matriz de transformación.
 
 · Las instancias se agrupan en "radios" (spokes): cada radio define
 
@@ -37,6 +36,24 @@ derecho hacia el espectador. Al reciclarse, cada instancia se
 vuelve a enganchar justo detrás de la última de su propio radio
 
 (no a una posición aleatoria), así la hilera nunca se corta.
+
+
+
+· CONTINUIDAD GARANTIZADA: cada instancia mantiene su tamaño REAL
+
+constante (sin escalado manual por proximidad). El "crecimiento" al
+
+acercarse a la cámara lo produce únicamente la perspectiva de la
+
+cámara — igual que en la realidad. Como el espaciado entre
+
+repeticiones se calculó con el ancho exacto de la palabra a esa
+
+misma escala constante, las instancias quedan siempre perfectamente
+
+pegadas entre sí, en cualquier punto del túnel, sin huecos ni
+
+superposiciones.
 
 
 
@@ -72,22 +89,6 @@ Base ortogonal perpendicular (makeBasis / Gram-Schmidt): los
 
 
 
-Tail Stretch + apertura de perspectiva: a medida que la
-
-
-
- instancia se acerca a la cámara, se estira en su eje de avance
-
-
-
- (proporcional a velocidad × proximidad) y se "abre" en alto/
-
-
-
- profundidad con una curva envolvente suave.
-
-
-
 · Post-proceso (EffectComposer + GLSL propio): Bloom, estela
 
 (afterimage), grano de película y un pase final que combina
@@ -100,8 +101,7 @@ const SPOKE_COUNT = 16          // radios alrededor del centro
 const TUNNEL_DEPTH = 46
 const TUNNEL_RADIUS = 10.5
 const CAMERA_Z = 6
-const TAIL_STRETCH = 1.8        // intensidad del estiramiento por velocidad/proximidad
-const OPEN_AMOUNT = 0.6         // cuánto se "abre" el bloque (alto/profundidad) al acercarse
+const TEXT_SIZE = 1             // tamaño real y constante del texto (mundo, no visual)
 
 export default function HeroWarpTunnel() {
 const mountRef = useRef(null)
@@ -127,7 +127,7 @@ mount.appendChild(renderer.domElement)
 
 const RED = new THREE.Color('#FF0000')
 const dummy = new THREE.Object3D()
-const meshes = [] // { mesh, data(Float32Array), count, tailZ(Float32Array por radio) }
+const meshes = [] // { mesh, data(Float32Array), count, wordSpokes, tailZ, spacing }
 
 // ── Base ortogonal de orientación (vector de flujo) ─────────
 // El flujo es puramente a lo largo de Z (fondo del túnel → cámara),
@@ -180,17 +180,17 @@ loader.load(
     if (disposed) return
 
     WORDS.forEach((word) => {
-      const geo = new TextGeometry(word, {
-        font,
-        size: 1,
-        depth: 0.28,
-        curveSegments: 3,
-        bevelEnabled: false,
-      })
+      // Texto FLAT: shapes 2D puros (sin extrusión ni bisel),
+      // en vez de TextGeometry. Vive en el plano XY local.
+      const shapes = font.generateShapes(word, TEXT_SIZE)
+      const geo = new THREE.ShapeGeometry(shapes, 4)
       geo.computeBoundingBox()
       // ancho real de la palabra ya renderizada: usado como paso de
       // repetición exacto, así quedan pegadas letra-con-letra
-      // ("GLAMGLAMGLAM..."), sin huecos ni superposición
+      // ("GLAMGLAMGLAM..."), sin huecos ni superposición. Como las
+      // instancias YA NO se escalan de forma manual, este ancho es
+      // válido para SIEMPRE, sin importar qué tan cerca estén de la
+      // cámara.
       const wordWidth = geo.boundingBox.max.x - geo.boundingBox.min.x
       const spacing = wordWidth
       geo.center()
@@ -199,6 +199,7 @@ loader.load(
         color: RED,
         transparent: true,
         opacity: 0.95,
+        side: THREE.DoubleSide,
       })
 
       const wordSpokes = spokes.filter((sp) => sp.word === word)
@@ -353,21 +354,13 @@ function animate() {
         }
         data[idx + 2] = z
 
-        const scaleT = THREE.MathUtils.clamp((z + TUNNEL_DEPTH) / TUNNEL_DEPTH, 0, 1)
-        const scale = 0.5 + scaleT * 1.1
-
-        // Tail Stretch + apertura de perspectiva: cuanto más cerca de
-        // la cámara (mayor proximity) y más rápido el radio, más se
-        // estira en su eje de avance (X local, ya alineado con
-        // flowDir); el alto/profundidad se "abre" con una curva
-        // envolvente suave.
-        const stretch = 1 + proximity * speed * TAIL_STRETCH
-        const openT = Math.pow(proximity, 1.6)
-        const openScale = scale * (1 + openT * OPEN_AMOUNT)
-
+        // Sin escalado manual: el tamaño real de cada instancia es
+        // SIEMPRE el mismo (TEXT_SIZE), y es la perspectiva de la
+        // cámara la que la hace ver más grande al acercarse. Esto es
+        // lo que garantiza que la hilera de texto quede perfectamente
+        // pegada y continua en cualquier punto del túnel.
         dummy.position.set(data[idx], data[idx + 1], z)
         dummy.quaternion.copy(flowQuat)
-        dummy.scale.set(scale * stretch, openScale, openScale)
         dummy.updateMatrix()
         mesh.setMatrixAt(i, dummy.matrix)
       }
