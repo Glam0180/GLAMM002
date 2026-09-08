@@ -1,55 +1,45 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { AfterimagePass } from 'three/examples/jsm/postprocessing/AfterimagePass.js'
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import './HeroWarpTunnel.css'
 
 /*
- * WARP SPEED TUNNEL — túnel de velocidad hiperespacial de texto 3D.
+ * GLAM INFINITE TUNNEL
  *
- * · InstancedMesh: cada palabra es UNA geometría (TextGeometry) dibujada
- *   cientos de veces en un solo draw call, cada instancia con su propia
- *   matriz de transformación.
- * · Las instancias se agrupan en "radios" (spokes): cada radio define
- *   una posición fija (x, y) alrededor del centro, y dentro de él las
- *   repeticiones de la palabra corren una detrás de otra por el eje Z
- *   —hacia la cámara—, a la MISMA velocidad, formando una hilera
- *   continua e ininterrumpida ("GLAMGLAMGLAM...") que se ve venir
- *   derecho hacia el espectador. Al reciclarse, cada instancia se
- *   vuelve a enganchar justo detrás de la última de su propio radio
- *   (no a una posición aleatoria), así la hilera nunca se corta.
+ * GLAM se repite continuamente:
  *
- * · Orientación del texto (vector de flujo):
- *   1. Alineación con flowDir: el eje X local del bloque de texto
- *      (su eje longitudinal) se orienta siguiendo la trayectoria de
- *      vuelo, que va del fondo del túnel hacia la cámara.
- *   2. Base ortogonal perpendicular (makeBasis / Gram-Schmidt): los
- *      ejes Y (alto) y Z (profundidad) del texto se recalculan cada
- *      frame perpendiculares a flowDir, para que el bloque nunca se
- *      retuerza de forma anómala.
- *   3. Tail Stretch + apertura de perspectiva: a medida que la
- *      instancia se acerca a la cámara, se estira en su eje de avance
- *      (proporcional a velocidad × proximidad) y se "abre" en alto/
- *      profundidad con una curva envolvente suave.
+ * GLAMGLAMGLAMGLAMGLAMGLAMGLAM...
  *
- * · Post-proceso (EffectComposer + GLSL propio): Bloom, estela
- *   (afterimage), grano de película y un pase final que combina
- *   desenfoque de movimiento radial + aberración cromática.
+ * Cada cadena se mueve hacia la cámara y al salir
+ * vuelve exactamente detrás de la última palabra,
+ * creando un loop infinito sin cortes.
+ *
+ * El texto es FLAT:
+ * - Sin extrusión
+ * - Sin bevel
+ * - Sin profundidad 3D
+ * - Sin Bloom
+ * - Sin Glow
+ *
+ * La distribución continúa siendo cilíndrica,
+ * creando el túnel alrededor del espectador.
  */
 
-const WORDS = ['GLAM', 'LAB']
-const SPOKE_COUNT = 16          // radios alrededor del centro
+const WORD = 'GLAM'
+
+const SPOKE_COUNT = 18
 const TUNNEL_DEPTH = 46
 const TUNNEL_RADIUS = 10.5
 const CAMERA_Z = 6
-const TAIL_STRETCH = 1.8        // intensidad del estiramiento por velocidad/proximidad
-const OPEN_AMOUNT = 0.6         // cuánto se "abre" el bloque (alto/profundidad) al acercarse
+
+const BASE_SCALE = 0.55
+const SPEED_MIN = 0.7
+const SPEED_MAX = 1.15
 
 export default function HeroWarpTunnel() {
   const mountRef = useRef(null)
@@ -62,284 +52,784 @@ export default function HeroWarpTunnel() {
     let disposed = false
     let fontLoaded = false
 
-    // ── Escena base ──────────────────────────────────────────
+    // ------------------------------------------------------------
+    // ESCENA
+    // ------------------------------------------------------------
+
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x000000)
 
-    const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 100)
+    const camera = new THREE.PerspectiveCamera(
+      62,
+      1,
+      0.1,
+      100
+    )
+
     camera.position.set(0, 0, CAMERA_Z)
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+    })
+
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio || 1, 2)
+    )
+
     mount.appendChild(renderer.domElement)
 
+    // ------------------------------------------------------------
+    // MATERIAL
+    // ------------------------------------------------------------
+
     const RED = new THREE.Color('#FF0000')
+
     const dummy = new THREE.Object3D()
-    const meshes = [] // { mesh, data(Float32Array), count, tailZ(Float32Array por radio) }
 
-    // ── Base ortogonal de orientación (vector de flujo) ─────────
-    // El flujo es puramente a lo largo de Z (fondo del túnel → cámara),
-    // así que flowDir es constante para todas las instancias. Se deja
-    // como vector reasignable por si en el futuro el movimiento deja
-    // de ser puramente radial-fijo (p. ej. drift en x/y).
-    const flowDir = new THREE.Vector3(0, 0, 1)
-    const worldUp = new THREE.Vector3(0, 1, 0)
-    const basisX = new THREE.Vector3()
-    const basisY = new THREE.Vector3()
-    const basisZ = new THREE.Vector3()
-    const basisMatrix = new THREE.Matrix4()
-    const flowQuat = new THREE.Quaternion()
+    /*
+     * Cada mesh contiene las repeticiones de GLAM
+     * correspondientes a sus respectivos radios.
+     */
+    const meshes = []
 
-    // ── Definición de los radios (spokes) ──────────────────────
-    // Cada radio tiene ángulo, distancia al centro, velocidad y palabra
-    // fijos — así todas las instancias de un mismo radio avanzan
-    // sincronizadas y la hilera se mantiene continua.
+    // ------------------------------------------------------------
+    // RADIOS DEL TÚNEL
+    // ------------------------------------------------------------
+
     const spokes = []
+
     for (let s = 0; s < SPOKE_COUNT; s++) {
-      const angle = (s / SPOKE_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.12
+      const angle =
+        (s / SPOKE_COUNT) * Math.PI * 2 +
+        (Math.random() - 0.5) * 0.08
+
+      const radius =
+        TUNNEL_RADIUS *
+        (0.62 + Math.random() * 0.38)
+
+      const speed =
+        SPEED_MIN +
+        Math.random() * (SPEED_MAX - SPEED_MIN)
+
       spokes.push({
         angle,
-        radius: TUNNEL_RADIUS * (0.55 + Math.random() * 0.45),
-        speed: 0.7 + Math.random() * 0.5,
-        word: WORDS[s % WORDS.length],
+        radius,
+        speed,
       })
     }
 
-    // data por instancia: [x, y, z, spokeIndex]
-    function seedChain(data, spokeIndexInWord, spoke, count, spacing) {
+    // ------------------------------------------------------------
+    // CREAR CADENA INFINITA
+    // ------------------------------------------------------------
+
+    function seedChain(
+      data,
+      spoke,
+      count,
+      spacing
+    ) {
+      const x =
+        Math.cos(spoke.angle) *
+        spoke.radius
+
+      const y =
+        Math.sin(spoke.angle) *
+        spoke.radius
+
       for (let k = 0; k < count; k++) {
-        const idx = k * 4
-        const x = Math.cos(spoke.angle) * spoke.radius
-        const y = Math.sin(spoke.angle) * spoke.radius
+        const idx = k * 3
+
         data[idx + 0] = x
         data[idx + 1] = y
-        // distribuidas de una vez a lo largo de TODA la profundidad,
-        // ya en fila, para que se vea poblado y continuo desde el frame 1
-        data[idx + 2] = -TUNNEL_DEPTH * 1.4 + k * spacing
-        data[idx + 3] = spokeIndexInWord
+
+        /*
+         * Todas las palabras nacen alineadas.
+         * No existe una distribución aleatoria
+         * entre ellas.
+         *
+         * GLAM GLAM GLAM GLAM
+         *  ↓
+         * GLAMGLAMGLAMGLAM
+         */
+        data[idx + 2] =
+          -TUNNEL_DEPTH * 1.4 +
+          k * spacing
       }
     }
 
-    // ── Carga de fuente + construcción de instancias ─────────
+    // ------------------------------------------------------------
+    // CARGAR FUENTE
+    // ------------------------------------------------------------
+
     const loader = new FontLoader()
+
     loader.load(
       '/fonts/helvetiker_bold.typeface.json',
+
       (font) => {
         if (disposed) return
 
-        WORDS.forEach((word) => {
-          const geo = new TextGeometry(word, {
-            font,
-            size: 1,
-            depth: 0.28,
-            curveSegments: 3,
-            bevelEnabled: false,
-          })
-          geo.computeBoundingBox()
-          // ancho real de la palabra ya renderizada: usado como paso de
-          // repetición exacto, así quedan pegadas letra-con-letra
-          // ("GLAMGLAMGLAM..."), sin huecos ni superposición
-          const wordWidth = geo.boundingBox.max.x - geo.boundingBox.min.x
-          const spacing = wordWidth
-          geo.center()
+        /*
+         * --------------------------------------------------------
+         * FLAT TEXT
+         * --------------------------------------------------------
+         *
+         * En lugar de TextGeometry utilizamos ShapeGeometry.
+         *
+         * Esto significa:
+         *
+         * depth = 0
+         * bevel = 0
+         * extrusión = 0
+         *
+         * Es literalmente una superficie plana.
+         */
+        const shapes = font.generateShapes(
+          WORD,
+          1
+        )
 
-          const mat = new THREE.MeshBasicMaterial({
+        const geo = new THREE.ShapeGeometry(shapes)
+
+        geo.computeBoundingBox()
+
+        /*
+         * Ancho exacto de GLAM.
+         * Este ancho determina la distancia entre una
+         * repetición y la siguiente.
+         */
+        const wordWidth =
+          geo.boundingBox.max.x -
+          geo.boundingBox.min.x
+
+        /*
+         * No dejamos separación adicional.
+         *
+         * GLAM|GLAM|GLAM
+         *
+         * se convierte visualmente en:
+         *
+         * GLAMGLAMGLAM
+         */
+        const spacing = wordWidth
+
+        geo.center()
+
+        // --------------------------------------------------------
+        // MATERIAL FLAT
+        // --------------------------------------------------------
+
+        const mat =
+          new THREE.MeshBasicMaterial({
             color: RED,
             transparent: true,
-            opacity: 0.95,
+            opacity: 1,
+            side: THREE.DoubleSide,
+
+            /*
+             * Sin iluminación.
+             * Sin especular.
+             * Sin reflejos.
+             * Sin glow.
+             */
           })
 
-          const wordSpokes = spokes.filter((sp) => sp.word === word)
-          // suficientes repeticiones para cubrir TODO el túnel con este paso,
-          // sin dejar huecos al final de la hilera
-          const totalSpan = TUNNEL_DEPTH * 1.4 + CAMERA_Z + 2
-          const instancesPerSpoke = Math.ceil(totalSpan / spacing) + 4
-          const count = wordSpokes.length * instancesPerSpoke
+        /*
+         * Todas las spokes utilizan la misma geometría GLAM.
+         */
+        const totalSpan =
+          TUNNEL_DEPTH * 1.4 +
+          CAMERA_Z +
+          4
 
-          const mesh = new THREE.InstancedMesh(geo, mat, count)
-          mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
-          scene.add(mesh)
+        const instancesPerSpoke =
+          Math.ceil(
+            totalSpan / spacing
+          ) + 5
 
-          const data = new Float32Array(count * 4)
-          const tailZ = new Float32Array(wordSpokes.length)
+        const count =
+          SPOKE_COUNT *
+          instancesPerSpoke
 
-          wordSpokes.forEach((spoke, spokeIndexInWord) => {
-            const offset = spokeIndexInWord * instancesPerSpoke
-            const chainData = new Float32Array(instancesPerSpoke * 4)
-            seedChain(chainData, spokeIndexInWord, spoke, instancesPerSpoke, spacing)
-            data.set(chainData, offset * 4)
-            // cola inicial: justo detrás de la última instancia sembrada
-            tailZ[spokeIndexInWord] = -TUNNEL_DEPTH * 1.4 - spacing
-          })
+        const mesh =
+          new THREE.InstancedMesh(
+            geo,
+            mat,
+            count
+          )
 
-          meshes.push({ mesh, data, count, wordSpokes, tailZ, spacing })
+        mesh.instanceMatrix.setUsage(
+          THREE.DynamicDrawUsage
+        )
+
+        scene.add(mesh)
+
+        /*
+         * Por instancia:
+         *
+         * x
+         * y
+         * z
+         * spokeIndex
+         */
+        const data =
+          new Float32Array(
+            count * 4
+          )
+
+        /*
+         * Guarda dónde está la cola de cada
+         * cadena para reciclar GLAM perfectamente.
+         */
+        const tailZ =
+          new Float32Array(
+            SPOKE_COUNT
+          )
+
+        // --------------------------------------------------------
+        // SEMBRAR TODAS LAS CADENAS
+        // --------------------------------------------------------
+
+        spokes.forEach(
+          (spoke, spokeIndex) => {
+            const offset =
+              spokeIndex *
+              instancesPerSpoke
+
+            const chainData =
+              new Float32Array(
+                instancesPerSpoke * 4
+              )
+
+            seedChain(
+              chainData,
+              spoke,
+              instancesPerSpoke,
+              spacing
+            )
+
+            /*
+             * Guardamos la información
+             * dentro del array global.
+             */
+            for (
+              let k = 0;
+              k < instancesPerSpoke;
+              k++
+            ) {
+              const source =
+                k * 3
+
+              const target =
+                (offset + k) * 4
+
+              data[target + 0] =
+                chainData[source + 0]
+
+              data[target + 1] =
+                chainData[source + 1]
+
+              data[target + 2] =
+                chainData[source + 2]
+
+              data[target + 3] =
+                spokeIndex
+            }
+
+            /*
+             * La cola está inmediatamente detrás
+             * de la última palabra.
+             */
+            tailZ[spokeIndex] =
+              -TUNNEL_DEPTH * 1.4 -
+              spacing
+          }
+        )
+
+        meshes.push({
+          mesh,
+          data,
+          count,
+          spokes,
+          tailZ,
+          spacing,
         })
 
         fontLoaded = true
       },
+
       undefined,
-      () => { /* si la fuente falla en cargar, el fondo negro queda como fallback silencioso */ }
+
+      () => {
+        /*
+         * Fallback silencioso.
+         */
+      }
     )
 
-    // ── Post-procesado ────────────────────────────────────────
-    const composer = new EffectComposer(renderer)
-    composer.addPass(new RenderPass(scene, camera))
+    // ------------------------------------------------------------
+    // POST PROCESS
+    // ------------------------------------------------------------
 
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.4, 0.2)
-    composer.addPass(bloomPass)
+    /*
+     * IMPORTANTE:
+     *
+     * NO UnrealBloomPass.
+     *
+     * Esto elimina completamente el Glow.
+     */
 
-    const afterimagePass = new AfterimagePass(0.55) // estela / trail
-    composer.addPass(afterimagePass)
+    const composer =
+      new EffectComposer(renderer)
 
-    const filmPass = new FilmPass(0.25, false) // grano de película
-    composer.addPass(filmPass)
+    composer.addPass(
+      new RenderPass(
+        scene,
+        camera
+      )
+    )
 
-    // Pase final: desenfoque de movimiento radial + aberración cromática
+    /*
+     * Afterimage muy sutil.
+     *
+     * No genera glow.
+     * Solo deja una pequeña sensación
+     * de continuidad/velocidad.
+     */
+    const afterimagePass =
+      new AfterimagePass(0.32)
+
+    composer.addPass(
+      afterimagePass
+    )
+
+    /*
+     * Film muy ligero.
+     *
+     * Si quieres absolutamente cero
+     * procesamiento visual puedes eliminarlo.
+     */
+    const filmPass =
+      new FilmPass(
+        0.08,
+        false
+      )
+
+    composer.addPass(
+      filmPass
+    )
+
+    // ------------------------------------------------------------
+    // RADIAL MOTION
+    // ------------------------------------------------------------
+
     const warpShader = {
       uniforms: {
-        tDiffuse: { value: null },
-        uCenter: { value: new THREE.Vector2(0.5, 0.5) },
-        uStrength: { value: 0.22 },
-        uAberration: { value: 0.1 },
+        tDiffuse: {
+          value: null,
+        },
+
+        uCenter: {
+          value:
+            new THREE.Vector2(
+              0.5,
+              0.5
+            ),
+        },
+
+        /*
+         * Mucho más suave que el original.
+         */
+        uStrength: {
+          value: 0.08,
+        },
+
+        /*
+         * Aberración eliminada.
+         */
+        uAberration: {
+          value: 0.0,
+        },
       },
+
       vertexShader: /* glsl */ `
         varying vec2 vUv;
+
         void main() {
           vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+
+          gl_Position =
+            projectionMatrix *
+            modelViewMatrix *
+            vec4(position, 1.0);
         }
       `,
+
       fragmentShader: /* glsl */ `
         uniform sampler2D tDiffuse;
         uniform vec2 uCenter;
         uniform float uStrength;
         uniform float uAberration;
+
         varying vec2 vUv;
 
         void main() {
-          vec2 dir = vUv - uCenter;
-          float dist = length(dir);
-          vec2 dirNorm = dist > 0.0001 ? dir / dist : vec2(0.0);
 
-          const int SAMPLES = 6;
-          vec3 col = vec3(0.0);
-          float total = 0.0;
-          for (int i = 0; i < SAMPLES; i++) {
-            float t = float(i) / float(SAMPLES - 1);
-            float scale = 1.0 - uStrength * dist * t;
-            vec2 uv = uCenter + dir * scale;
-            float w = 1.0 - t * 0.4;
-            col += texture2D(tDiffuse, uv).rgb * w;
+          vec2 dir =
+            vUv - uCenter;
+
+          float dist =
+            length(dir);
+
+          vec2 dirNorm =
+            dist > 0.0001
+              ? dir / dist
+              : vec2(0.0);
+
+          const int SAMPLES = 5;
+
+          vec3 col =
+            vec3(0.0);
+
+          float total =
+            0.0;
+
+          for (
+            int i = 0;
+            i < SAMPLES;
+            i++
+          ) {
+
+            float t =
+              float(i) /
+              float(SAMPLES - 1);
+
+            float scale =
+              1.0 -
+              uStrength *
+              dist *
+              t;
+
+            vec2 uv =
+              uCenter +
+              dir *
+              scale;
+
+            float w =
+              1.0 -
+              t * 0.3;
+
+            col +=
+              texture2D(
+                tDiffuse,
+                uv
+              ).rgb * w;
+
             total += w;
           }
-          col /= max(total, 0.0001);
 
-          float aberr = uAberration * dist * dist;
-          float rr = texture2D(tDiffuse, uCenter + dirNorm * (dist - aberr)).r;
-          float bb = texture2D(tDiffuse, uCenter + dirNorm * (dist + aberr)).b;
+          col /=
+            max(
+              total,
+              0.0001
+            );
 
-          gl_FragColor = vec4(rr, col.g, bb, 1.0);
+          /*
+           * Sin aberración cromática.
+           *
+           * R = G = B original.
+           */
+          gl_FragColor =
+            vec4(
+              col,
+              1.0
+            );
         }
       `,
     }
-    const warpPass = new ShaderPass(warpShader)
+
+    const warpPass =
+      new ShaderPass(
+        warpShader
+      )
+
     warpPass.renderToScreen = true
-    composer.addPass(warpPass)
 
-    // ── Resize ────────────────────────────────────────────────
+    composer.addPass(
+      warpPass
+    )
+
+    // ------------------------------------------------------------
+    // RESIZE
+    // ------------------------------------------------------------
+
     function resize() {
-      const w = mount.clientWidth || 1
-      const h = mount.clientHeight || 1
-      camera.aspect = w / h
-      camera.updateProjectionMatrix()
-      renderer.setSize(w, h)
-      composer.setSize(w, h)
-    }
-    resize()
-    window.addEventListener('resize', resize)
+      const w =
+        mount.clientWidth || 1
 
-    // ── Loop de animación ────────────────────────────────────
-    const clock = new THREE.Clock()
+      const h =
+        mount.clientHeight || 1
+
+      camera.aspect =
+        w / h
+
+      camera.updateProjectionMatrix()
+
+      renderer.setSize(
+        w,
+        h
+      )
+
+      composer.setSize(
+        w,
+        h
+      )
+    }
+
+    resize()
+
+    window.addEventListener(
+      'resize',
+      resize
+    )
+
+    // ------------------------------------------------------------
+    // ANIMATION
+    // ------------------------------------------------------------
+
+    const clock =
+      new THREE.Clock()
 
     function animate() {
-      raf = requestAnimationFrame(animate)
-      const dt = Math.min(clock.getDelta(), 0.05)
+      raf =
+        requestAnimationFrame(
+          animate
+        )
+
+      const dt =
+        Math.min(
+          clock.getDelta(),
+          0.05
+        )
 
       if (fontLoaded) {
-        // La base ortogonal (flowDir → basisX/Y/Z → quaternion) es la
-        // misma para TODAS las instancias este frame, porque el flujo es
-        // uniformemente +Z. Se calcula una sola vez fuera del loop de
-        // instancias en vez de recalcularla por cada una.
-        basisX.copy(flowDir)
-        basisY.copy(worldUp).sub(basisX.clone().multiplyScalar(worldUp.dot(basisX))).normalize()
-        basisZ.crossVectors(basisX, basisY).normalize()
-        basisMatrix.makeBasis(basisX, basisY, basisZ)
-        flowQuat.setFromRotationMatrix(basisMatrix)
 
-        meshes.forEach(({ mesh, data, count, wordSpokes, tailZ, spacing }) => {
-          for (let i = 0; i < count; i++) {
-            const idx = i * 4
-            let z = data[idx + 2]
-            const spokeIndexInWord = data[idx + 3]
-            const spoke = wordSpokes[spokeIndexInWord]
-            const speed = spoke.speed
+        meshes.forEach(
+          ({
+            mesh,
+            data,
+            count,
+            spokes,
+            tailZ,
+            spacing,
+          }) => {
 
-            // proximidad a la cámara → aceleración exponencial
-            // (misma fórmula para todas las instancias de un radio,
-            // así conservan su orden y la hilera no se rompe)
-            const proximity = THREE.MathUtils.clamp(
-              (z + TUNNEL_DEPTH) / TUNNEL_DEPTH, 0, 1
-            )
-            const accel = speed * (0.7 + Math.pow(proximity, 2.4) * 10)
-            z += accel * dt * 5.5
+            /*
+             * ----------------------------------------------------
+             * ACTUALIZAR CADA GLAM
+             * ----------------------------------------------------
+             */
 
-            if (z > CAMERA_Z + 1.2) {
-              // reciclado continuo: se engancha justo detrás de la última
-              // instancia de SU propio radio, nunca a una posición suelta
-              z = tailZ[spokeIndexInWord]
-              tailZ[spokeIndexInWord] -= spacing
+            for (
+              let i = 0;
+              i < count;
+              i++
+            ) {
+
+              const idx =
+                i * 4
+
+              let z =
+                data[idx + 2]
+
+              const spokeIndex =
+                data[idx + 3]
+
+              const spoke =
+                spokes[
+                  spokeIndex
+                ]
+
+              /*
+               * --------------------------------------------------
+               * VELOCIDAD
+               * --------------------------------------------------
+               */
+
+              const proximity =
+                THREE.MathUtils.clamp(
+                  (z + TUNNEL_DEPTH) /
+                    TUNNEL_DEPTH,
+                  0,
+                  1
+                )
+
+              /*
+               * Aceleración progresiva.
+               *
+               * Las palabras se mantienen
+               * siempre en el mismo orden.
+               */
+              const accel =
+                spoke.speed *
+                (
+                  0.8 +
+                  Math.pow(
+                    proximity,
+                    2.1
+                  ) * 7
+                )
+
+              z +=
+                accel *
+                dt *
+                5.0
+
+              // --------------------------------------------------
+              // RECICLAR
+              // --------------------------------------------------
+
+              if (
+                z >
+                CAMERA_Z + 1.2
+              ) {
+
+                /*
+                 * La nueva palabra aparece exactamente
+                 * detrás de la anterior.
+                 *
+                 * Esto es lo que genera:
+                 *
+                 * GLAMGLAMGLAMGLAMGLAM
+                 * ↑
+                 * sin huecos
+                 */
+                z =
+                  tailZ[
+                    spokeIndex
+                  ]
+
+                tailZ[
+                  spokeIndex
+                ] -= spacing
+              }
+
+              data[idx + 2] =
+                z
+
+              // --------------------------------------------------
+              // ESCALA
+              // --------------------------------------------------
+
+              /*
+               * La palabra aumenta ligeramente
+               * por perspectiva al acercarse.
+               *
+               * NO se estira.
+               */
+              const scaleT =
+                THREE.MathUtils.clamp(
+                  (z + TUNNEL_DEPTH) /
+                    TUNNEL_DEPTH,
+                  0,
+                  1
+                )
+
+              const scale =
+                BASE_SCALE +
+                scaleT * 0.7
+
+              // --------------------------------------------------
+              // TRANSFORMACIÓN
+              // --------------------------------------------------
+
+              dummy.position.set(
+                data[idx + 0],
+                data[idx + 1],
+                z
+              )
+
+              /*
+               * Texto frontal y completamente plano.
+               *
+               * La geometría está mirando hacia
+               * la cámara, no tiene profundidad.
+               */
+              dummy.rotation.set(
+                0,
+                0,
+                0
+              )
+
+              dummy.scale.set(
+                scale,
+                scale,
+                1
+              )
+
+              dummy.updateMatrix()
+
+              mesh.setMatrixAt(
+                i,
+                dummy.matrix
+              )
             }
-            data[idx + 2] = z
 
-            const scaleT = THREE.MathUtils.clamp((z + TUNNEL_DEPTH) / TUNNEL_DEPTH, 0, 1)
-            const scale = 0.5 + scaleT * 1.1
-
-            // Tail Stretch + apertura de perspectiva: cuanto más cerca de
-            // la cámara (mayor proximity) y más rápido el radio, más se
-            // estira en su eje de avance (X local, ya alineado con
-            // flowDir); el alto/profundidad se "abre" con una curva
-            // envolvente suave.
-            const stretch = 1 + proximity * speed * TAIL_STRETCH
-            const openT = Math.pow(proximity, 1.6)
-            const openScale = scale * (1 + openT * OPEN_AMOUNT)
-
-            dummy.position.set(data[idx], data[idx + 1], z)
-            dummy.quaternion.copy(flowQuat)
-            dummy.scale.set(scale * stretch, openScale, openScale)
-            dummy.updateMatrix()
-            mesh.setMatrixAt(i, dummy.matrix)
+            mesh.instanceMatrix.needsUpdate =
+              true
           }
-          mesh.instanceMatrix.needsUpdate = true
-        })
+        )
       }
 
       composer.render()
     }
+
     animate()
 
-    // ── Cleanup ───────────────────────────────────────────────
+    // ------------------------------------------------------------
+    // CLEANUP
+    // ------------------------------------------------------------
+
     return () => {
       disposed = true
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', resize)
-      meshes.forEach(({ mesh }) => {
-        mesh.geometry.dispose()
-        mesh.material.dispose()
-      })
+
+      cancelAnimationFrame(
+        raf
+      )
+
+      window.removeEventListener(
+        'resize',
+        resize
+      )
+
+      meshes.forEach(
+        ({ mesh }) => {
+          mesh.geometry.dispose()
+          mesh.material.dispose()
+        }
+      )
+
       renderer.dispose()
-      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
+
+      if (
+        mount.contains(
+          renderer.domElement
+        )
+      ) {
+        mount.removeChild(
+          renderer.domElement
+        )
+      }
     }
+
   }, [])
 
-  return <div ref={mountRef} className="warp-tunnel" aria-label="Túnel de velocidad hiperespacial" />
+  return (
+    <div
+      ref={mountRef}
+      className="warp-tunnel"
+      aria-label="GLAM infinite flat text tunnel"
+    />
+  )
 }
