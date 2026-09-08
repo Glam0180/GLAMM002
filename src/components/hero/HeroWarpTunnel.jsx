@@ -11,10 +11,10 @@ import './HeroWarpTunnel.css'
 
 const WORDS = ['GLAM', 'LAB']
 const SPOKE_COUNT = 45         // tu tenias 16, ahora 28 para mas lineas
-const TUNNEL_DEPTH = 86         // igual que tu original
-const TUNNEL_RADIUS = 10.5      // igual que tu original
+const TUNNEL_DEPTH = 186         // igual que tu original
+const TUNNEL_RADIUS = 20.5      // igual que tu original
 const CAMERA_Z = 6              // igual
-const TEXT_SIZE = 1             // igual
+const TEXT_SIZE = 0.8             // igual
 const SCROLL_SPEED = 5.5        // igual que tu original
 
 export default function HeroWarpTunnel() {
