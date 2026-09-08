@@ -1,6 +1,8 @@
+```jsx
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { AfterimagePass } from 'three/examples/jsm/postprocessing/AfterimagePass.js'
@@ -9,37 +11,42 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import './HeroWarpTunnel.css'
 
 /*
- * GLAM INFINITE TUNNEL
+ * WARP SPEED TUNNEL — FLAT GLAM LOOP
  *
- * GLAM se repite continuamente:
+ * · GLAM se repite continuamente:
  *
- * GLAMGLAMGLAMGLAMGLAMGLAMGLAM...
+ *   GLAMGLAMGLAMGLAMGLAMGLAMGLAM...
  *
- * Cada cadena se mueve hacia la cámara y al salir
- * vuelve exactamente detrás de la última palabra,
- * creando un loop infinito sin cortes.
+ * · Cada repetición utiliza el ancho real de GLAM como spacing,
+ *   por lo que las palabras quedan pegadas entre sí.
  *
- * El texto es FLAT:
- * - Sin extrusión
- * - Sin bevel
- * - Sin profundidad 3D
- * - Sin Bloom
- * - Sin Glow
+ * · El texto ahora es FLAT:
+ *   depth: 0
+ *   bevelEnabled: false
  *
- * La distribución continúa siendo cilíndrica,
- * creando el túnel alrededor del espectador.
+ * · Se elimina completamente UnrealBloomPass.
+ *   No hay Glow / Bloom.
+ *
+ * · LA ORIENTACIÓN ORIGINAL SE CONSERVA:
+ *   flowDir → basisMatrix → flowQuat
+ *
+ * · Las instancias continúan distribuidas en radios alrededor
+ *   del túnel y avanzando por Z hacia la cámara.
+ *
+ * · Al superar la cámara, cada GLAM se recicla exactamente
+ *   detrás de la última instancia de su propio radio.
+ *
+ * · Se conserva Tail Stretch + apertura de perspectiva original.
  */
 
-const WORD = 'GLAM'
+const WORDS = ['GLAM']
 
-const SPOKE_COUNT = 18
+const SPOKE_COUNT = 16
 const TUNNEL_DEPTH = 46
 const TUNNEL_RADIUS = 10.5
 const CAMERA_Z = 6
-
-const BASE_SCALE = 0.55
-const SPEED_MIN = 0.7
-const SPEED_MAX = 1.15
+const TAIL_STRETCH = 1.8
+const OPEN_AMOUNT = 0.6
 
 export default function HeroWarpTunnel() {
   const mountRef = useRef(null)
@@ -52,9 +59,7 @@ export default function HeroWarpTunnel() {
     let disposed = false
     let fontLoaded = false
 
-    // ------------------------------------------------------------
-    // ESCENA
-    // ------------------------------------------------------------
+    // ── Escena base ──────────────────────────────────────────
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x000000)
@@ -70,7 +75,6 @@ export default function HeroWarpTunnel() {
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: false,
     })
 
     renderer.setPixelRatio(
@@ -79,88 +83,91 @@ export default function HeroWarpTunnel() {
 
     mount.appendChild(renderer.domElement)
 
-    // ------------------------------------------------------------
-    // MATERIAL
-    // ------------------------------------------------------------
-
     const RED = new THREE.Color('#FF0000')
 
     const dummy = new THREE.Object3D()
 
-    /*
-     * Cada mesh contiene las repeticiones de GLAM
-     * correspondientes a sus respectivos radios.
-     */
     const meshes = []
 
-    // ------------------------------------------------------------
-    // RADIOS DEL TÚNEL
-    // ------------------------------------------------------------
+    // ── Base ortogonal de orientación ────────────────────────
+    //
+    // IMPORTANTE:
+    // Esta parte se mantiene igual que en tu código original.
+    // NO se modifica la orientación del texto.
+    //
+
+    const flowDir = new THREE.Vector3(0, 0, 1)
+    const worldUp = new THREE.Vector3(0, 1, 0)
+
+    const basisX = new THREE.Vector3()
+    const basisY = new THREE.Vector3()
+    const basisZ = new THREE.Vector3()
+
+    const basisMatrix = new THREE.Matrix4()
+    const flowQuat = new THREE.Quaternion()
+
+    // ── Definición de los radios ─────────────────────────────
 
     const spokes = []
 
     for (let s = 0; s < SPOKE_COUNT; s++) {
       const angle =
         (s / SPOKE_COUNT) * Math.PI * 2 +
-        (Math.random() - 0.5) * 0.08
-
-      const radius =
-        TUNNEL_RADIUS *
-        (0.62 + Math.random() * 0.38)
-
-      const speed =
-        SPEED_MIN +
-        Math.random() * (SPEED_MAX - SPEED_MIN)
+        (Math.random() - 0.5) * 0.12
 
       spokes.push({
         angle,
-        radius,
-        speed,
+        radius:
+          TUNNEL_RADIUS *
+          (0.55 + Math.random() * 0.45),
+
+        speed:
+          0.7 + Math.random() * 0.5,
+
+        // TODOS los radios utilizan GLAM.
+        word: 'GLAM',
       })
     }
 
-    // ------------------------------------------------------------
-    // CREAR CADENA INFINITA
-    // ------------------------------------------------------------
+    // ── Cadena continua ─────────────────────────────────────
 
     function seedChain(
       data,
+      spokeIndexInWord,
       spoke,
       count,
       spacing
     ) {
-      const x =
-        Math.cos(spoke.angle) *
-        spoke.radius
-
-      const y =
-        Math.sin(spoke.angle) *
-        spoke.radius
-
       for (let k = 0; k < count; k++) {
-        const idx = k * 3
+        const idx = k * 4
+
+        const x =
+          Math.cos(spoke.angle) *
+          spoke.radius
+
+        const y =
+          Math.sin(spoke.angle) *
+          spoke.radius
 
         data[idx + 0] = x
         data[idx + 1] = y
 
         /*
-         * Todas las palabras nacen alineadas.
-         * No existe una distribución aleatoria
-         * entre ellas.
+         * Cada GLAM se coloca exactamente después
+         * del anterior usando el ancho real de GLAM.
          *
-         * GLAM GLAM GLAM GLAM
-         *  ↓
-         * GLAMGLAMGLAMGLAM
+         * GLAMGLAMGLAMGLAMGLAM
          */
         data[idx + 2] =
           -TUNNEL_DEPTH * 1.4 +
           k * spacing
+
+        data[idx + 3] =
+          spokeIndexInWord
       }
     }
 
-    // ------------------------------------------------------------
-    // CARGAR FUENTE
-    // ------------------------------------------------------------
+    // ── Carga de fuente + construcción ──────────────────────
 
     const loader = new FontLoader()
 
@@ -170,190 +177,158 @@ export default function HeroWarpTunnel() {
       (font) => {
         if (disposed) return
 
-        /*
-         * --------------------------------------------------------
-         * FLAT TEXT
-         * --------------------------------------------------------
-         *
-         * En lugar de TextGeometry utilizamos ShapeGeometry.
-         *
-         * Esto significa:
-         *
-         * depth = 0
-         * bevel = 0
-         * extrusión = 0
-         *
-         * Es literalmente una superficie plana.
-         */
-        const shapes = font.generateShapes(
-          WORD,
-          1
-        )
+        WORDS.forEach((word) => {
 
-        const geo = new THREE.ShapeGeometry(shapes)
+          /*
+           * TEXTO FLAT
+           *
+           * La orientación NO cambia.
+           *
+           * Solamente eliminamos la profundidad.
+           */
+          const geo = new TextGeometry(word, {
+            font,
+            size: 1,
 
-        geo.computeBoundingBox()
+            // ANTES: 0.28
+            // AHORA: completamente flat
+            depth: 0,
 
-        /*
-         * Ancho exacto de GLAM.
-         * Este ancho determina la distancia entre una
-         * repetición y la siguiente.
-         */
-        const wordWidth =
-          geo.boundingBox.max.x -
-          geo.boundingBox.min.x
-
-        /*
-         * No dejamos separación adicional.
-         *
-         * GLAM|GLAM|GLAM
-         *
-         * se convierte visualmente en:
-         *
-         * GLAMGLAMGLAM
-         */
-        const spacing = wordWidth
-
-        geo.center()
-
-        // --------------------------------------------------------
-        // MATERIAL FLAT
-        // --------------------------------------------------------
-
-        const mat =
-          new THREE.MeshBasicMaterial({
-            color: RED,
-            transparent: true,
-            opacity: 1,
-            side: THREE.DoubleSide,
-
-            /*
-             * Sin iluminación.
-             * Sin especular.
-             * Sin reflejos.
-             * Sin glow.
-             */
+            curveSegments: 3,
+            bevelEnabled: false,
           })
 
-        /*
-         * Todas las spokes utilizan la misma geometría GLAM.
-         */
-        const totalSpan =
-          TUNNEL_DEPTH * 1.4 +
-          CAMERA_Z +
-          4
+          geo.computeBoundingBox()
 
-        const instancesPerSpoke =
-          Math.ceil(
-            totalSpan / spacing
-          ) + 5
+          /*
+           * Ancho real de GLAM.
+           *
+           * Este valor es utilizado como spacing,
+           * de manera que las repeticiones quedan pegadas.
+           */
+          const wordWidth =
+            geo.boundingBox.max.x -
+            geo.boundingBox.min.x
 
-        const count =
-          SPOKE_COUNT *
-          instancesPerSpoke
+          const spacing = wordWidth
 
-        const mesh =
-          new THREE.InstancedMesh(
-            geo,
-            mat,
-            count
-          )
+          geo.center()
 
-        mesh.instanceMatrix.setUsage(
-          THREE.DynamicDrawUsage
-        )
+          /*
+           * Material plano.
+           *
+           * MeshBasicMaterial:
+           * - sin iluminación
+           * - sin reflejos
+           * - sin especular
+           * - sin glow propio
+           */
+          const mat =
+            new THREE.MeshBasicMaterial({
+              color: RED,
+              transparent: true,
+              opacity: 0.95,
+            })
 
-        scene.add(mesh)
-
-        /*
-         * Por instancia:
-         *
-         * x
-         * y
-         * z
-         * spokeIndex
-         */
-        const data =
-          new Float32Array(
-            count * 4
-          )
-
-        /*
-         * Guarda dónde está la cola de cada
-         * cadena para reciclar GLAM perfectamente.
-         */
-        const tailZ =
-          new Float32Array(
-            SPOKE_COUNT
-          )
-
-        // --------------------------------------------------------
-        // SEMBRAR TODAS LAS CADENAS
-        // --------------------------------------------------------
-
-        spokes.forEach(
-          (spoke, spokeIndex) => {
-            const offset =
-              spokeIndex *
-              instancesPerSpoke
-
-            const chainData =
-              new Float32Array(
-                instancesPerSpoke * 4
-              )
-
-            seedChain(
-              chainData,
-              spoke,
-              instancesPerSpoke,
-              spacing
+          const wordSpokes =
+            spokes.filter(
+              (sp) => sp.word === word
             )
 
-            /*
-             * Guardamos la información
-             * dentro del array global.
-             */
-            for (
-              let k = 0;
-              k < instancesPerSpoke;
-              k++
-            ) {
-              const source =
-                k * 3
+          /*
+           * Suficientes GLAM para cubrir
+           * completamente la profundidad del túnel.
+           */
+          const totalSpan =
+            TUNNEL_DEPTH * 1.4 +
+            CAMERA_Z +
+            2
 
-              const target =
-                (offset + k) * 4
+          const instancesPerSpoke =
+            Math.ceil(
+              totalSpan / spacing
+            ) + 4
 
-              data[target + 0] =
-                chainData[source + 0]
+          const count =
+            wordSpokes.length *
+            instancesPerSpoke
 
-              data[target + 1] =
-                chainData[source + 1]
+          const mesh =
+            new THREE.InstancedMesh(
+              geo,
+              mat,
+              count
+            )
 
-              data[target + 2] =
-                chainData[source + 2]
+          mesh.instanceMatrix.setUsage(
+            THREE.DynamicDrawUsage
+          )
 
-              data[target + 3] =
-                spokeIndex
+          scene.add(mesh)
+
+          /*
+           * data por instancia:
+           *
+           * [x, y, z, spokeIndex]
+           */
+          const data =
+            new Float32Array(
+              count * 4
+            )
+
+          /*
+           * Posición de la cola de cada radio.
+           */
+          const tailZ =
+            new Float32Array(
+              wordSpokes.length
+            )
+
+          wordSpokes.forEach(
+            (spoke, spokeIndexInWord) => {
+
+              const offset =
+                spokeIndexInWord *
+                instancesPerSpoke
+
+              const chainData =
+                new Float32Array(
+                  instancesPerSpoke * 4
+                )
+
+              seedChain(
+                chainData,
+                spokeIndexInWord,
+                spoke,
+                instancesPerSpoke,
+                spacing
+              )
+
+              data.set(
+                chainData,
+                offset * 4
+              )
+
+              /*
+               * Cola inicial justo detrás
+               * de la última instancia.
+               */
+              tailZ[
+                spokeIndexInWord
+              ] =
+                -TUNNEL_DEPTH * 1.4 -
+                spacing
             }
+          )
 
-            /*
-             * La cola está inmediatamente detrás
-             * de la última palabra.
-             */
-            tailZ[spokeIndex] =
-              -TUNNEL_DEPTH * 1.4 -
-              spacing
-          }
-        )
-
-        meshes.push({
-          mesh,
-          data,
-          count,
-          spokes,
-          tailZ,
-          spacing,
+          meshes.push({
+            mesh,
+            data,
+            count,
+            wordSpokes,
+            tailZ,
+            spacing,
+          })
         })
 
         fontLoaded = true
@@ -363,22 +338,19 @@ export default function HeroWarpTunnel() {
 
       () => {
         /*
-         * Fallback silencioso.
+         * Si la fuente falla,
+         * el fondo negro queda como fallback.
          */
       }
     )
 
-    // ------------------------------------------------------------
-    // POST PROCESS
-    // ------------------------------------------------------------
-
-    /*
-     * IMPORTANTE:
-     *
-     * NO UnrealBloomPass.
-     *
-     * Esto elimina completamente el Glow.
-     */
+    // ── Post-procesado ───────────────────────────────────────
+    //
+    // IMPORTANTE:
+    // UnrealBloomPass fue eliminado.
+    //
+    // Por lo tanto NO hay Bloom / Glow.
+    //
 
     const composer =
       new EffectComposer(renderer)
@@ -391,28 +363,27 @@ export default function HeroWarpTunnel() {
     )
 
     /*
-     * Afterimage muy sutil.
+     * Afterimage:
      *
-     * No genera glow.
-     * Solo deja una pequeña sensación
-     * de continuidad/velocidad.
+     * Se conserva porque forma parte del efecto
+     * de movimiento original.
+     *
+     * No es Bloom ni Glow.
      */
     const afterimagePass =
-      new AfterimagePass(0.32)
+      new AfterimagePass(0.55)
 
     composer.addPass(
       afterimagePass
     )
 
     /*
-     * Film muy ligero.
-     *
-     * Si quieres absolutamente cero
-     * procesamiento visual puedes eliminarlo.
+     * Film:
+     * Se conserva exactamente como estaba.
      */
     const filmPass =
       new FilmPass(
-        0.08,
+        0.25,
         false
       )
 
@@ -420,9 +391,7 @@ export default function HeroWarpTunnel() {
       filmPass
     )
 
-    // ------------------------------------------------------------
-    // RADIAL MOTION
-    // ------------------------------------------------------------
+    // ── Pase final: motion blur radial ───────────────────────
 
     const warpShader = {
       uniforms: {
@@ -438,15 +407,14 @@ export default function HeroWarpTunnel() {
             ),
         },
 
-        /*
-         * Mucho más suave que el original.
-         */
         uStrength: {
-          value: 0.08,
+          value: 0.22,
         },
 
         /*
-         * Aberración eliminada.
+         * Aberración cromática eliminada.
+         *
+         * No aporta al efecto que estás buscando.
          */
         uAberration: {
           value: 0.0,
@@ -487,7 +455,7 @@ export default function HeroWarpTunnel() {
               ? dir / dist
               : vec2(0.0);
 
-          const int SAMPLES = 5;
+          const int SAMPLES = 6;
 
           vec3 col =
             vec3(0.0);
@@ -518,7 +486,7 @@ export default function HeroWarpTunnel() {
 
             float w =
               1.0 -
-              t * 0.3;
+              t * 0.4;
 
             col +=
               texture2D(
@@ -538,7 +506,7 @@ export default function HeroWarpTunnel() {
           /*
            * Sin aberración cromática.
            *
-           * R = G = B original.
+           * Se utiliza únicamente el color original.
            */
           gl_FragColor =
             vec4(
@@ -560,9 +528,7 @@ export default function HeroWarpTunnel() {
       warpPass
     )
 
-    // ------------------------------------------------------------
-    // RESIZE
-    // ------------------------------------------------------------
+    // ── Resize ───────────────────────────────────────────────
 
     function resize() {
       const w =
@@ -594,9 +560,7 @@ export default function HeroWarpTunnel() {
       resize
     )
 
-    // ------------------------------------------------------------
-    // ANIMATION
-    // ------------------------------------------------------------
+    // ── Loop de animación ───────────────────────────────────
 
     const clock =
       new THREE.Clock()
@@ -615,21 +579,61 @@ export default function HeroWarpTunnel() {
 
       if (fontLoaded) {
 
+        /*
+         * ======================================================
+         * ORIENTACIÓN ORIGINAL — NO TOCAR
+         * ======================================================
+         */
+
+        basisX.copy(
+          flowDir
+        )
+
+        basisY
+          .copy(worldUp)
+          .sub(
+            basisX
+              .clone()
+              .multiplyScalar(
+                worldUp.dot(
+                  basisX
+                )
+              )
+          )
+          .normalize()
+
+        basisZ
+          .crossVectors(
+            basisX,
+            basisY
+          )
+          .normalize()
+
+        basisMatrix.makeBasis(
+          basisX,
+          basisY,
+          basisZ
+        )
+
+        flowQuat.setFromRotationMatrix(
+          basisMatrix
+        )
+
+        /*
+         * ======================================================
+         * ACTUALIZACIÓN DE LAS CADENAS
+         * ======================================================
+         */
+
         meshes.forEach(
           ({
             mesh,
             data,
             count,
-            spokes,
+            wordSpokes,
             tailZ,
             spacing,
           }) => {
-
-            /*
-             * ----------------------------------------------------
-             * ACTUALIZAR CADA GLAM
-             * ----------------------------------------------------
-             */
 
             for (
               let i = 0;
@@ -643,52 +647,49 @@ export default function HeroWarpTunnel() {
               let z =
                 data[idx + 2]
 
-              const spokeIndex =
+              const spokeIndexInWord =
                 data[idx + 3]
 
               const spoke =
-                spokes[
-                  spokeIndex
+                wordSpokes[
+                  spokeIndexInWord
                 ]
 
-              /*
-               * --------------------------------------------------
-               * VELOCIDAD
-               * --------------------------------------------------
-               */
+              const speed =
+                spoke.speed
+
+              // ── Proximidad ────────────────────────────────
 
               const proximity =
                 THREE.MathUtils.clamp(
-                  (z + TUNNEL_DEPTH) /
+                  (
+                    z +
+                    TUNNEL_DEPTH
+                  ) /
                     TUNNEL_DEPTH,
                   0,
                   1
                 )
 
               /*
-               * Aceleración progresiva.
-               *
-               * Las palabras se mantienen
-               * siempre en el mismo orden.
+               * MISMA aceleración original.
                */
               const accel =
-                spoke.speed *
+                speed *
                 (
-                  0.8 +
+                  0.7 +
                   Math.pow(
                     proximity,
-                    2.1
-                  ) * 7
+                    2.4
+                  ) * 10
                 )
 
               z +=
                 accel *
                 dt *
-                5.0
+                5.5
 
-              // --------------------------------------------------
-              // RECICLAR
-              // --------------------------------------------------
+              // ── Reciclaje infinito ────────────────────────
 
               if (
                 z >
@@ -696,76 +697,94 @@ export default function HeroWarpTunnel() {
               ) {
 
                 /*
-                 * La nueva palabra aparece exactamente
-                 * detrás de la anterior.
-                 *
-                 * Esto es lo que genera:
-                 *
-                 * GLAMGLAMGLAMGLAMGLAM
-                 * ↑
-                 * sin huecos
+                 * Se engancha exactamente
+                 * detrás de la última GLAM
+                 * del mismo radio.
                  */
                 z =
                   tailZ[
-                    spokeIndex
+                    spokeIndexInWord
                   ]
 
                 tailZ[
-                  spokeIndex
+                  spokeIndexInWord
                 ] -= spacing
               }
 
               data[idx + 2] =
                 z
 
-              // --------------------------------------------------
-              // ESCALA
-              // --------------------------------------------------
+              // ── Escala original ──────────────────────────
 
-              /*
-               * La palabra aumenta ligeramente
-               * por perspectiva al acercarse.
-               *
-               * NO se estira.
-               */
               const scaleT =
                 THREE.MathUtils.clamp(
-                  (z + TUNNEL_DEPTH) /
+                  (
+                    z +
+                    TUNNEL_DEPTH
+                  ) /
                     TUNNEL_DEPTH,
                   0,
                   1
                 )
 
               const scale =
-                BASE_SCALE +
-                scaleT * 0.7
+                0.5 +
+                scaleT * 1.1
 
-              // --------------------------------------------------
-              // TRANSFORMACIÓN
-              // --------------------------------------------------
+              // ── Tail Stretch original ─────────────────────
+
+              const stretch =
+                1 +
+                proximity *
+                speed *
+                TAIL_STRETCH
+
+              const openT =
+                Math.pow(
+                  proximity,
+                  1.6
+                )
+
+              const openScale =
+                scale *
+                (
+                  1 +
+                  openT *
+                  OPEN_AMOUNT
+                )
+
+              // ── Transformación ────────────────────────────
 
               dummy.position.set(
-                data[idx + 0],
+                data[idx],
                 data[idx + 1],
                 z
               )
 
               /*
-               * Texto frontal y completamente plano.
+               * =================================================
+               * ORIENTACIÓN ORIGINAL
+               * =================================================
                *
-               * La geometría está mirando hacia
-               * la cámara, no tiene profundidad.
+               * NO SE CAMBIA.
+               *
+               * El texto continúa orientado exactamente
+               * como estaba en tu versión original.
                */
-              dummy.rotation.set(
-                0,
-                0,
-                0
+              dummy.quaternion.copy(
+                flowQuat
               )
 
+              /*
+               * Se conserva exactamente
+               * el comportamiento de escala original.
+               *
+               * No se altera el eje de orientación.
+               */
               dummy.scale.set(
-                scale,
-                scale,
-                1
+                scale * stretch,
+                openScale,
+                openScale
               )
 
               dummy.updateMatrix()
@@ -787,9 +806,7 @@ export default function HeroWarpTunnel() {
 
     animate()
 
-    // ------------------------------------------------------------
-    // CLEANUP
-    // ------------------------------------------------------------
+    // ── Cleanup ──────────────────────────────────────────────
 
     return () => {
       disposed = true
@@ -829,7 +846,8 @@ export default function HeroWarpTunnel() {
     <div
       ref={mountRef}
       className="warp-tunnel"
-      aria-label="GLAM infinite flat text tunnel"
+      aria-label="Túnel de velocidad GLAM"
     />
   )
 }
+```
