@@ -10,7 +10,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import './HeroWarpTunnel.css'
 
 const WORDS = ['GLAM', 'LAB']
-const SPOKE_COUNT = 45         // tu tenias 16, ahora 28 para mas lineas
+const SPOKE_COUNT = 35        // tu tenias 16, ahora 28 para mas lineas
 const TUNNEL_DEPTH = 186         // igual que tu original
 const TUNNEL_RADIUS = 20.5      // igual que tu original
 const CAMERA_Z = 6              // igual
