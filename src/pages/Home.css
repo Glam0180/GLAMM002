@@ -35,32 +35,10 @@
   border-left: 1px solid var(--color-flat-fg);
 }
 
-/* ── Manifiesto ── */
-.manifesto {
-  border-bottom: 1px solid var(--color-flat-fg);
-  padding: var(--space-20) var(--space-8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.manifesto__quote {
-  font-family: var(--font-flat);
-  font-weight: 700;
-  font-size: clamp(16px, 2.4vw, 30px);
-  letter-spacing: 0.01em;
-  line-height: 1.4;
-  text-transform: uppercase;
-  color: var(--color-flat-fg);
-  max-width: 900px;
-}
-
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .tools-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
   .tools-grid { grid-template-columns: 1fr; }
-  .manifesto { padding: var(--space-12) var(--space-4); }
 }

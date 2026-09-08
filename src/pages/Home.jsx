@@ -20,15 +20,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── MANIFIESTO ── */}
-      <section className="manifesto">
-        <blockquote className="manifesto__quote">
-          “DISEÑAR DESDE EL CÓDIGO.<br />
-          EXPERIMENTAR SIN LÍMITES.<br />
-          CONSTRUIR HERRAMIENTAS QUE PIENSEN.”
-        </blockquote>
-      </section>
-
     </div>
   )
 }
