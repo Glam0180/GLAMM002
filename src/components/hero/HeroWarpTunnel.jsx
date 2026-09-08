@@ -30,8 +30,6 @@ import './HeroWarpTunnel.css'
 
 const WORDS = ['GLAM', 'LAB']
 const SPOKE_COUNT = 16          // radios alrededor del centro
-const SPACING = 2.6             // distancia (profundidad) entre repeticiones de una misma hilera
-const INSTANCES_PER_SPOKE = 28  // suficientes para cubrir todo el túnel sin huecos
 const TUNNEL_DEPTH = 46
 const TUNNEL_RADIUS = 10.5
 const CAMERA_Z = 6
@@ -78,7 +76,7 @@ export default function HeroWarpTunnel() {
     }
 
     // data por instancia: [x, y, z, spokeIndex]
-    function seedChain(data, spokeIndexInWord, spoke, count) {
+    function seedChain(data, spokeIndexInWord, spoke, count, spacing) {
       for (let k = 0; k < count; k++) {
         const idx = k * 4
         const x = Math.cos(spoke.angle) * spoke.radius
@@ -87,7 +85,7 @@ export default function HeroWarpTunnel() {
         data[idx + 1] = y
         // distribuidas de una vez a lo largo de TODA la profundidad,
         // ya en fila, para que se vea poblado y continuo desde el frame 1
-        data[idx + 2] = -TUNNEL_DEPTH * 1.4 + k * SPACING
+        data[idx + 2] = -TUNNEL_DEPTH * 1.4 + k * spacing
         data[idx + 3] = spokeIndexInWord
       }
     }
@@ -108,6 +106,11 @@ export default function HeroWarpTunnel() {
             bevelEnabled: false,
           })
           geo.computeBoundingBox()
+          // ancho real de la palabra ya renderizada: usado como paso de
+          // repetición exacto, así quedan pegadas letra-con-letra
+          // ("GLAMGLAMGLAM..."), sin huecos ni superposición
+          const wordWidth = geo.boundingBox.max.x - geo.boundingBox.min.x
+          const spacing = wordWidth
           geo.center()
 
           const mat = new THREE.MeshBasicMaterial({
@@ -117,7 +120,11 @@ export default function HeroWarpTunnel() {
           })
 
           const wordSpokes = spokes.filter((sp) => sp.word === word)
-          const count = wordSpokes.length * INSTANCES_PER_SPOKE
+          // suficientes repeticiones para cubrir TODO el túnel con este paso,
+          // sin dejar huecos al final de la hilera
+          const totalSpan = TUNNEL_DEPTH * 1.4 + CAMERA_Z + 2
+          const instancesPerSpoke = Math.ceil(totalSpan / spacing) + 4
+          const count = wordSpokes.length * instancesPerSpoke
 
           const mesh = new THREE.InstancedMesh(geo, mat, count)
           mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
@@ -127,15 +134,15 @@ export default function HeroWarpTunnel() {
           const tailZ = new Float32Array(wordSpokes.length)
 
           wordSpokes.forEach((spoke, spokeIndexInWord) => {
-            const offset = spokeIndexInWord * INSTANCES_PER_SPOKE
-            const chainData = new Float32Array(INSTANCES_PER_SPOKE * 4)
-            seedChain(chainData, spokeIndexInWord, spoke, INSTANCES_PER_SPOKE)
+            const offset = spokeIndexInWord * instancesPerSpoke
+            const chainData = new Float32Array(instancesPerSpoke * 4)
+            seedChain(chainData, spokeIndexInWord, spoke, instancesPerSpoke, spacing)
             data.set(chainData, offset * 4)
             // cola inicial: justo detrás de la última instancia sembrada
-            tailZ[spokeIndexInWord] = -TUNNEL_DEPTH * 1.4 - SPACING
+            tailZ[spokeIndexInWord] = -TUNNEL_DEPTH * 1.4 - spacing
           })
 
-          meshes.push({ mesh, data, count, wordSpokes, tailZ })
+          meshes.push({ mesh, data, count, wordSpokes, tailZ, spacing })
         })
 
         fontLoaded = true
@@ -229,7 +236,7 @@ export default function HeroWarpTunnel() {
       const dt = Math.min(clock.getDelta(), 0.05)
 
       if (fontLoaded) {
-        meshes.forEach(({ mesh, data, count, wordSpokes, tailZ }) => {
+        meshes.forEach(({ mesh, data, count, wordSpokes, tailZ, spacing }) => {
           for (let i = 0; i < count; i++) {
             const idx = i * 4
             let z = data[idx + 2]
@@ -250,7 +257,7 @@ export default function HeroWarpTunnel() {
               // reciclado continuo: se engancha justo detrás de la última
               // instancia de SU propio radio, nunca a una posición suelta
               z = tailZ[spokeIndexInWord]
-              tailZ[spokeIndexInWord] -= SPACING
+              tailZ[spokeIndexInWord] -= spacing
             }
             data[idx + 2] = z
 
