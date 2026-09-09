@@ -18,16 +18,18 @@ const WORDS = ['GLAM', 'LAB']
 
 const DEFAULTS = {
   // Construcción (dispara reconstrucción de las cintas)
-  spokeCount: 35,
-  tunnelDepth: 10,
-  tunnelRadius: 3.5,
-  textSize: 0.5,
+  spokeCount: 30,
+  tunnelDepth: 34,
+  tunnelRadius: 0.5,
+  textSize: 0.1,
+  coreSpokeCount: 16,      // rayos extra pegados al eje central (llenan el centro/cerca de cámara)
+  coreRadiusFactor: 0.25,  // qué tan cerca del eje quedan (fracción de tunnelRadius)
   // Movimiento (en vivo, sin reconstruir)
-  cameraZ: 6,
-  scrollSpeed: 3.5,
-  expansionBase: 0.75,
-  expansionRange: 0.25,
-  expansionPower: 1.8,
+  cameraZ: 15,
+  scrollSpeed: 0.7,
+  expansionBase: 1.22,
+  expansionRange: 0.15,
+  expansionPower: 2.2,
   jitterAmount: 0.04,
   jitterFreqX: 1.5,
   jitterFreqY: 1.2,
@@ -39,11 +41,11 @@ const DEFAULTS = {
   invertMouseX: false,
   invertMouseY: false,
   // Post-proceso (en vivo)
-  bloomStrength: 0.85,
-  bloomRadius: 0.4,
-  bloomThreshold: 0.2,
-  afterimageDamp: 0.65,
-  filmIntensity: 0.25,
+  bloomStrength: 0.02,
+  bloomRadius: 0.19,
+  bloomThreshold: 0.17,
+  afterimageDamp: 0.14,
+  filmIntensity: 0,
   filmGrayscale: false,
   warpStrength: 0.22,
   warpAberration: 0.10,
@@ -142,6 +144,21 @@ export default function HeroWarpTunnel() {
         })
       }
 
+      // Rayos de núcleo: mismo texto, pero pegados al eje central, para que
+      // también haya letras pasando por la zona donde está la cámara / el
+      // centro de la pantalla (si no, queda un hueco vacío ahí).
+      const coreSpokeCount = Math.max(0, Math.round(params.coreSpokeCount))
+      for (let s = 0; s < coreSpokeCount; s++) {
+        const angle = Math.random() * Math.PI * 2
+        spokes.push({
+          angle,
+          radius: params.tunnelRadius * params.coreRadiusFactor * (0.05 + Math.random() * 0.95),
+          speed: 0.7 + Math.random() * 0.5,
+          word: WORDS[s % WORDS.length],
+          phase: Math.random() * Math.PI * 2,
+        })
+      }
+
       WORDS.forEach((word) => {
         const period = measurePeriod(loadedFont, word, params.textSize)
         const baseZ = -params.tunnelDepth * 1.4 - period
@@ -227,6 +244,8 @@ export default function HeroWarpTunnel() {
     fBuild.add(params, 'tunnelDepth', 2, 40, 0.5).name('profundidad').onFinishChange(buildStrips)
     fBuild.add(params, 'tunnelRadius', 0.5, 12, 0.1).name('radio').onFinishChange(buildStrips)
     fBuild.add(params, 'textSize', 0.1, 1.5, 0.05).name('tamaño texto').onFinishChange(buildStrips)
+    fBuild.add(params, 'coreSpokeCount', 0, 80, 1).name('rayos de núcleo').onFinishChange(buildStrips)
+    fBuild.add(params, 'coreRadiusFactor', 0, 1, 0.01).name('radio del núcleo').onFinishChange(buildStrips)
 
     const fMotion = gui.addFolder('Movimiento')
     fMotion.add(params, 'cameraZ', 1, 15, 0.1).name('cámara Z').onChange((v) => { camera.position.z = v })
