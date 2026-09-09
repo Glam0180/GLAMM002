@@ -32,6 +32,12 @@ const DEFAULTS = {
   jitterFreqX: 1.5,
   jitterFreqY: 1.2,
   stretchAmount: 0.35,
+  // Cámara · seguimiento del mouse (en vivo, rango limitado)
+  mouseYawMax: 0.18,     // rad — cuánto puede girar horizontalmente (izq/der)
+  mousePitchMax: 0.12,   // rad — cuánto puede girar verticalmente (arriba/abajo)
+  mouseDamping: 0.06,    // suavizado del seguimiento (0 = nunca llega, 1 = instantáneo)
+  invertMouseX: false,
+  invertMouseY: false,
   // Post-proceso (en vivo)
   bloomStrength: 0.85,
   bloomRadius: 0.4,
@@ -71,6 +77,31 @@ export default function HeroWarpTunnel() {
     const basisX = new THREE.Vector3(), basisY = new THREE.Vector3(), basisZ = new THREE.Vector3()
     const basisMatrix = new THREE.Matrix4()
     const flowQuat = new THREE.Quaternion()
+
+    // ── Cámara: seguimiento del mouse con rango limitado ───────
+    // pointer: posición normalizada del mouse (-1..1) relativa al contenedor.
+    // tilt: rotación actualmente aplicada a la cámara, se acerca a pointer
+    // suavemente (lerp) frame a frame — nunca salta de golpe ni tiene
+    // libertad total, siempre queda acotada por mouseYawMax/mousePitchMax.
+    const pointer = { x: 0, y: 0 }
+    const tilt = { x: 0, y: 0 }
+    const baseCameraQuat = new THREE.Quaternion() // orientación base (mirando hacia -z)
+
+    function onPointerMove(e) {
+      const rect = mount.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) return
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1
+      pointer.x = THREE.MathUtils.clamp(nx, -1, 1)
+      pointer.y = THREE.MathUtils.clamp(ny, -1, 1)
+    }
+    window.addEventListener('mousemove', onPointerMove)
+
+    function resetCameraTilt() {
+      pointer.x = 0; pointer.y = 0
+      tilt.x = 0; tilt.y = 0
+      camera.quaternion.copy(baseCameraQuat)
+    }
 
     function measurePeriod(font, word, size) {
       const build = (n) => {
@@ -208,6 +239,13 @@ export default function HeroWarpTunnel() {
     fMotion.add(params, 'jitterFreqY', 0, 6, 0.1).name('jitter freq Y')
     fMotion.add(params, 'stretchAmount', 0, 1.5, 0.01).name('estiramiento')
 
+    const fCam = gui.addFolder('Cámara · seguimiento del mouse')
+    fCam.add(params, 'mouseYawMax', 0, 0.6, 0.01).name('límite horizontal')
+    fCam.add(params, 'mousePitchMax', 0, 0.6, 0.01).name('límite vertical')
+    fCam.add(params, 'mouseDamping', 0.01, 0.3, 0.005).name('suavizado')
+    fCam.add(params, 'invertMouseX').name('invertir X')
+    fCam.add(params, 'invertMouseY').name('invertir Y')
+
     const fPost = gui.addFolder('Post-proceso')
     fPost.add(params, 'bloomStrength', 0, 3, 0.01).name('bloom · fuerza').onChange((v) => { bloomPass.strength = v })
     fPost.add(params, 'bloomRadius', 0, 1.5, 0.01).name('bloom · radio').onChange((v) => { bloomPass.radius = v })
@@ -230,6 +268,7 @@ export default function HeroWarpTunnel() {
         filmPass.uniforms['grayscale'].value = params.filmGrayscale
         warpPass.uniforms.uStrength.value = params.warpStrength
         warpPass.uniforms.uAberration.value = params.warpAberration
+        resetCameraTilt()
         buildStrips()
         gui.controllersRecursive().forEach((c) => c.updateDisplay())
       },
@@ -281,12 +320,27 @@ export default function HeroWarpTunnel() {
           strip.mesh.scale.y = 1.0
         })
       }
+
+      // ── Cámara: acercar suavemente hacia el objetivo del mouse,
+      // siempre acotado por mouseYawMax / mousePitchMax (nunca libre)
+      const signX = params.invertMouseX ? -1 : 1
+      const signY = params.invertMouseY ? -1 : 1
+      const targetYaw = -pointer.x * params.mouseYawMax * signX
+      const targetPitch = pointer.y * params.mousePitchMax * signY
+      tilt.x += (targetPitch - tilt.x) * params.mouseDamping
+      tilt.y += (targetYaw - tilt.y) * params.mouseDamping
+      camera.quaternion.copy(baseCameraQuat)
+      camera.rotateY(tilt.y)
+      camera.rotateX(tilt.x)
+
       composer.render()
     }
     animate()
 
     return()=>{
-      disposed=true; cancelAnimationFrame(raf); window.removeEventListener('resize',resize)
+      disposed=true; cancelAnimationFrame(raf)
+      window.removeEventListener('resize',resize)
+      window.removeEventListener('mousemove', onPointerMove)
       gui.destroy()
       const g=new Set(); strips.forEach(({mesh})=>{ if(!g.has(mesh.geometry)){mesh.geometry.dispose(); g.add(mesh.geometry)} })
       renderer.dispose()
