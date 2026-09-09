@@ -74,46 +74,6 @@ export default function HeroWarpTunnel() {
 
     const RED = new THREE.Color('#FF0000')
     let strips = []
-    let materials = [] // referencias para actualizar el fundido cercano a cámara en vivo
-
-    // Inyecta en el shader del material un fundido de opacidad basado en la
-    // distancia REAL a la cámara (view-space), no en coordenadas de mundo.
-    // Así, aunque el usuario mueva cameraZ o la cámara rote, el texto
-    // siempre se apaga justo antes de cruzar el near-plane, evitando el
-    // corte duro y dando la sensación de que atraviesa la cámara.
-    function applyCameraFade(mat) {
-      mat.onBeforeCompile = (shader) => {
-        shader.uniforms.uFadeStart = { value: params.cameraFadeStart }
-        shader.uniforms.uFadeEnd = { value: params.cameraFadeEnd }
-        shader.vertexShader = shader.vertexShader.replace(
-          'void main() {',
-          `varying float vCamDist;\nvoid main() {`
-        )
-        shader.vertexShader = shader.vertexShader.replace(
-          '#include <project_vertex>',
-          `#include <project_vertex>\n vCamDist = -mvPosition.z;`
-        )
-        shader.fragmentShader = shader.fragmentShader.replace(
-          'void main() {',
-          `varying float vCamDist;\nuniform float uFadeStart;\nuniform float uFadeEnd;\nvoid main() {`
-        )
-        shader.fragmentShader = shader.fragmentShader.replace(
-          '#include <dithering_fragment>',
-          `#include <dithering_fragment>\n gl_FragColor.a *= smoothstep(uFadeEnd, uFadeStart, vCamDist);`
-        )
-        mat.userData.shader = shader
-      }
-      mat.needsUpdate = true
-      materials.push(mat)
-    }
-    function updateCameraFadeUniforms() {
-      materials.forEach((mat) => {
-        const shader = mat.userData.shader
-        if (!shader) return
-        shader.uniforms.uFadeStart.value = params.cameraFadeStart
-        shader.uniforms.uFadeEnd.value = params.cameraFadeEnd
-      })
-    }
 
     // ORIENTACION ORIGINAL - NO SE TOCA
     const flowDir = new THREE.Vector3(0, 0, 1)
@@ -204,7 +164,6 @@ export default function HeroWarpTunnel() {
         mesh.material.dispose()
       })
       strips = []
-      materials = []
       if (!loadedFont) return
 
       const spokeCount = Math.max(2, Math.round(params.spokeCount))
@@ -245,7 +204,6 @@ export default function HeroWarpTunnel() {
         geo.computeBoundingBox()
         geo.translate(-geo.boundingBox.min.x, 0, 0)
         const mat = new THREE.MeshBasicMaterial({ color: RED, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
-        applyCameraFade(mat)
 
         spokes.filter(sp => sp.word === word).forEach((spoke) => {
           const mesh = new THREE.Mesh(geo, mat)
@@ -342,8 +300,6 @@ export default function HeroWarpTunnel() {
     fCam.add(params, 'invertMouseX').name('invertir X (desktop)')
     fCam.add(params, 'invertMouseY').name('invertir Y (desktop)')
     fCam.add(params, 'touchSensitivity', 0.001, 0.02, 0.001).name('sensibilidad táctil (mobile, libre)')
-    fCam.add(params, 'cameraFadeStart', 0.1, 8, 0.05).name('fundido · inicio (dist. a cámara)').onChange(updateCameraFadeUniforms)
-    fCam.add(params, 'cameraFadeEnd', 0.05, 4, 0.05).name('fundido · fin (100% invisible)').onChange(updateCameraFadeUniforms)
 
     const fPost = gui.addFolder('Post-proceso')
     fPost.add(params, 'bloomStrength', 0, 3, 0.01).name('bloom · fuerza').onChange((v) => { bloomPass.strength = v })
@@ -367,7 +323,6 @@ export default function HeroWarpTunnel() {
         filmPass.uniforms['grayscale'].value = params.filmGrayscale
         warpPass.uniforms.uStrength.value = params.warpStrength
         warpPass.uniforms.uAberration.value = params.warpAberration
-        updateCameraFadeUniforms()
         resetCameraTilt()
         buildStrips()
         gui.controllersRecursive().forEach((c) => c.updateDisplay())
