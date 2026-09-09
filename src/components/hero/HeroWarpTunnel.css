@@ -1,3 +1,10 @@
+.warp-tunnel-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .warp-tunnel {
   position: absolute;
   inset: 0;
@@ -10,4 +17,35 @@
   display: block;
   width: 100% !important;
   height: 100% !important;
+}
+
+/* ── Panel de control lil-gui — reskin negro/rojo ── */
+.warp-tunnel__gui {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  --background-color: #000000;
+  --title-background-color: #FF0000;
+  --title-text-color: #000000;
+  --widget-color: #1a0000;
+  --hover-color: #330000;
+  --focus-color: #FF0000;
+  --number-color: #FF0000;
+  --text-color: #FF0000;
+  --font-size: 11px;
+  --input-font-size: 11px;
+  --font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --widget-height: 18px;
+  --spacing: 4px;
+  --folder-indent: 10px;
+  --checkbox-size: 12px;
+  --scrollbar-width: 4px;
+}
+.warp-tunnel__gui .lil-gui.root {
+  border: 1px solid #FF0000;
+}
+
+@media (max-width: 640px) {
+  .warp-tunnel__gui { top: 6px; right: 6px; transform: scale(0.85); transform-origin: top right; }
 }

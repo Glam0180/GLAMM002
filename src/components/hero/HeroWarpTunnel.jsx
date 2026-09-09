@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import GUI from 'lil-gui'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
@@ -9,32 +10,60 @@ import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import './HeroWarpTunnel.css'
 
+// Panel de control (lil-gui, esquina superior derecha): todos los valores
+// de abajo son ajustables en vivo. La lógica del túnel (spokes con período
+// medido exacto, orientación por quaternion, apertura/jitter/stretch) NO
+// se toca — solo se parametriza para poder moverla desde sliders.
 const WORDS = ['GLAM', 'LAB']
-const SPOKE_COUNT = 35        // tu tenias 16, ahora 28 para mas lineas
-const TUNNEL_DEPTH = 10         // igual que tu original
-const TUNNEL_RADIUS = 3.5      // igual que tu original
-const CAMERA_Z = 6              // igual
-const TEXT_SIZE = 0.5             // igual
-const SCROLL_SPEED = 3.5        // igual que tu original
+
+const DEFAULTS = {
+  // Construcción (dispara reconstrucción de las cintas)
+  spokeCount: 35,
+  tunnelDepth: 10,
+  tunnelRadius: 3.5,
+  textSize: 0.5,
+  // Movimiento (en vivo, sin reconstruir)
+  cameraZ: 6,
+  scrollSpeed: 3.5,
+  expansionBase: 0.75,
+  expansionRange: 0.25,
+  expansionPower: 1.8,
+  jitterAmount: 0.04,
+  jitterFreqX: 1.5,
+  jitterFreqY: 1.2,
+  stretchAmount: 0.35,
+  // Post-proceso (en vivo)
+  bloomStrength: 0.85,
+  bloomRadius: 0.4,
+  bloomThreshold: 0.2,
+  afterimageDamp: 0.65,
+  filmIntensity: 0.25,
+  filmGrayscale: false,
+  warpStrength: 0.22,
+  warpAberration: 0.10,
+}
 
 export default function HeroWarpTunnel() {
   const mountRef = useRef(null)
+  const guiHostRef = useRef(null)
 
   useEffect(() => {
     const mount = mountRef.current
     if (!mount) return
-    let raf = 0, disposed = false, fontLoaded = false
+    let raf = 0, disposed = false, fontLoaded = false, loadedFont = null
+
+    const params = { ...DEFAULTS }
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x000000)
     const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 100)
-    camera.position.set(0, 0, CAMERA_Z)
+    camera.position.set(0, 0, params.cameraZ)
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     mount.appendChild(renderer.domElement)
 
     const RED = new THREE.Color('#FF0000')
-    const strips = []
+    let strips = []
 
     // ORIENTACION ORIGINAL - NO SE TOCA
     const flowDir = new THREE.Vector3(0, 0, 1)
@@ -42,18 +71,6 @@ export default function HeroWarpTunnel() {
     const basisX = new THREE.Vector3(), basisY = new THREE.Vector3(), basisZ = new THREE.Vector3()
     const basisMatrix = new THREE.Matrix4()
     const flowQuat = new THREE.Quaternion()
-
-    const spokes = []
-    for (let s = 0; s < SPOKE_COUNT; s++) {
-      const angle = (s / SPOKE_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.12
-      spokes.push({
-        angle,
-        radius: TUNNEL_RADIUS * (0.55 + Math.random() * 0.45),
-        speed: 0.7 + Math.random() * 0.5,
-        word: WORDS[s % WORDS.length],
-        phase: Math.random() * Math.PI * 2,
-      })
-    }
 
     function measurePeriod(font, word, size) {
       const build = (n) => {
@@ -67,21 +84,44 @@ export default function HeroWarpTunnel() {
       return build(4) - build(3)
     }
 
-    const loader = new FontLoader()
-    loader.load('/fonts/helvetiker_bold.typeface.json', (font) => {
-      if (disposed) return
-      const totalSpan = TUNNEL_DEPTH * 1.4 + CAMERA_Z + 2
+    // ── Construcción / reconstrucción de las cintas ───────────
+    function buildStrips() {
+      const disposedGeo = new Set()
+      strips.forEach(({ mesh }) => {
+        scene.remove(mesh)
+        if (!disposedGeo.has(mesh.geometry)) {
+          mesh.geometry.dispose()
+          disposedGeo.add(mesh.geometry)
+        }
+        mesh.material.dispose()
+      })
+      strips = []
+      if (!loadedFont) return
+
+      const spokeCount = Math.max(2, Math.round(params.spokeCount))
+      const spokes = []
+      for (let s = 0; s < spokeCount; s++) {
+        const angle = (s / spokeCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.12
+        spokes.push({
+          angle,
+          radius: params.tunnelRadius * (0.55 + Math.random() * 0.45),
+          speed: 0.7 + Math.random() * 0.5,
+          word: WORDS[s % WORDS.length],
+          phase: Math.random() * Math.PI * 2,
+        })
+      }
+
       WORDS.forEach((word) => {
-        const period = measurePeriod(font, word, TEXT_SIZE)
-        const baseZ = -TUNNEL_DEPTH * 1.4 - period
-        const totalNeeded = (CAMERA_Z + 1.2) - baseZ
+        const period = measurePeriod(loadedFont, word, params.textSize)
+        const baseZ = -params.tunnelDepth * 1.4 - period
+        const totalNeeded = (params.cameraZ + 1.2) - baseZ
         const repeatCount = Math.ceil(totalNeeded / period) + 2
-        const shapes = font.generateShapes(word.repeat(repeatCount), TEXT_SIZE)
+        const shapes = loadedFont.generateShapes(word.repeat(repeatCount), params.textSize)
         const geo = new THREE.ShapeGeometry(shapes, 4)
         geo.computeBoundingBox()
         geo.translate(-geo.boundingBox.min.x, 0, 0)
         const mat = new THREE.MeshBasicMaterial({ color: RED, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
-        
+
         spokes.filter(sp => sp.word === word).forEach((spoke) => {
           const mesh = new THREE.Mesh(geo, mat)
           scene.add(mesh)
@@ -95,21 +135,31 @@ export default function HeroWarpTunnel() {
           })
         })
       })
+    }
+
+    const loader = new FontLoader()
+    loader.load('/fonts/helvetiker_bold.typeface.json', (font) => {
+      if (disposed) return
+      loadedFont = font
       fontLoaded = true
+      buildStrips()
     })
 
     const composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.4, 0.2))
-    composer.addPass(new AfterimagePass(0.65))
-    composer.addPass(new FilmPass(0.25, false))
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), params.bloomStrength, params.bloomRadius, params.bloomThreshold)
+    composer.addPass(bloomPass)
+    const afterimagePass = new AfterimagePass(params.afterimageDamp)
+    composer.addPass(afterimagePass)
+    const filmPass = new FilmPass(params.filmIntensity, params.filmGrayscale)
+    composer.addPass(filmPass)
 
     const warpShader = {
       uniforms: {
         tDiffuse: { value: null },
         uCenter: { value: new THREE.Vector2(0.5, 0.5) },
-        uStrength: { value: 0.22 },
-        uAberration: { value: 0.10 },
+        uStrength: { value: params.warpStrength },
+        uAberration: { value: params.warpAberration },
       },
       vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
       fragmentShader: `
@@ -137,6 +187,57 @@ export default function HeroWarpTunnel() {
     warpPass.renderToScreen = true
     composer.addPass(warpPass)
 
+    // ── Panel de control (lil-gui) ─────────────────────────────
+    const gui = new GUI({ container: guiHostRef.current, title: 'WARP TUNNEL' })
+    gui.close()
+
+    const fBuild = gui.addFolder('Construcción (reconstruye)')
+    fBuild.add(params, 'spokeCount', 4, 80, 1).name('nº de rayos').onFinishChange(buildStrips)
+    fBuild.add(params, 'tunnelDepth', 2, 40, 0.5).name('profundidad').onFinishChange(buildStrips)
+    fBuild.add(params, 'tunnelRadius', 0.5, 12, 0.1).name('radio').onFinishChange(buildStrips)
+    fBuild.add(params, 'textSize', 0.1, 1.5, 0.05).name('tamaño texto').onFinishChange(buildStrips)
+
+    const fMotion = gui.addFolder('Movimiento')
+    fMotion.add(params, 'cameraZ', 1, 15, 0.1).name('cámara Z').onChange((v) => { camera.position.z = v })
+    fMotion.add(params, 'scrollSpeed', 0, 12, 0.1).name('velocidad')
+    fMotion.add(params, 'expansionBase', 0, 1.5, 0.01).name('apertura · base')
+    fMotion.add(params, 'expansionRange', 0, 1.5, 0.01).name('apertura · rango')
+    fMotion.add(params, 'expansionPower', 0.2, 4, 0.05).name('apertura · curva')
+    fMotion.add(params, 'jitterAmount', 0, 0.3, 0.005).name('jitter')
+    fMotion.add(params, 'jitterFreqX', 0, 6, 0.1).name('jitter freq X')
+    fMotion.add(params, 'jitterFreqY', 0, 6, 0.1).name('jitter freq Y')
+    fMotion.add(params, 'stretchAmount', 0, 1.5, 0.01).name('estiramiento')
+
+    const fPost = gui.addFolder('Post-proceso')
+    fPost.add(params, 'bloomStrength', 0, 3, 0.01).name('bloom · fuerza').onChange((v) => { bloomPass.strength = v })
+    fPost.add(params, 'bloomRadius', 0, 1.5, 0.01).name('bloom · radio').onChange((v) => { bloomPass.radius = v })
+    fPost.add(params, 'bloomThreshold', 0, 1, 0.01).name('bloom · umbral').onChange((v) => { bloomPass.threshold = v })
+    fPost.add(params, 'afterimageDamp', 0, 0.98, 0.01).name('estela (afterimage)').onChange((v) => { afterimagePass.uniforms['damp'].value = v })
+    fPost.add(params, 'filmIntensity', 0, 1, 0.01).name('grano de película').onChange((v) => { filmPass.uniforms['intensity'].value = v })
+    fPost.add(params, 'filmGrayscale').name('grano · b/n').onChange((v) => { filmPass.uniforms['grayscale'].value = v })
+    fPost.add(params, 'warpStrength', 0, 1.2, 0.01).name('blur radial').onChange((v) => { warpPass.uniforms.uStrength.value = v })
+    fPost.add(params, 'warpAberration', 0, 0.6, 0.01).name('aberración cromática').onChange((v) => { warpPass.uniforms.uAberration.value = v })
+
+    gui.add({
+      reset: () => {
+        Object.assign(params, DEFAULTS)
+        camera.position.z = params.cameraZ
+        bloomPass.strength = params.bloomStrength
+        bloomPass.radius = params.bloomRadius
+        bloomPass.threshold = params.bloomThreshold
+        afterimagePass.uniforms['damp'].value = params.afterimageDamp
+        filmPass.uniforms['intensity'].value = params.filmIntensity
+        filmPass.uniforms['grayscale'].value = params.filmGrayscale
+        warpPass.uniforms.uStrength.value = params.warpStrength
+        warpPass.uniforms.uAberration.value = params.warpAberration
+        buildStrips()
+        gui.controllersRecursive().forEach((c) => c.updateDisplay())
+      },
+    }, 'reset').name('↺ restablecer')
+    gui.add({
+      logValues: () => console.log(JSON.stringify(params, null, 2)), // eslint-disable-line no-console
+    }, 'logValues').name('⎘ copiar valores (consola)')
+
     function resize(){ const w=mount.clientWidth||1,h=mount.clientHeight||1; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); composer.setSize(w,h) }
     resize(); window.addEventListener('resize', resize)
     const clock = new THREE.Clock()
@@ -154,19 +255,18 @@ export default function HeroWarpTunnel() {
         flowQuat.setFromRotationMatrix(basisMatrix)
 
         strips.forEach((strip)=>{
-          strip.scrollOffset += strip.speed * SCROLL_SPEED * dt
+          strip.scrollOffset += strip.speed * params.scrollSpeed * dt
           strip.scrollOffset %= strip.period
           const currentZ = strip.baseZ + strip.scrollOffset
 
-          // --- EFECTOS PEDIDOS, SUTILES ---
           // 1. Apertura radial cilindrica
-          const total = CAMERA_Z + TUNNEL_DEPTH * 1.4 + strip.period
-          const p = (currentZ + TUNNEL_DEPTH*1.4 + strip.period) / total
-          const expansion = 0.75 + 0.25 * Math.pow(p, 1.8)
+          const total = params.cameraZ + params.tunnelDepth * 1.4 + strip.period
+          const p = (currentZ + params.tunnelDepth * 1.4 + strip.period) / total
+          const expansion = params.expansionBase + params.expansionRange * Math.pow(p, params.expansionPower)
 
           // 2. Jitter micro
-          const jx = Math.sin(elapsed * 1.5 + strip.phase) * 0.04
-          const jy = Math.cos(elapsed * 1.2 + strip.phase) * 0.04
+          const jx = Math.sin(elapsed * params.jitterFreqX + strip.phase) * params.jitterAmount
+          const jy = Math.cos(elapsed * params.jitterFreqY + strip.phase) * params.jitterAmount
 
           strip.mesh.position.set(
             Math.cos(strip.angle) * strip.baseRadius * expansion + jx,
@@ -177,7 +277,7 @@ export default function HeroWarpTunnel() {
           strip.mesh.quaternion.copy(flowQuat)
 
           // 4. Velocity Stretch
-          strip.mesh.scale.x = 1.0 + strip.speed * 0.35 * p
+          strip.mesh.scale.x = 1.0 + strip.speed * params.stretchAmount * p
           strip.mesh.scale.y = 1.0
         })
       }
@@ -187,11 +287,17 @@ export default function HeroWarpTunnel() {
 
     return()=>{
       disposed=true; cancelAnimationFrame(raf); window.removeEventListener('resize',resize)
+      gui.destroy()
       const g=new Set(); strips.forEach(({mesh})=>{ if(!g.has(mesh.geometry)){mesh.geometry.dispose(); g.add(mesh.geometry)} })
       renderer.dispose()
       if(mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
     }
   },[])
 
-  return <div ref={mountRef} className="warp-tunnel" aria-label="Túnel de velocidad hiperespacial" />
+  return (
+    <div className="warp-tunnel-wrap">
+      <div ref={mountRef} className="warp-tunnel" aria-label="Túnel de velocidad hiperespacial" />
+      <div ref={guiHostRef} className="warp-tunnel__gui" />
+    </div>
+  )
 }
