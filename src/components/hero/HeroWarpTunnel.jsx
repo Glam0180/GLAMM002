@@ -34,12 +34,14 @@ const DEFAULTS = {
   jitterFreqX: 1.5,
   jitterFreqY: 1.2,
   stretchAmount: 0.35,
-  // Cámara · seguimiento del mouse (en vivo, rango limitado)
-  mouseYawMax: 0.18,     // rad — cuánto puede girar horizontalmente (izq/der)
-  mousePitchMax: 0.12,   // rad — cuánto puede girar verticalmente (arriba/abajo)
-  mouseDamping: 0.06,    // suavizado del seguimiento (0 = nunca llega, 1 = instantáneo)
+  // Cámara · seguimiento del mouse (en vivo, rango limitado — solo desktop)
+  mouseYawMax: 0.45,      // rad — cuánto puede girar horizontalmente (izq/der)
+  mousePitchMax: 0.3,     // rad — cuánto puede girar verticalmente (arriba/abajo)
+  mouseDamping: 0.06,     // suavizado del seguimiento (0 = nunca llega, 1 = instantáneo)
   invertMouseX: false,
   invertMouseY: false,
+  // Cámara · mobile: rotación 100% libre arrastrando con el dedo (sin límite)
+  touchSensitivity: 0.006, // rad de giro por pixel arrastrado
   // Post-proceso (en vivo)
   bloomStrength: 0.02,
   bloomRadius: 0.19,
@@ -80,13 +82,17 @@ export default function HeroWarpTunnel() {
     const basisMatrix = new THREE.Matrix4()
     const flowQuat = new THREE.Quaternion()
 
-    // ── Cámara: seguimiento del mouse con rango limitado ───────
-    // pointer: posición normalizada del mouse (-1..1) relativa al contenedor.
-    // tilt: rotación actualmente aplicada a la cámara, se acerca a pointer
-    // suavemente (lerp) frame a frame — nunca salta de golpe ni tiene
-    // libertad total, siempre queda acotada por mouseYawMax/mousePitchMax.
+    // ── Cámara: seguimiento del mouse (desktop, limitado) o
+    // rotación 100% libre por arrastre táctil (mobile) ─────────
+    // pointer/tilt: usado en desktop — se acerca suavemente al mouse,
+    // siempre acotado por mouseYawMax/mousePitchMax.
+    // freeDrag: usado en mobile — acumula el arrastre del dedo sin
+    // ningún límite, así la cámara puede girar totalmente libre.
+    const isMobile = ('ontouchstart' in window) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
     const pointer = { x: 0, y: 0 }
     const tilt = { x: 0, y: 0 }
+    const freeDrag = { yaw: 0, pitch: 0 }
+    const dragState = { active: false, lastX: 0, lastY: 0 }
     const baseCameraQuat = new THREE.Quaternion() // orientación base (mirando hacia -z)
 
     function onPointerMove(e) {
@@ -97,11 +103,40 @@ export default function HeroWarpTunnel() {
       pointer.x = THREE.MathUtils.clamp(nx, -1, 1)
       pointer.y = THREE.MathUtils.clamp(ny, -1, 1)
     }
-    window.addEventListener('mousemove', onPointerMove)
+
+    function onTouchStart(e) {
+      if (e.touches.length !== 1) return
+      dragState.active = true
+      dragState.lastX = e.touches[0].clientX
+      dragState.lastY = e.touches[0].clientY
+    }
+    function onTouchMove(e) {
+      if (!dragState.active || e.touches.length !== 1) return
+      const t = e.touches[0]
+      const dx = t.clientX - dragState.lastX
+      const dy = t.clientY - dragState.lastY
+      dragState.lastX = t.clientX
+      dragState.lastY = t.clientY
+      // Sin clamp: la rotación acumulada puede crecer libremente en
+      // cualquier dirección, dando vuelta completa si el usuario quiere.
+      freeDrag.yaw -= dx * params.touchSensitivity
+      freeDrag.pitch -= dy * params.touchSensitivity
+    }
+    function onTouchEnd() { dragState.active = false }
+
+    if (isMobile) {
+      mount.addEventListener('touchstart', onTouchStart, { passive: true })
+      mount.addEventListener('touchmove', onTouchMove, { passive: true })
+      window.addEventListener('touchend', onTouchEnd)
+      window.addEventListener('touchcancel', onTouchEnd)
+    } else {
+      window.addEventListener('mousemove', onPointerMove)
+    }
 
     function resetCameraTilt() {
       pointer.x = 0; pointer.y = 0
       tilt.x = 0; tilt.y = 0
+      freeDrag.yaw = 0; freeDrag.pitch = 0
       camera.quaternion.copy(baseCameraQuat)
     }
 
@@ -258,12 +293,13 @@ export default function HeroWarpTunnel() {
     fMotion.add(params, 'jitterFreqY', 0, 6, 0.1).name('jitter freq Y')
     fMotion.add(params, 'stretchAmount', 0, 1.5, 0.01).name('estiramiento')
 
-    const fCam = gui.addFolder('Cámara · seguimiento del mouse')
-    fCam.add(params, 'mouseYawMax', 0, 0.6, 0.01).name('límite horizontal')
-    fCam.add(params, 'mousePitchMax', 0, 0.6, 0.01).name('límite vertical')
+    const fCam = gui.addFolder('Cámara · mouse (desktop) / arrastre (mobile)')
+    fCam.add(params, 'mouseYawMax', 0, 1.5, 0.01).name('límite horizontal (desktop)')
+    fCam.add(params, 'mousePitchMax', 0, 1.2, 0.01).name('límite vertical (desktop)')
     fCam.add(params, 'mouseDamping', 0.01, 0.3, 0.005).name('suavizado')
-    fCam.add(params, 'invertMouseX').name('invertir X')
-    fCam.add(params, 'invertMouseY').name('invertir Y')
+    fCam.add(params, 'invertMouseX').name('invertir X (desktop)')
+    fCam.add(params, 'invertMouseY').name('invertir Y (desktop)')
+    fCam.add(params, 'touchSensitivity', 0.001, 0.02, 0.001).name('sensibilidad táctil (mobile, libre)')
 
     const fPost = gui.addFolder('Post-proceso')
     fPost.add(params, 'bloomStrength', 0, 3, 0.01).name('bloom · fuerza').onChange((v) => { bloomPass.strength = v })
@@ -340,14 +376,20 @@ export default function HeroWarpTunnel() {
         })
       }
 
-      // ── Cámara: acercar suavemente hacia el objetivo del mouse,
-      // siempre acotado por mouseYawMax / mousePitchMax (nunca libre)
-      const signX = params.invertMouseX ? -1 : 1
-      const signY = params.invertMouseY ? -1 : 1
-      const targetYaw = -pointer.x * params.mouseYawMax * signX
-      const targetPitch = pointer.y * params.mousePitchMax * signY
-      tilt.x += (targetPitch - tilt.x) * params.mouseDamping
-      tilt.y += (targetYaw - tilt.y) * params.mouseDamping
+      // ── Cámara: en desktop se acerca suavemente al mouse, siempre
+      // acotada por mouseYawMax/mousePitchMax. En mobile es 100% libre:
+      // sigue el arrastre acumulado del dedo sin ningún límite.
+      if (isMobile) {
+        tilt.x += (freeDrag.pitch - tilt.x) * params.mouseDamping
+        tilt.y += (freeDrag.yaw - tilt.y) * params.mouseDamping
+      } else {
+        const signX = params.invertMouseX ? -1 : 1
+        const signY = params.invertMouseY ? -1 : 1
+        const targetYaw = -pointer.x * params.mouseYawMax * signX
+        const targetPitch = pointer.y * params.mousePitchMax * signY
+        tilt.x += (targetPitch - tilt.x) * params.mouseDamping
+        tilt.y += (targetYaw - tilt.y) * params.mouseDamping
+      }
       camera.quaternion.copy(baseCameraQuat)
       camera.rotateY(tilt.y)
       camera.rotateX(tilt.x)
@@ -359,7 +401,14 @@ export default function HeroWarpTunnel() {
     return()=>{
       disposed=true; cancelAnimationFrame(raf)
       window.removeEventListener('resize',resize)
-      window.removeEventListener('mousemove', onPointerMove)
+      if (isMobile) {
+        mount.removeEventListener('touchstart', onTouchStart)
+        mount.removeEventListener('touchmove', onTouchMove)
+        window.removeEventListener('touchend', onTouchEnd)
+        window.removeEventListener('touchcancel', onTouchEnd)
+      } else {
+        window.removeEventListener('mousemove', onPointerMove)
+      }
       gui.destroy()
       const g=new Set(); strips.forEach(({mesh})=>{ if(!g.has(mesh.geometry)){mesh.geometry.dispose(); g.add(mesh.geometry)} })
       renderer.dispose()
