@@ -18,15 +18,15 @@ const WORDS = ['GLAM', 'LAB']
 
 const DEFAULTS = {
   // Construcción (dispara reconstrucción de las cintas)
-  spokeCount: 30,
-  tunnelDepth: 34,
-  tunnelRadius: 0.5,
+  spokeCount: 77,
+  tunnelDepth: 40,
+  tunnelRadius: 5.2,
   textSize: 0.1,
-  coreSpokeCount: 16,      // rayos extra pegados al eje central (llenan el centro/cerca de cámara)
-  coreRadiusFactor: 0.25,  // qué tan cerca del eje quedan (fracción de tunnelRadius)
+  coreSpokeCount: 31,      // rayos extra pegados al eje central (llenan el centro/cerca de cámara)
+  coreRadiusFactor: 0.28,  // qué tan cerca del eje quedan (fracción de tunnelRadius)
   // Movimiento (en vivo, sin reconstruir)
-  cameraZ: 15,
-  scrollSpeed: 0.7,
+  cameraZ: 5.7,
+  scrollSpeed: 0.4,
   expansionBase: 1.22,
   expansionRange: 0.15,
   expansionPower: 2.2,
@@ -35,13 +35,18 @@ const DEFAULTS = {
   jitterFreqY: 1.2,
   stretchAmount: 0.35,
   // Cámara · seguimiento del mouse (en vivo, rango limitado — solo desktop)
-  mouseYawMax: 0.45,      // rad — cuánto puede girar horizontalmente (izq/der)
-  mousePitchMax: 0.3,     // rad — cuánto puede girar verticalmente (arriba/abajo)
-  mouseDamping: 0.06,     // suavizado del seguimiento (0 = nunca llega, 1 = instantáneo)
+  mouseYawMax: 0.6,       // rad — cuánto puede girar horizontalmente (izq/der)
+  mousePitchMax: 0.6,     // rad — cuánto puede girar verticalmente (arriba/abajo)
+  mouseDamping: 0.07,     // suavizado del seguimiento (0 = nunca llega, 1 = instantáneo)
   invertMouseX: false,
   invertMouseY: false,
   // Cámara · mobile: rotación 100% libre arrastrando con el dedo (sin límite)
   touchSensitivity: 0.006, // rad de giro por pixel arrastrado
+  // Fundido cerca de la cámara: para que el texto no se "corte" de golpe
+  // al cruzar el near-plane, se desvanece antes de llegar — así parece
+  // que pasa de largo sin verse afectado, sin borde visible.
+  cameraFadeStart: 2.2, // distancia a la cámara donde empieza a desvanecerse (totalmente visible antes de esto)
+  cameraFadeEnd: 0.3,   // distancia a la cámara donde ya es 100% invisible
   // Post-proceso (en vivo)
   bloomStrength: 0.02,
   bloomRadius: 0.19,
@@ -74,6 +79,46 @@ export default function HeroWarpTunnel() {
 
     const RED = new THREE.Color('#FF0000')
     let strips = []
+    let materials = [] // referencias para actualizar el fundido cercano a cámara en vivo
+
+    // Inyecta en el shader del material un fundido de opacidad basado en la
+    // distancia REAL a la cámara (view-space), no en coordenadas de mundo.
+    // Así, aunque el usuario mueva cameraZ o la cámara rote, el texto
+    // siempre se apaga justo antes de cruzar el near-plane, evitando el
+    // corte duro y dando la sensación de que atraviesa la cámara.
+    function applyCameraFade(mat) {
+      mat.onBeforeCompile = (shader) => {
+        shader.uniforms.uFadeStart = { value: params.cameraFadeStart }
+        shader.uniforms.uFadeEnd = { value: params.cameraFadeEnd }
+        shader.vertexShader = shader.vertexShader.replace(
+          'void main() {',
+          `varying float vCamDist;\nvoid main() {`
+        )
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <project_vertex>',
+          `#include <project_vertex>\n vCamDist = -mvPosition.z;`
+        )
+        shader.fragmentShader = shader.fragmentShader.replace(
+          'void main() {',
+          `varying float vCamDist;\nuniform float uFadeStart;\nuniform float uFadeEnd;\nvoid main() {`
+        )
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <dithering_fragment>',
+          `#include <dithering_fragment>\n gl_FragColor.a *= smoothstep(uFadeEnd, uFadeStart, vCamDist);`
+        )
+        mat.userData.shader = shader
+      }
+      mat.needsUpdate = true
+      materials.push(mat)
+    }
+    function updateCameraFadeUniforms() {
+      materials.forEach((mat) => {
+        const shader = mat.userData.shader
+        if (!shader) return
+        shader.uniforms.uFadeStart.value = params.cameraFadeStart
+        shader.uniforms.uFadeEnd.value = params.cameraFadeEnd
+      })
+    }
 
     // ORIENTACION ORIGINAL - NO SE TOCA
     const flowDir = new THREE.Vector3(0, 0, 1)
@@ -164,6 +209,7 @@ export default function HeroWarpTunnel() {
         mesh.material.dispose()
       })
       strips = []
+      materials = []
       if (!loadedFont) return
 
       const spokeCount = Math.max(2, Math.round(params.spokeCount))
@@ -204,6 +250,7 @@ export default function HeroWarpTunnel() {
         geo.computeBoundingBox()
         geo.translate(-geo.boundingBox.min.x, 0, 0)
         const mat = new THREE.MeshBasicMaterial({ color: RED, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
+        applyCameraFade(mat)
 
         spokes.filter(sp => sp.word === word).forEach((spoke) => {
           const mesh = new THREE.Mesh(geo, mat)
@@ -300,6 +347,8 @@ export default function HeroWarpTunnel() {
     fCam.add(params, 'invertMouseX').name('invertir X (desktop)')
     fCam.add(params, 'invertMouseY').name('invertir Y (desktop)')
     fCam.add(params, 'touchSensitivity', 0.001, 0.02, 0.001).name('sensibilidad táctil (mobile, libre)')
+    fCam.add(params, 'cameraFadeStart', 0.1, 8, 0.05).name('fundido · inicio (dist. a cámara)').onChange(updateCameraFadeUniforms)
+    fCam.add(params, 'cameraFadeEnd', 0.05, 4, 0.05).name('fundido · fin (100% invisible)').onChange(updateCameraFadeUniforms)
 
     const fPost = gui.addFolder('Post-proceso')
     fPost.add(params, 'bloomStrength', 0, 3, 0.01).name('bloom · fuerza').onChange((v) => { bloomPass.strength = v })
@@ -323,6 +372,7 @@ export default function HeroWarpTunnel() {
         filmPass.uniforms['grayscale'].value = params.filmGrayscale
         warpPass.uniforms.uStrength.value = params.warpStrength
         warpPass.uniforms.uAberration.value = params.warpAberration
+        updateCameraFadeUniforms()
         resetCameraTilt()
         buildStrips()
         gui.controllersRecursive().forEach((c) => c.updateDisplay())
