@@ -38,15 +38,10 @@ const DEFAULTS = {
   mouseYawMax: 0.6,       // rad — cuánto puede girar horizontalmente (izq/der)
   mousePitchMax: 0.6,     // rad — cuánto puede girar verticalmente (arriba/abajo)
   mouseDamping: 0.07,     // suavizado del seguimiento (0 = nunca llega, 1 = instantáneo)
-  invertMouseX: false,
-  invertMouseY: false,
+  invertMouseX: true,
+  invertMouseY: true,
   // Cámara · mobile: rotación 100% libre arrastrando con el dedo (sin límite)
   touchSensitivity: 0.006, // rad de giro por pixel arrastrado
-  // Fundido cerca de la cámara: para que el texto no se "corte" de golpe
-  // al cruzar el near-plane, se desvanece antes de llegar — así parece
-  // que pasa de largo sin verse afectado, sin borde visible.
-  cameraFadeStart: 2.2, // distancia a la cámara donde empieza a desvanecerse (totalmente visible antes de esto)
-  cameraFadeEnd: 0.3,   // distancia a la cámara donde ya es 100% invisible
   // Post-proceso (en vivo)
   bloomStrength: 0.02,
   bloomRadius: 0.19,
