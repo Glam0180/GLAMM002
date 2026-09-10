@@ -8,6 +8,11 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { AfterimagePass } from 'three/examples/jsm/postprocessing/AfterimagePass.js'
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
+// Fuente variable empaquetada localmente (NO depende de Google Fonts /
+// internet en tiempo real — evita que adblockers, extensiones de
+// privacidad o redes corporativas bloqueen la descarga y maten el efecto).
+// Requiere: npm install @fontsource-variable/big-shoulders-display
+import '@fontsource-variable/big-shoulders-display'
 import './HeroWarpTunnel.css'
 
 // Panel de control (lil-gui, esquina superior derecha): todos los valores
@@ -82,6 +87,25 @@ export default function HeroWarpTunnel() {
   const desingWrapRef = useRef(null)
   const labSpansRef = useRef([])
   const desingSpansRef = useRef([])
+
+  // Diagnóstico: si por algún motivo la fuente variable no quedó
+  // disponible (paquete no instalado, CSS no importado, etc.), avisar
+  // en consola en vez de fallar en silencio — así se sabe exactamente
+  // por qué el efecto de peso no se nota.
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fonts) return
+    document.fonts.ready.then(() => {
+      const ok = document.fonts.check("900 16px 'Big Shoulders Display Variable'")
+      if (!ok) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[HeroWarpTunnel] No se detectó "Big Shoulders Display Variable". ' +
+          'Verificá que corriste "npm install @fontsource-variable/big-shoulders-display" ' +
+          'y que el import esté en este archivo. Sin esta fuente, el efecto de peso variable no se ve.'
+        )
+      }
+    })
+  }, [])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -518,15 +542,6 @@ export default function HeroWarpTunnel() {
 
       <div ref={guiHostRef} className="warp-tunnel__gui" />
 
-      {/* Fuente variable: se carga con <link> reales (más confiable que
-          @import dentro de <style>, que algunos bundlers/CSP bloquean) */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@100..900&display=swap"
-        rel="stylesheet"
-      />
-
       <style>{`
         .warp-center-text {
           position: absolute;
@@ -553,7 +568,7 @@ export default function HeroWarpTunnel() {
         }
         .wct-text {
           display: inline-block;
-          font-family: 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
+          font-family: 'Big Shoulders Display Variable', 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
           background: #ff0000;
           color: #0a0a0a;
           line-height: 0.82;
