@@ -434,14 +434,14 @@ export default function HeroWarpTunnel() {
           padding: 6vw;
         }
         .warp-center-logo__img {
-          width: min(72vw, 980px);
+          width: min(85vw, 1180px);
           min-width: 240px;
           height: auto;
           display: block;
         }
         @media (max-width: 640px) {
           .warp-center-logo__img {
-            width: min(92vw, 560px);
+            width: min(96vw, 640px);
           }
         }
       `}</style>
