@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import GUI from 'lil-gui'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
@@ -8,11 +8,6 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { AfterimagePass } from 'three/examples/jsm/postprocessing/AfterimagePass.js'
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
-// Fuente variable empaquetada localmente (NO depende de Google Fonts /
-// internet en tiempo real — evita que adblockers, extensiones de
-// privacidad o redes corporativas bloqueen la descarga y maten el efecto).
-// Requiere: npm install @fontsource-variable/big-shoulders-display
-import '@fontsource-variable/big-shoulders-display'
 import './HeroWarpTunnel.css'
 
 // Panel de control (lil-gui, esquina superior derecha): todos los valores
@@ -58,273 +53,9 @@ const DEFAULTS = {
   warpAberration: 0.10,
 }
 
-// ════════════════════════════════════════════════════════════════════
-// TextPressure — portado TAL CUAL de https://codepen.io/JuanFuentes/full/rgXKGQ
-// (misma lógica, sin adaptaciones "custom" que puedan romper el efecto).
-// Cada letra es un <span> que mide su propia distancia al cursor
-// suavizado y ajusta su font-variation-settings ('wght') en vivo.
-// ════════════════════════════════════════════════════════════════════
-const dist = (a, b) => {
-  const dx = b.x - a.x
-  const dy = b.y - a.y
-  return Math.sqrt(dx * dx + dy * dy)
-}
-
-const getAttr = (distance, maxDist, minVal, maxVal) => {
-  const val = maxVal - Math.abs((maxVal * distance) / maxDist)
-  return Math.max(minVal, val + minVal)
-}
-
-const debounce = (func, delay) => {
-  let timeoutId
-  return (...args) => {
-    clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => {
-      func.apply(this, args)
-    }, delay)
-  }
-}
-
-const TextPressure = ({
-  text = 'Compressa',
-  fontFamily = "'Big Shoulders Display Variable'",
-  fontUrl = '', // vacío: ya importamos la fuente vía @fontsource arriba, no hace falta @import remoto
-
-  width = false,   // Big Shoulders Display no tiene eje 'wdth' — lo dejamos apagado
-  weight = true,
-  italic = false,  // tampoco tiene eje 'ital'
-  alpha = false,
-
-  flex = true,
-  stroke = false,
-  scale = false,
-
-  textColor = '#0a0a0a',
-  strokeColor = '#FF0000',
-  className = '',
-
-  minFontSize = 24,
-}) => {
-  const containerRef = useRef(null)
-  const titleRef = useRef(null)
-  const spansRef = useRef([])
-
-  const mouseRef = useRef({ x: 0, y: 0 })
-  const cursorRef = useRef({ x: 0, y: 0 })
-
-  const [fontSize, setFontSize] = useState(minFontSize)
-  const [scaleY, setScaleY] = useState(1)
-  const [lineHeight, setLineHeight] = useState(1)
-
-  const chars = text.split('')
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      cursorRef.current.x = e.clientX
-      cursorRef.current.y = e.clientY
-    }
-    const handleTouchMove = (e) => {
-      const t = e.touches[0]
-      cursorRef.current.x = t.clientX
-      cursorRef.current.y = t.clientY
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('touchmove', handleTouchMove, { passive: true })
-
-    if (containerRef.current) {
-      const { left, top, width, height } = containerRef.current.getBoundingClientRect()
-      mouseRef.current.x = left + width / 2
-      mouseRef.current.y = top + height / 2
-      cursorRef.current.x = mouseRef.current.x
-      cursorRef.current.y = mouseRef.current.y
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('touchmove', handleTouchMove)
-    }
-  }, [])
-
-  const setSize = useCallback(() => {
-    if (!containerRef.current || !titleRef.current) return
-
-    const { width: containerW, height: containerH } = containerRef.current.getBoundingClientRect()
-
-    let newFontSize = containerW / (chars.length / 2)
-    newFontSize = Math.max(newFontSize, minFontSize)
-
-    setFontSize(newFontSize)
-    setScaleY(1)
-    setLineHeight(1)
-
-    requestAnimationFrame(() => {
-      if (!titleRef.current) return
-      const textRect = titleRef.current.getBoundingClientRect()
-
-      if (scale && textRect.height > 0) {
-        const yRatio = containerH / textRect.height
-        setScaleY(yRatio)
-        setLineHeight(yRatio)
-      }
-    })
-  }, [chars.length, minFontSize, scale])
-
-  useEffect(() => {
-    const debouncedSetSize = debounce(setSize, 100)
-    debouncedSetSize()
-    window.addEventListener('resize', debouncedSetSize)
-    return () => window.removeEventListener('resize', debouncedSetSize)
-  }, [setSize])
-
-  useEffect(() => {
-    let rafId
-    const animate = () => {
-      mouseRef.current.x += (cursorRef.current.x - mouseRef.current.x) / 15
-      mouseRef.current.y += (cursorRef.current.y - mouseRef.current.y) / 15
-
-      if (titleRef.current) {
-        const titleRect = titleRef.current.getBoundingClientRect()
-        const maxDist = titleRect.width / 2
-
-        spansRef.current.forEach((span) => {
-          if (!span) return
-
-          const rect = span.getBoundingClientRect()
-          const charCenter = {
-            x: rect.x + rect.width / 2,
-            y: rect.y + rect.height / 2,
-          }
-
-          const d = dist(mouseRef.current, charCenter)
-
-          const wdth = width ? Math.floor(getAttr(d, maxDist, 5, 200)) : 100
-          const wght = weight ? Math.floor(getAttr(d, maxDist, 100, 900)) : 400
-          const italVal = italic ? getAttr(d, maxDist, 0, 1).toFixed(2) : 0
-          const alphaVal = alpha ? getAttr(d, maxDist, 0, 1).toFixed(2) : 1
-
-          const newFontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`
-
-          if (span.style.fontVariationSettings !== newFontVariationSettings) {
-            span.style.fontVariationSettings = newFontVariationSettings
-          }
-          if (alpha && span.style.opacity !== alphaVal) {
-            span.style.opacity = alphaVal
-          }
-        })
-      }
-
-      rafId = requestAnimationFrame(animate)
-    }
-
-    animate()
-    return () => cancelAnimationFrame(rafId)
-  }, [width, weight, italic, alpha])
-
-  const styleElement = useMemo(() => {
-    return (
-      <style>{`
-        ${fontUrl ? `@import url('${fontUrl}');` : ''}
-
-        .flex {
-          display: flex;
-          justify-content: space-between;
-        }
-
-        .stroke span {
-          position: relative;
-          color: ${textColor};
-        }
-        .stroke span::after {
-          content: attr(data-char);
-          position: absolute;
-          left: 0;
-          top: 0;
-          color: transparent;
-          z-index: -1;
-          -webkit-text-stroke-width: 3px;
-          -webkit-text-stroke-color: ${strokeColor};
-        }
-
-        .text-pressure-title {
-          color: ${textColor};
-        }
-      `}</style>
-    )
-  }, [fontUrl, textColor, strokeColor])
-
-  const dynamicClassName = [className, flex ? 'flex' : '', stroke ? 'stroke' : ''].filter(Boolean).join(' ')
-
-  return (
-    <div
-      ref={containerRef}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        background: 'transparent',
-      }}
-    >
-      {styleElement}
-      <h1
-        ref={titleRef}
-        className={`text-pressure-title ${dynamicClassName}`}
-        style={{
-          fontFamily,
-          textTransform: 'uppercase',
-          fontSize,
-          lineHeight,
-          transform: `scale(1, ${scaleY})`,
-          transformOrigin: 'center top',
-          margin: 0,
-          textAlign: 'center',
-          userSelect: 'none',
-          whiteSpace: 'nowrap',
-          fontWeight: 100,
-          width: '100%',
-        }}
-      >
-        {chars.map((char, i) => (
-          <span
-            key={i}
-            ref={(el) => {
-              spansRef.current[i] = el
-            }}
-            data-char={char}
-            style={{
-              display: 'inline-block',
-              color: stroke ? undefined : textColor,
-            }}
-          >
-            {char}
-          </span>
-        ))}
-      </h1>
-    </div>
-  )
-}
-
 export default function HeroWarpTunnel() {
   const mountRef = useRef(null)
   const guiHostRef = useRef(null)
-
-  // Diagnóstico: si por algún motivo la fuente variable no quedó
-  // disponible (paquete no instalado, CSS no importado, etc.), avisar
-  // en consola en vez de fallar en silencio.
-  useEffect(() => {
-    if (typeof document === 'undefined' || !document.fonts) return
-    document.fonts.ready.then(() => {
-      const ok = document.fonts.check("900 16px 'Big Shoulders Display Variable'")
-      if (!ok) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[HeroWarpTunnel] No se detectó "Big Shoulders Display Variable". ' +
-          'Verificá que corriste "npm install @fontsource-variable/big-shoulders-display" ' +
-          'y que el import esté en este archivo. Sin esta fuente, el efecto de peso variable no se ve.'
-        )
-      }
-    })
-  }, [])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -685,44 +416,33 @@ export default function HeroWarpTunnel() {
     <div className="warp-tunnel-wrap">
       <div ref={mountRef} className="warp-tunnel" aria-label="Túnel de velocidad hiperespacial" />
 
-      <div className="warp-center-text" aria-hidden="true">
-        <div className="wct-band wct-band--1">
-          <TextPressure text="LAB" />
-        </div>
-        <div className="wct-band wct-band--2">
-          <TextPressure text="DESING" />
-        </div>
+      <div className="warp-center-logo" aria-hidden="true">
+        <img src="/GLAM.svg" alt="" className="warp-center-logo__img" />
       </div>
 
       <div ref={guiHostRef} className="warp-tunnel__gui" />
 
       <style>{`
-        .warp-center-text {
+        .warp-center-logo {
           position: absolute;
           inset: 0;
           z-index: 4;
           display: flex;
-          flex-direction: column;
-          align-items: stretch;
+          align-items: center;
           justify-content: center;
           pointer-events: none; /* no bloquea el mouse/touch del túnel */
+          padding: 6vw;
         }
-        .wct-band {
-          background: #ff0000;
-          height: clamp(3.5rem, 10vw, 10rem);
-          display: flex;
-          align-items: center;
+        .warp-center-logo__img {
+          width: min(46vw, 620px);
+          min-width: 180px;
+          height: auto;
+          display: block;
         }
-        .wct-band--1 {
-          align-self: flex-start;
-          width: 46%;
-          margin-left: 6%;
-        }
-        .wct-band--2 {
-          align-self: flex-end;
-          width: 62%;
-          margin-right: 5%;
-          margin-top: -0.35rem; /* casi pegadas */
+        @media (max-width: 640px) {
+          .warp-center-logo__img {
+            width: min(78vw, 420px);
+          }
         }
       `}</style>
     </div>
