@@ -46,9 +46,9 @@ const DEFAULTS = {
   // escala, según qué tan lejos está el mouse/dedo del centro en X.
   textWeightMin: 100,  // peso de fuente cuando el mouse está cerca del centro
   textWeightMax: 900,  // peso de fuente cuando el mouse está lejos (bordes)
-  textScaleMin: 0.82,  // escala cuando está cerca
-  textScaleMax: 1.18,  // escala cuando está lejos
-  textDamping: 0.08,   // suavizado del cambio
+  textScaleMin: 0.7,   // escala cuando está cerca
+  textScaleMax: 1.4,   // escala cuando está lejos
+  textDamping: 0.14,   // suavizado del cambio (más alto = responde más rápido)
   // Post-proceso (en vivo)
   bloomStrength: 0.02,
   bloomRadius: 0.19,
@@ -476,9 +476,16 @@ export default function HeroWarpTunnel() {
 
       <div ref={guiHostRef} className="warp-tunnel__gui" />
 
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@100..900&display=swap');
+      {/* Fuente variable: se carga con <link> reales (más confiable que
+          @import dentro de <style>, que algunos bundlers/CSP bloquean) */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@100..900&display=swap"
+        rel="stylesheet"
+      />
 
+      <style>{`
         .warp-center-text {
           position: absolute;
           inset: 0;
@@ -500,7 +507,7 @@ export default function HeroWarpTunnel() {
         .wct-row--2 {
           justify-content: flex-end;
           padding-right: 5%;
-          margin-top: clamp(-1.5rem, -1.8vw, -0.4rem);
+          margin-top: -0.18em; /* casi pegadas — relativo al tamaño del texto */
         }
         .wct-text {
           font-family: 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
@@ -508,8 +515,8 @@ export default function HeroWarpTunnel() {
           font-variation-settings: 'wght' var(--wght, 900);
           background: #ff0000;
           color: #0a0a0a;
-          line-height: 0.85;
-          padding: 0.03em 0.32em;
+          line-height: 0.82;
+          padding: 0.02em 0.32em;
           white-space: nowrap;
           font-size: clamp(2.2rem, 8vw, 9rem);
           letter-spacing: -0.01em;
