@@ -42,6 +42,13 @@ const DEFAULTS = {
   invertMouseY: true,
   // Cámara · mobile: rotación 100% libre arrastrando con el dedo (sin límite)
   touchSensitivity: 0.006, // rad de giro por pixel arrastrado
+  // Texto central "LAB / DESING": fuente variable (delgada → muy bold) y
+  // escala, según qué tan lejos está el mouse/dedo del centro en X.
+  textWeightMin: 100,  // peso de fuente cuando el mouse está cerca del centro
+  textWeightMax: 900,  // peso de fuente cuando el mouse está lejos (bordes)
+  textScaleMin: 0.82,  // escala cuando está cerca
+  textScaleMax: 1.18,  // escala cuando está lejos
+  textDamping: 0.08,   // suavizado del cambio
   // Post-proceso (en vivo)
   bloomStrength: 0.02,
   bloomRadius: 0.19,
@@ -56,6 +63,7 @@ const DEFAULTS = {
 export default function HeroWarpTunnel() {
   const mountRef = useRef(null)
   const guiHostRef = useRef(null)
+  const centerTextRef = useRef(null)
 
   useEffect(() => {
     const mount = mountRef.current
@@ -95,6 +103,22 @@ export default function HeroWarpTunnel() {
     const dragState = { active: false, lastX: 0, lastY: 0 }
     const baseCameraQuat = new THREE.Quaternion() // orientación base (mirando hacia -z)
 
+    // ── Texto central "LAB / DESING": el peso (wght) y la escala de la
+    // fuente variable dependen de qué tan lejos está el mouse/dedo del
+    // CENTRO en el eje X (no de si es izquierda o derecha). Cerca del
+    // centro = fuente delgada y chica; lejos (hacia los bordes) = fuente
+    // muy bold y grande.
+    let textPointerAbs = 0 // 0 = en el centro, 1 = en el borde
+    const textWeightState = { current: (params.textWeightMin + params.textWeightMax) / 2 }
+    const textScaleState = { current: 1 }
+
+    function updateTextPointerFromClientX(clientX) {
+      const rect = mount.getBoundingClientRect()
+      if (rect.width === 0) return
+      const nx = ((clientX - rect.left) / rect.width) * 2 - 1
+      textPointerAbs = Math.abs(THREE.MathUtils.clamp(nx, -1, 1))
+    }
+
     function onPointerMove(e) {
       const rect = mount.getBoundingClientRect()
       if (rect.width === 0 || rect.height === 0) return
@@ -102,6 +126,7 @@ export default function HeroWarpTunnel() {
       const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1
       pointer.x = THREE.MathUtils.clamp(nx, -1, 1)
       pointer.y = THREE.MathUtils.clamp(ny, -1, 1)
+      textPointerAbs = Math.abs(pointer.x)
     }
 
     function onTouchStart(e) {
@@ -109,6 +134,7 @@ export default function HeroWarpTunnel() {
       dragState.active = true
       dragState.lastX = e.touches[0].clientX
       dragState.lastY = e.touches[0].clientY
+      updateTextPointerFromClientX(e.touches[0].clientX)
     }
     function onTouchMove(e) {
       if (!dragState.active || e.touches.length !== 1) return
@@ -117,6 +143,7 @@ export default function HeroWarpTunnel() {
       const dy = t.clientY - dragState.lastY
       dragState.lastX = t.clientX
       dragState.lastY = t.clientY
+      updateTextPointerFromClientX(t.clientX)
       // Sin clamp: la rotación acumulada puede crecer libremente en
       // cualquier dirección, dando vuelta completa si el usuario quiere.
       freeDrag.yaw -= dx * params.touchSensitivity
@@ -301,6 +328,13 @@ export default function HeroWarpTunnel() {
     fCam.add(params, 'invertMouseY').name('invertir Y (desktop)')
     fCam.add(params, 'touchSensitivity', 0.001, 0.02, 0.001).name('sensibilidad táctil (mobile, libre)')
 
+    const fText = gui.addFolder('Texto central "LAB / DESING"')
+    fText.add(params, 'textWeightMin', 100, 900, 10).name('peso · cerca del centro')
+    fText.add(params, 'textWeightMax', 100, 900, 10).name('peso · lejos (bordes)')
+    fText.add(params, 'textScaleMin', 0.5, 1.5, 0.01).name('escala · cerca')
+    fText.add(params, 'textScaleMax', 0.5, 2, 0.01).name('escala · lejos')
+    fText.add(params, 'textDamping', 0.01, 0.3, 0.005).name('suavizado')
+
     const fPost = gui.addFolder('Post-proceso')
     fPost.add(params, 'bloomStrength', 0, 3, 0.01).name('bloom · fuerza').onChange((v) => { bloomPass.strength = v })
     fPost.add(params, 'bloomRadius', 0, 1.5, 0.01).name('bloom · radio').onChange((v) => { bloomPass.radius = v })
@@ -394,6 +428,17 @@ export default function HeroWarpTunnel() {
       camera.rotateY(tilt.y)
       camera.rotateX(tilt.x)
 
+      // ── Texto central: se acerca suavemente al peso/escala objetivo
+      // según qué tan lejos está el mouse/dedo del centro en X.
+      const targetWght = params.textWeightMin + (params.textWeightMax - params.textWeightMin) * textPointerAbs
+      const targetTextScale = params.textScaleMin + (params.textScaleMax - params.textScaleMin) * textPointerAbs
+      textWeightState.current += (targetWght - textWeightState.current) * params.textDamping
+      textScaleState.current += (targetTextScale - textScaleState.current) * params.textDamping
+      if (centerTextRef.current) {
+        centerTextRef.current.style.setProperty('--wght', textWeightState.current.toFixed(0))
+        centerTextRef.current.style.setProperty('--textScale', textScaleState.current.toFixed(3))
+      }
+
       composer.render()
     }
     animate()
@@ -419,7 +464,60 @@ export default function HeroWarpTunnel() {
   return (
     <div className="warp-tunnel-wrap">
       <div ref={mountRef} className="warp-tunnel" aria-label="Túnel de velocidad hiperespacial" />
+
+      <div ref={centerTextRef} className="warp-center-text" aria-hidden="true">
+        <div className="wct-row wct-row--1">
+          <span className="wct-text">LAB</span>
+        </div>
+        <div className="wct-row wct-row--2">
+          <span className="wct-text">DESING</span>
+        </div>
+      </div>
+
       <div ref={guiHostRef} className="warp-tunnel__gui" />
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@100..900&display=swap');
+
+        .warp-center-text {
+          position: absolute;
+          inset: 0;
+          z-index: 4;
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: center;
+          pointer-events: none; /* no bloquea el mouse/touch del túnel */
+        }
+        .wct-row {
+          display: flex;
+          width: 100%;
+        }
+        .wct-row--1 {
+          justify-content: flex-start;
+          padding-left: 6%;
+        }
+        .wct-row--2 {
+          justify-content: flex-end;
+          padding-right: 5%;
+          margin-top: clamp(-1.5rem, -1.8vw, -0.4rem);
+        }
+        .wct-text {
+          font-family: 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
+          font-weight: 900; /* fallback si el navegador no soporta variable fonts */
+          font-variation-settings: 'wght' var(--wght, 900);
+          background: #ff0000;
+          color: #0a0a0a;
+          line-height: 0.85;
+          padding: 0.03em 0.32em;
+          white-space: nowrap;
+          font-size: clamp(2.2rem, 8vw, 9rem);
+          letter-spacing: -0.01em;
+          transform: scale(var(--textScale, 1));
+          transform-origin: center;
+          will-change: font-variation-settings, transform;
+        }
+      `}</style>
     </div>
   )
 }
