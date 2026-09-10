@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import * as THREE from 'three'
 import GUI from 'lil-gui'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
@@ -20,21 +20,6 @@ import './HeroWarpTunnel.css'
 // medido exacto, orientación por quaternion, apertura/jitter/stretch) NO
 // se toca — solo se parametriza para poder moverla desde sliders.
 const WORDS = ['GLAM', 'LAB']
-
-// ── Texto central "LAB / DESING": fuente variable por letra, portado de
-// TextPressure (https://codepen.io/JuanFuentes/full/rgXKGQ). Cada letra
-// mide su distancia al cursor/dedo y ajusta su propio font-variation-
-// settings ('wght'), así se ve realmente el grosor cambiar de fino a
-// súper bold letra por letra, no la palabra entera de una.
-const dist = (a, b) => {
-  const dx = b.x - a.x
-  const dy = b.y - a.y
-  return Math.sqrt(dx * dx + dy * dy)
-}
-const getAttr = (distance, maxDist, minVal, maxVal) => {
-  const val = maxVal - Math.abs((maxVal * distance) / maxDist)
-  return Math.max(minVal, val + minVal)
-}
 
 const DEFAULTS = {
   // Construcción (dispara reconstrucción de las cintas)
@@ -62,12 +47,6 @@ const DEFAULTS = {
   invertMouseY: true,
   // Cámara · mobile: rotación 100% libre arrastrando con el dedo (sin límite)
   touchSensitivity: 0.006, // rad de giro por pixel arrastrado
-  // Texto central "LAB / DESING": fuente variable letra por letra, según
-  // qué tan cerca está el cursor/dedo de CADA letra (no de la palabra
-  // entera). Cerca de una letra = bold; lejos = fina.
-  textWeightMin: 100,      // peso cuando el cursor está lejos de la letra
-  textWeightMax: 900,      // peso cuando el cursor está justo sobre la letra
-  textFollowDamping: 0.08, // qué tan rápido el cursor "suavizado" alcanza al real (0-1)
   // Post-proceso (en vivo)
   bloomStrength: 0.02,
   bloomRadius: 0.19,
@@ -79,19 +58,259 @@ const DEFAULTS = {
   warpAberration: 0.10,
 }
 
+// ════════════════════════════════════════════════════════════════════
+// TextPressure — portado TAL CUAL de https://codepen.io/JuanFuentes/full/rgXKGQ
+// (misma lógica, sin adaptaciones "custom" que puedan romper el efecto).
+// Cada letra es un <span> que mide su propia distancia al cursor
+// suavizado y ajusta su font-variation-settings ('wght') en vivo.
+// ════════════════════════════════════════════════════════════════════
+const dist = (a, b) => {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
+const getAttr = (distance, maxDist, minVal, maxVal) => {
+  const val = maxVal - Math.abs((maxVal * distance) / maxDist)
+  return Math.max(minVal, val + minVal)
+}
+
+const debounce = (func, delay) => {
+  let timeoutId
+  return (...args) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => {
+      func.apply(this, args)
+    }, delay)
+  }
+}
+
+const TextPressure = ({
+  text = 'Compressa',
+  fontFamily = "'Big Shoulders Display Variable'",
+  fontUrl = '', // vacío: ya importamos la fuente vía @fontsource arriba, no hace falta @import remoto
+
+  width = false,   // Big Shoulders Display no tiene eje 'wdth' — lo dejamos apagado
+  weight = true,
+  italic = false,  // tampoco tiene eje 'ital'
+  alpha = false,
+
+  flex = true,
+  stroke = false,
+  scale = false,
+
+  textColor = '#0a0a0a',
+  strokeColor = '#FF0000',
+  className = '',
+
+  minFontSize = 24,
+}) => {
+  const containerRef = useRef(null)
+  const titleRef = useRef(null)
+  const spansRef = useRef([])
+
+  const mouseRef = useRef({ x: 0, y: 0 })
+  const cursorRef = useRef({ x: 0, y: 0 })
+
+  const [fontSize, setFontSize] = useState(minFontSize)
+  const [scaleY, setScaleY] = useState(1)
+  const [lineHeight, setLineHeight] = useState(1)
+
+  const chars = text.split('')
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      cursorRef.current.x = e.clientX
+      cursorRef.current.y = e.clientY
+    }
+    const handleTouchMove = (e) => {
+      const t = e.touches[0]
+      cursorRef.current.x = t.clientX
+      cursorRef.current.y = t.clientY
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('touchmove', handleTouchMove, { passive: true })
+
+    if (containerRef.current) {
+      const { left, top, width, height } = containerRef.current.getBoundingClientRect()
+      mouseRef.current.x = left + width / 2
+      mouseRef.current.y = top + height / 2
+      cursorRef.current.x = mouseRef.current.x
+      cursorRef.current.y = mouseRef.current.y
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('touchmove', handleTouchMove)
+    }
+  }, [])
+
+  const setSize = useCallback(() => {
+    if (!containerRef.current || !titleRef.current) return
+
+    const { width: containerW, height: containerH } = containerRef.current.getBoundingClientRect()
+
+    let newFontSize = containerW / (chars.length / 2)
+    newFontSize = Math.max(newFontSize, minFontSize)
+
+    setFontSize(newFontSize)
+    setScaleY(1)
+    setLineHeight(1)
+
+    requestAnimationFrame(() => {
+      if (!titleRef.current) return
+      const textRect = titleRef.current.getBoundingClientRect()
+
+      if (scale && textRect.height > 0) {
+        const yRatio = containerH / textRect.height
+        setScaleY(yRatio)
+        setLineHeight(yRatio)
+      }
+    })
+  }, [chars.length, minFontSize, scale])
+
+  useEffect(() => {
+    const debouncedSetSize = debounce(setSize, 100)
+    debouncedSetSize()
+    window.addEventListener('resize', debouncedSetSize)
+    return () => window.removeEventListener('resize', debouncedSetSize)
+  }, [setSize])
+
+  useEffect(() => {
+    let rafId
+    const animate = () => {
+      mouseRef.current.x += (cursorRef.current.x - mouseRef.current.x) / 15
+      mouseRef.current.y += (cursorRef.current.y - mouseRef.current.y) / 15
+
+      if (titleRef.current) {
+        const titleRect = titleRef.current.getBoundingClientRect()
+        const maxDist = titleRect.width / 2
+
+        spansRef.current.forEach((span) => {
+          if (!span) return
+
+          const rect = span.getBoundingClientRect()
+          const charCenter = {
+            x: rect.x + rect.width / 2,
+            y: rect.y + rect.height / 2,
+          }
+
+          const d = dist(mouseRef.current, charCenter)
+
+          const wdth = width ? Math.floor(getAttr(d, maxDist, 5, 200)) : 100
+          const wght = weight ? Math.floor(getAttr(d, maxDist, 100, 900)) : 400
+          const italVal = italic ? getAttr(d, maxDist, 0, 1).toFixed(2) : 0
+          const alphaVal = alpha ? getAttr(d, maxDist, 0, 1).toFixed(2) : 1
+
+          const newFontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`
+
+          if (span.style.fontVariationSettings !== newFontVariationSettings) {
+            span.style.fontVariationSettings = newFontVariationSettings
+          }
+          if (alpha && span.style.opacity !== alphaVal) {
+            span.style.opacity = alphaVal
+          }
+        })
+      }
+
+      rafId = requestAnimationFrame(animate)
+    }
+
+    animate()
+    return () => cancelAnimationFrame(rafId)
+  }, [width, weight, italic, alpha])
+
+  const styleElement = useMemo(() => {
+    return (
+      <style>{`
+        ${fontUrl ? `@import url('${fontUrl}');` : ''}
+
+        .flex {
+          display: flex;
+          justify-content: space-between;
+        }
+
+        .stroke span {
+          position: relative;
+          color: ${textColor};
+        }
+        .stroke span::after {
+          content: attr(data-char);
+          position: absolute;
+          left: 0;
+          top: 0;
+          color: transparent;
+          z-index: -1;
+          -webkit-text-stroke-width: 3px;
+          -webkit-text-stroke-color: ${strokeColor};
+        }
+
+        .text-pressure-title {
+          color: ${textColor};
+        }
+      `}</style>
+    )
+  }, [fontUrl, textColor, strokeColor])
+
+  const dynamicClassName = [className, flex ? 'flex' : '', stroke ? 'stroke' : ''].filter(Boolean).join(' ')
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        background: 'transparent',
+      }}
+    >
+      {styleElement}
+      <h1
+        ref={titleRef}
+        className={`text-pressure-title ${dynamicClassName}`}
+        style={{
+          fontFamily,
+          textTransform: 'uppercase',
+          fontSize,
+          lineHeight,
+          transform: `scale(1, ${scaleY})`,
+          transformOrigin: 'center top',
+          margin: 0,
+          textAlign: 'center',
+          userSelect: 'none',
+          whiteSpace: 'nowrap',
+          fontWeight: 100,
+          width: '100%',
+        }}
+      >
+        {chars.map((char, i) => (
+          <span
+            key={i}
+            ref={(el) => {
+              spansRef.current[i] = el
+            }}
+            data-char={char}
+            style={{
+              display: 'inline-block',
+              color: stroke ? undefined : textColor,
+            }}
+          >
+            {char}
+          </span>
+        ))}
+      </h1>
+    </div>
+  )
+}
+
 export default function HeroWarpTunnel() {
   const mountRef = useRef(null)
   const guiHostRef = useRef(null)
-  const centerTextRef = useRef(null)
-  const labWrapRef = useRef(null)
-  const desingWrapRef = useRef(null)
-  const labSpansRef = useRef([])
-  const desingSpansRef = useRef([])
 
   // Diagnóstico: si por algún motivo la fuente variable no quedó
   // disponible (paquete no instalado, CSS no importado, etc.), avisar
-  // en consola en vez de fallar en silencio — así se sabe exactamente
-  // por qué el efecto de peso no se nota.
+  // en consola en vez de fallar en silencio.
   useEffect(() => {
     if (typeof document === 'undefined' || !document.fonts) return
     document.fonts.ready.then(() => {
@@ -134,38 +353,12 @@ export default function HeroWarpTunnel() {
 
     // ── Cámara: seguimiento del mouse (desktop, limitado) o
     // rotación 100% libre por arrastre táctil (mobile) ─────────
-    // pointer/tilt: usado en desktop — se acerca suavemente al mouse,
-    // siempre acotado por mouseYawMax/mousePitchMax.
-    // freeDrag: usado en mobile — acumula el arrastre del dedo sin
-    // ningún límite, así la cámara puede girar totalmente libre.
     const isMobile = ('ontouchstart' in window) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
     const pointer = { x: 0, y: 0 }
     const tilt = { x: 0, y: 0 }
     const freeDrag = { yaw: 0, pitch: 0 }
     const dragState = { active: false, lastX: 0, lastY: 0 }
     const baseCameraQuat = new THREE.Quaternion() // orientación base (mirando hacia -z)
-
-    // ── Texto central "LAB / DESING": cursor real (sin suavizar) y cursor
-    // suavizado (se acerca de a poco al real, igual que TextPressure).
-    // Cada letra mide su distancia al cursor SUAVIZADO y ajusta su propio
-    // 'wght' — así el cambio de grosor se ve fino→bold letra por letra.
-    const cursorPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
-    const smoothPos = { x: cursorPos.x, y: cursorPos.y }
-
-    function applyLetterPressure(wrapRef, spansRef) {
-      if (!wrapRef.current) return
-      const rect = wrapRef.current.getBoundingClientRect()
-      const maxDist = Math.max(rect.width / 2, 40)
-      spansRef.current.forEach((span) => {
-        if (!span) return
-        const r = span.getBoundingClientRect()
-        const center = { x: r.x + r.width / 2, y: r.y + r.height / 2 }
-        const d = dist(smoothPos, center)
-        const wght = Math.floor(getAttr(d, maxDist, params.textWeightMin, params.textWeightMax))
-        const setting = `'wght' ${wght}`
-        if (span.style.fontVariationSettings !== setting) span.style.fontVariationSettings = setting
-      })
-    }
 
     function onPointerMove(e) {
       const rect = mount.getBoundingClientRect()
@@ -174,8 +367,6 @@ export default function HeroWarpTunnel() {
       const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1
       pointer.x = THREE.MathUtils.clamp(nx, -1, 1)
       pointer.y = THREE.MathUtils.clamp(ny, -1, 1)
-      cursorPos.x = e.clientX
-      cursorPos.y = e.clientY
     }
 
     function onTouchStart(e) {
@@ -183,8 +374,6 @@ export default function HeroWarpTunnel() {
       dragState.active = true
       dragState.lastX = e.touches[0].clientX
       dragState.lastY = e.touches[0].clientY
-      cursorPos.x = e.touches[0].clientX
-      cursorPos.y = e.touches[0].clientY
     }
     function onTouchMove(e) {
       if (!dragState.active || e.touches.length !== 1) return
@@ -193,8 +382,6 @@ export default function HeroWarpTunnel() {
       const dy = t.clientY - dragState.lastY
       dragState.lastX = t.clientX
       dragState.lastY = t.clientY
-      cursorPos.x = t.clientX
-      cursorPos.y = t.clientY
       // Sin clamp: la rotación acumulada puede crecer libremente en
       // cualquier dirección, dando vuelta completa si el usuario quiere.
       freeDrag.yaw -= dx * params.touchSensitivity
@@ -379,11 +566,6 @@ export default function HeroWarpTunnel() {
     fCam.add(params, 'invertMouseY').name('invertir Y (desktop)')
     fCam.add(params, 'touchSensitivity', 0.001, 0.02, 0.001).name('sensibilidad táctil (mobile, libre)')
 
-    const fText = gui.addFolder('Texto central "LAB / DESING"')
-    fText.add(params, 'textWeightMin', 100, 900, 10).name('peso · lejos del cursor')
-    fText.add(params, 'textWeightMax', 100, 900, 10).name('peso · sobre la letra')
-    fText.add(params, 'textFollowDamping', 0.01, 0.5, 0.01).name('suavizado del cursor')
-
     const fPost = gui.addFolder('Post-proceso')
     fPost.add(params, 'bloomStrength', 0, 3, 0.01).name('bloom · fuerza').onChange((v) => { bloomPass.strength = v })
     fPost.add(params, 'bloomRadius', 0, 1.5, 0.01).name('bloom · radio').onChange((v) => { bloomPass.radius = v })
@@ -477,14 +659,6 @@ export default function HeroWarpTunnel() {
       camera.rotateY(tilt.y)
       camera.rotateX(tilt.x)
 
-      // ── Texto central: el cursor suavizado se acerca de a poco al
-      // real, y cada letra de "LAB"/"DESING" ajusta su propio peso de
-      // fuente variable según su distancia a ese cursor suavizado.
-      smoothPos.x += (cursorPos.x - smoothPos.x) * params.textFollowDamping
-      smoothPos.y += (cursorPos.y - smoothPos.y) * params.textFollowDamping
-      applyLetterPressure(labWrapRef, labSpansRef)
-      applyLetterPressure(desingWrapRef, desingSpansRef)
-
       composer.render()
     }
     animate()
@@ -511,32 +685,12 @@ export default function HeroWarpTunnel() {
     <div className="warp-tunnel-wrap">
       <div ref={mountRef} className="warp-tunnel" aria-label="Túnel de velocidad hiperespacial" />
 
-      <div ref={centerTextRef} className="warp-center-text" aria-hidden="true">
-        <div className="wct-row wct-row--1">
-          <span ref={labWrapRef} className="wct-text">
-            {'LAB'.split('').map((ch, i) => (
-              <span
-                key={i}
-                ref={(el) => { labSpansRef.current[i] = el }}
-                className="wct-letter"
-              >
-                {ch}
-              </span>
-            ))}
-          </span>
+      <div className="warp-center-text" aria-hidden="true">
+        <div className="wct-band wct-band--1">
+          <TextPressure text="LAB" />
         </div>
-        <div className="wct-row wct-row--2">
-          <span ref={desingWrapRef} className="wct-text">
-            {'DESING'.split('').map((ch, i) => (
-              <span
-                key={i}
-                ref={(el) => { desingSpansRef.current[i] = el }}
-                className="wct-letter"
-              >
-                {ch}
-              </span>
-            ))}
-          </span>
+        <div className="wct-band wct-band--2">
+          <TextPressure text="DESING" />
         </div>
       </div>
 
@@ -553,35 +707,22 @@ export default function HeroWarpTunnel() {
           justify-content: center;
           pointer-events: none; /* no bloquea el mouse/touch del túnel */
         }
-        .wct-row {
-          display: flex;
-          width: 100%;
-        }
-        .wct-row--1 {
-          justify-content: flex-start;
-          padding-left: 6%;
-        }
-        .wct-row--2 {
-          justify-content: flex-end;
-          padding-right: 5%;
-          margin-top: -0.18em; /* casi pegadas — relativo al tamaño del texto */
-        }
-        .wct-text {
-          display: inline-block;
-          font-family: 'Big Shoulders Display Variable', 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
+        .wct-band {
           background: #ff0000;
-          color: #0a0a0a;
-          line-height: 0.82;
-          padding: 0.02em 0.32em;
-          white-space: nowrap;
-          font-size: clamp(2.2rem, 8vw, 9rem);
-          letter-spacing: -0.01em;
+          height: clamp(3.5rem, 10vw, 10rem);
+          display: flex;
+          align-items: center;
         }
-        .wct-letter {
-          display: inline-block;
-          font-weight: 400; /* fallback si el navegador no soporta variable fonts */
-          font-variation-settings: 'wght' 400; /* valor inicial, el JS lo va actualizando por letra */
-          will-change: font-variation-settings;
+        .wct-band--1 {
+          align-self: flex-start;
+          width: 46%;
+          margin-left: 6%;
+        }
+        .wct-band--2 {
+          align-self: flex-end;
+          width: 62%;
+          margin-right: 5%;
+          margin-top: -0.35rem; /* casi pegadas */
         }
       `}</style>
     </div>
