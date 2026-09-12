@@ -54,7 +54,11 @@ export default function Nav() {
         </div>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — panel lateral desde la derecha */}
+      <div
+        className={`nav__drawer-overlay ${menuOpen ? 'nav__drawer-overlay--open' : ''}`}
+        onClick={() => setMenuOpen(false)}
+      />
       <div className={`nav__drawer ${menuOpen ? 'nav__drawer--open' : ''}`}>
         <Link to="/" className="nav__drawer-link">MAIN</Link>
         <a href="#" className="nav__drawer-link" target="_blank" rel="noopener noreferrer">IG</a>

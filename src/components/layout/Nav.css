@@ -87,28 +87,41 @@ a.nav__link:hover  { opacity: 0.6; }
 /* ── Layout height ── */
 :root { --nav-height: 65px; }
 
-/* Mobile drawer */
+/* Mobile drawer — panel lateral fijo, entra desde la derecha */
+.nav__drawer-overlay {
+  display: none;
+}
+
 .nav__drawer {
   display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-nav, 100);
+  width: min(78vw, 340px);
   flex-direction: column;
+  justify-content: center;
+  gap: var(--space-6);
   background: var(--color-red);
-  border-bottom: 2px solid var(--color-flat-on-red);
-  transform: translateY(-4px);
-  opacity: 0;
-  pointer-events: none;
-  transition: transform var(--duration-slow) var(--ease-out-expo),
-              opacity var(--duration-base);
+  border-left: 2px solid var(--color-flat-on-red);
+  padding: var(--space-10) var(--space-10);
+  transform: translateX(100%);
+  transition: transform var(--duration-slow) var(--ease-out-expo);
 }
-.nav__drawer--open { transform: translateY(0); opacity: 1; pointer-events: all; }
+.nav__drawer--open { transform: translateX(0); }
+
 .nav__drawer-link {
   font-family: var(--font-nav);
-  font-size: 14px;
+  font-size: clamp(28px, 9vw, 40px);
   font-weight: 700;
+  line-height: 1.05;
   letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--color-flat-on-red);
-  padding: var(--space-4) var(--space-6);
-  border-top: 1px solid var(--color-flat-on-red);
+  /* sangría marcada: cada línea entra bien desde la izquierda */
+  padding-left: 22px;
+  border-left: 3px solid var(--color-flat-on-red);
 }
 
 @media (max-width: 640px) {
@@ -118,4 +131,18 @@ a.nav__link:hover  { opacity: 0.6; }
   .nav__menu-btn      { display: flex; }
   .nav__logo-img { height: 22px; }
   :root { --nav-height: 57px; }
+
+  .nav__drawer-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-nav, 100) - 1);
+    background: var(--color-flat-bg);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-slow);
+  }
+  .nav__drawer-overlay--open { opacity: 0.55; pointer-events: all; }
+
+  .nav__drawer { display: flex; }
 }
