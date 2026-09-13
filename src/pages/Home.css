@@ -11,8 +11,8 @@
 .hero {
   position: relative;
   width: 100%;
-  height: min(78vh, 900px);
-  min-height: 380px;
+  height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
   border-bottom: 2px solid var(--color-flat-fg);
   background: var(--color-flat-bg);
