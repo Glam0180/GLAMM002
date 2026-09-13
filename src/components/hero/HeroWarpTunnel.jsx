@@ -226,30 +226,41 @@ export default function HeroWarpTunnel() {
     })
 
     // ── Logo GLAM: objeto 3D real dentro del túnel, anclado a la
-    // cámara para quedar siempre "justo enfrente" de ella (como un
-    // parabrisas), en vez de una imagen superpuesta en HTML/CSS.
+    // cámara para quedar siempre centrado y "justo enfrente" de ella
+    // (como un parabrisas), en vez de una imagen superpuesta en HTML/CSS.
+    // Usamos un PNG pre-rasterizado (más confiable como textura WebGL
+    // que un SVG sin width/height explícitos, que en varios navegadores
+    // se sube a la GPU con tamaño 0 y queda invisible).
     const logoDistance = 3.2
     let logoMesh = null
     const textureLoader = new THREE.TextureLoader()
-    textureLoader.load('/GLAM.svg', (texture) => {
-      if (disposed) return
-      texture.colorSpace = THREE.SRGBColorSpace
-      const svgAspect = 1348 / 397
-      const fovRad = THREE.MathUtils.degToRad(camera.fov)
-      const fullHeightAtDistance = 2 * logoDistance * Math.tan(fovRad / 2)
-      const logoHeight = fullHeightAtDistance * 0.4
-      const logoWidth = logoHeight * svgAspect
-      const geo = new THREE.PlaneGeometry(logoWidth, logoHeight)
-      const mat = new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      })
-      logoMesh = new THREE.Mesh(geo, mat)
-      logoMesh.position.set(0, 0, -logoDistance)
-      camera.add(logoMesh)
-    })
+    textureLoader.load(
+      '/glam-logo.png',
+      (texture) => {
+        if (disposed) return
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.needsUpdate = true
+        const svgAspect = texture.image.width / texture.image.height
+        const fovRad = THREE.MathUtils.degToRad(camera.fov)
+        const fullHeightAtDistance = 2 * logoDistance * Math.tan(fovRad / 2)
+        const logoHeight = fullHeightAtDistance * 0.5
+        const logoWidth = logoHeight * svgAspect
+        const geo = new THREE.PlaneGeometry(logoWidth, logoHeight)
+        const mat = new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          depthTest: false,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        })
+        logoMesh = new THREE.Mesh(geo, mat)
+        logoMesh.renderOrder = 999
+        logoMesh.position.set(0, 0, -logoDistance)
+        camera.add(logoMesh)
+      },
+      undefined,
+      (err) => console.error('No se pudo cargar el logo GLAM:', err) // eslint-disable-line no-console
+    )
 
     const composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))

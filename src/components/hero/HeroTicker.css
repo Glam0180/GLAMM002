@@ -30,7 +30,7 @@
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
-  padding: 0 0.08em;
+  padding: 0 0.03em;
 
   font-family: 'Yemeyi', 'Helvetica Neue Condensed', 'Arial Narrow', var(--font-nav), Helvetica, Arial, sans-serif;
   font-style: italic;
@@ -54,5 +54,5 @@
 
 @media (max-width: 640px) {
   .hero-ticker { height: 40px; }
-  .hero-ticker__item { font-size: 18px; padding: 0 0.06em; }
+  .hero-ticker__item { font-size: 18px; padding: 0 0.02em; }
 }
