@@ -19,16 +19,16 @@
   justify-content: space-between;
   gap: 12px;
   padding: 0 12px;
-  height: 44px;
+  height: 34px;
   background: var(--color-red);
   border-top: 2px solid var(--color-flat-on-red);
 }
 
 .tc__num {
   font-family: var(--font-flat);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   text-transform: uppercase;
   color: var(--color-flat-on-red);
   flex-shrink: 0;
@@ -36,9 +36,9 @@
 
 .tc__name {
   font-family: var(--font-flat);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   text-transform: uppercase;
   color: var(--color-flat-on-red);
   margin-left: auto;
