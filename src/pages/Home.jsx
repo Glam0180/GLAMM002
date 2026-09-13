@@ -1,6 +1,7 @@
 import { TOOLS } from '@constants/tools'
 import ToolCard from '@components/ui/ToolCard'
 import HeroWarpTunnel from '@components/hero/HeroWarpTunnel'
+import HeroTicker from '@components/hero/HeroTicker'
 import './Home.css'
 
 export default function Home() {
@@ -9,6 +10,8 @@ export default function Home() {
 
       <section className="hero" aria-label="Túnel de velocidad hiperespacial">
         <HeroWarpTunnel />
+        <HeroTicker position="top" />
+        <HeroTicker position="bottom" reverse />
       </section>
 
       {/* ── HERRAMIENTAS ── */}
