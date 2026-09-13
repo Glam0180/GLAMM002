@@ -27,7 +27,7 @@
 .tc__num {
   font-family: var(--font-flat);
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.02em;
   text-transform: uppercase;
   color: var(--color-flat-on-red);
@@ -37,7 +37,7 @@
 .tc__name {
   font-family: var(--font-flat);
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.02em;
   text-transform: uppercase;
   color: var(--color-flat-on-red);
