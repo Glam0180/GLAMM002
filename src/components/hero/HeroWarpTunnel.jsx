@@ -68,6 +68,7 @@ export default function HeroWarpTunnel() {
     scene.background = new THREE.Color(0x000000)
     const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 100)
     camera.position.set(0, 0, params.cameraZ)
+    scene.add(camera) // necesario para que los hijos de la cámara (el logo) se rendericen
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     mount.appendChild(renderer.domElement)
@@ -222,6 +223,32 @@ export default function HeroWarpTunnel() {
       loadedFont = font
       fontLoaded = true
       buildStrips()
+    })
+
+    // ── Logo GLAM: objeto 3D real dentro del túnel, anclado a la
+    // cámara para quedar siempre "justo enfrente" de ella (como un
+    // parabrisas), en vez de una imagen superpuesta en HTML/CSS.
+    const logoDistance = 3.2
+    let logoMesh = null
+    const textureLoader = new THREE.TextureLoader()
+    textureLoader.load('/GLAM.svg', (texture) => {
+      if (disposed) return
+      texture.colorSpace = THREE.SRGBColorSpace
+      const svgAspect = 1348 / 397
+      const fovRad = THREE.MathUtils.degToRad(camera.fov)
+      const fullHeightAtDistance = 2 * logoDistance * Math.tan(fovRad / 2)
+      const logoHeight = fullHeightAtDistance * 0.4
+      const logoWidth = logoHeight * svgAspect
+      const geo = new THREE.PlaneGeometry(logoWidth, logoHeight)
+      const mat = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      })
+      logoMesh = new THREE.Mesh(geo, mat)
+      logoMesh.position.set(0, 0, -logoDistance)
+      camera.add(logoMesh)
     })
 
     const composer = new EffectComposer(renderer)
@@ -406,6 +433,12 @@ export default function HeroWarpTunnel() {
         window.removeEventListener('mousemove', onPointerMove)
       }
       gui.destroy()
+      if (logoMesh) {
+        camera.remove(logoMesh)
+        logoMesh.geometry.dispose()
+        logoMesh.material.map?.dispose()
+        logoMesh.material.dispose()
+      }
       const g=new Set(); strips.forEach(({mesh})=>{ if(!g.has(mesh.geometry)){mesh.geometry.dispose(); g.add(mesh.geometry)} })
       renderer.dispose()
       if(mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
@@ -416,35 +449,7 @@ export default function HeroWarpTunnel() {
     <div className="warp-tunnel-wrap">
       <div ref={mountRef} className="warp-tunnel" aria-label="Túnel de velocidad hiperespacial" />
 
-      <div className="warp-center-logo" aria-hidden="true">
-        <img src="/GLAM.svg" alt="" className="warp-center-logo__img" />
-      </div>
-
       <div ref={guiHostRef} className="warp-tunnel__gui" />
-
-      <style>{`
-        .warp-center-logo {
-          position: absolute;
-          inset: 0;
-          z-index: 4;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          pointer-events: none; /* no bloquea el mouse/touch del túnel */
-          padding: 6vw;
-        }
-        .warp-center-logo__img {
-          width: min(85vw, 1180px);
-          min-width: 240px;
-          height: auto;
-          display: block;
-        }
-        @media (max-width: 640px) {
-          .warp-center-logo__img {
-            width: min(96vw, 640px);
-          }
-        }
-      `}</style>
     </div>
   )
 }

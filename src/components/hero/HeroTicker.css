@@ -30,20 +30,20 @@
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
-  padding: 0 0.2em;
+  padding: 0 0.08em;
 
   font-family: 'Yemeyi', 'Helvetica Neue Condensed', 'Arial Narrow', var(--font-nav), Helvetica, Arial, sans-serif;
   font-style: italic;
   font-weight: 700;
-  text-transform: none;
-  letter-spacing: -0.02em;
+  text-transform: lowercase;
+  letter-spacing: -0.01em;
   font-size: clamp(20px, 3vw, 32px);
   color: #dadbde;
 }
 
 .hero-ticker__text {
   display: inline-block;
-  transform: scaleX(0.68);
+  transform: scaleX(0.58);
   transform-origin: left center;
 }
 
@@ -54,5 +54,5 @@
 
 @media (max-width: 640px) {
   .hero-ticker { height: 40px; }
-  .hero-ticker__item { font-size: 18px; padding: 0 0.15em; }
+  .hero-ticker__item { font-size: 18px; padding: 0 0.06em; }
 }
