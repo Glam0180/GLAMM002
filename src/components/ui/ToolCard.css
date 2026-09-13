@@ -19,14 +19,14 @@
   justify-content: space-between;
   gap: 12px;
   padding: 0 12px;
-  height: 22px;
+  height: 44px;
   background: var(--color-red);
   border-top: 2px solid var(--color-flat-on-red);
 }
 
 .tc__num {
   font-family: var(--font-flat);
-  font-size: 10px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -36,7 +36,7 @@
 
 .tc__name {
   font-family: var(--font-flat);
-  font-size: 10px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;

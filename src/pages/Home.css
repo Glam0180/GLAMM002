@@ -11,10 +11,10 @@
 .hero {
   position: relative;
   width: 100%;
-  height: calc(94svh - var(--nav-height));
-  height: calc(94dvh - var(--nav-height));
-  min-height: calc(94svh - var(--nav-height));
-  min-height: calc(94dvh - var(--nav-height));
+  height: calc(47svh - var(--nav-height));
+  height: calc(47dvh - var(--nav-height));
+  min-height: calc(47svh - var(--nav-height));
+  min-height: calc(47dvh - var(--nav-height));
   overflow: hidden;
   border-bottom: 2px solid var(--color-flat-fg);
   background: var(--color-flat-bg);
