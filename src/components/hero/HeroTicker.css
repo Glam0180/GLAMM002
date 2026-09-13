@@ -14,7 +14,7 @@
   display: flex;
   width: max-content;
   height: 100%;
-  animation: hero-ticker-scroll 26s linear infinite;
+  animation: hero-ticker-scroll 48s linear infinite;
 }
 .hero-ticker__track--reverse {
   animation-direction: reverse;
@@ -36,9 +36,15 @@
   font-style: italic;
   font-weight: 700;
   text-transform: none;
-  letter-spacing: -0.067em;
+  letter-spacing: -0.03em;
   font-size: clamp(20px, 3vw, 32px);
   color: #dadbde;
+}
+
+.hero-ticker__text {
+  display: inline-block;
+  transform: scaleX(0.8);
+  transform-origin: left center;
 }
 
 @keyframes hero-ticker-scroll {
