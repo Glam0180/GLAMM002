@@ -3,7 +3,7 @@
   left: 0;
   right: 0;
   z-index: 3;
-  height: 38px;
+  height: 56px;
   overflow: hidden;
   pointer-events: none;
 }
@@ -37,13 +37,8 @@
   font-weight: 700;
   text-transform: none;
   letter-spacing: -0.067em;
-  font-size: clamp(14px, 2vw, 20px);
+  font-size: clamp(20px, 3vw, 32px);
   color: #dadbde;
-}
-
-.hero-ticker__sep {
-  margin-left: 0.6em;
-  color: var(--color-red);
 }
 
 @keyframes hero-ticker-scroll {
@@ -52,6 +47,6 @@
 }
 
 @media (max-width: 640px) {
-  .hero-ticker { height: 28px; }
-  .hero-ticker__item { font-size: 12px; padding: 0 0.5em; }
+  .hero-ticker { height: 40px; }
+  .hero-ticker__item { font-size: 18px; padding: 0 0.5em; }
 }

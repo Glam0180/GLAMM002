@@ -13,7 +13,6 @@ export default function HeroTicker({ position = 'top', reverse = false }) {
             {sequence.map((w, i) => (
               <span className="hero-ticker__item" key={i}>
                 {w}
-                <span className="hero-ticker__sep">/</span>
               </span>
             ))}
           </div>
