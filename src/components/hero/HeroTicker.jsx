@@ -1,7 +1,7 @@
 import './HeroTicker.css'
 
 export default function HeroTicker({ position = 'top', reverse = false }) {
-  const words = ['diseño interactivo', 'laboratorio de diseño']
+  const words = ['2026. Glam – Design Studio', 'Diseño Interactivo']
   // repetimos harto la secuencia para que el loop nunca se note un corte
   const sequence = Array.from({ length: 8 }, () => words).flat()
 

@@ -1,5 +1,13 @@
 /* ─── GLOBAL — Windows retro aesthetic ────────────────────── */
 
+@font-face {
+  font-family: 'Yemeyi';
+  src: url('/fonts/Yemeyi_Bold_Condensed_Italic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 html { scroll-behavior: smooth; }
 
 html, body {
