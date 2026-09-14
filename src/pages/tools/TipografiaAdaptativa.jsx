@@ -1,11 +1,11 @@
 import React from 'react'
-import ToolPageShell from '@components/tools/ToolPageShell'
+import ToolSystemShell from '@components/tools/ToolSystemShell'
 import { TOOLS } from '@constants/tools'
 
 const tool = TOOLS.find(t => t.id === 'tipografia-adaptativa')
 
 export default function TipografiaAdaptativa() {
-  return <ToolPageShell tool={tool} />
+  return <ToolSystemShell tool={tool} />
   /*
    * PRÓXIMA ITERACIÓN:
    * — Variable fonts (font-variation-settings)

@@ -1,5 +1,5 @@
 import React from 'react'
-import ToolPageShell from '@components/tools/ToolPageShell'
+import ToolSystemShell from '@components/tools/ToolSystemShell'
 import FloralisExperience from '@tools/floralis'
 import { TOOLS } from '@constants/tools'
 
@@ -7,8 +7,8 @@ const tool = TOOLS.find(t => t.id === 'floralis')
 
 export default function Floralis() {
   return (
-    <ToolPageShell tool={tool}>
+    <ToolSystemShell tool={tool}>
       <FloralisExperience />
-    </ToolPageShell>
+    </ToolSystemShell>
   )
 }
