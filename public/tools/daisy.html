@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <title>STUDIO GLAM — DAISY</title>
+  <style>
+    /* Space Mono — mismo design system que CANICAS.3D */
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+    }
+
+    :root {
+      --red: #FF0100;
+      --red-dark: #CC0000;
+      --red-dim: rgba(255, 1, 0, 0.55);
+      --red-faint: rgba(255, 1, 0, 0.18);
+      --red-ghost: rgba(255, 1, 0, 0.10);
+      --black: #000000;
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--black);
+      font-family: 'Space Mono', monospace;
+      border: 1px solid var(--red);
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255, 1, 0, 0.55) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 128px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .2;
+      mix-blend-mode: overlay;
+    }
+
+    ::selection {
+      background: var(--black);
+      color: var(--red);
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--red); }
+    ::-webkit-scrollbar-thumb { background: var(--black); }
+
+    /* ───────── MASTER BAR ───────── */
+    #master-bar {
+      position: fixed;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      height: 28px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    #master-bar .slz {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+    }
+
+    #master-bar .dot5 {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .mhouse {
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #master-bar .mtitle {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--black);
+      text-transform: uppercase;
+    }
+
+    #master-bar .msep {
+      color: rgba(0, 0, 0, .3);
+      font-size: 9px;
+    }
+
+    #master-bar .msub {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .55);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #master-bar .mright {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mctrl {
+      width: 20px;
+      height: 16px;
+      background: var(--black);
+      border: 1px solid rgba(255, 1, 0, .25);
+      color: var(--red);
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mctrl:hover { background: var(--red-dark); }
+    .mctrl--close:hover { background: var(--red-dark); }
+
+    /* ───────── STAGE / FRAME ───────── */
+    #stage {
+      position: fixed;
+      top: 32px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    #frame {
+      --size: min(calc(100vw - 72px), calc(100vh - 72px), 1080px);
+      width: var(--size);
+      height: var(--size);
+      background: var(--black);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      position: relative;
+    }
+
+    /* ───────── COMPONENTE VENTANA ───────── */
+    .win {
+      background: var(--black);
+      border: 2px solid var(--red);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .win__bar {
+      height: 22px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .win__bar .slz {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+    }
+
+    .win__bar-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .win__bar-title {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--black);
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win__bar-sub {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .win__bar-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .win__ctrl {
+      width: 16px;
+      height: 13px;
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 7px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .win__ctrl:hover {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    /* ───────── ESQUELETO / PLACEHOLDER ───────── */
+    .skeleton-body {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .skeleton-grid {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      pointer-events: none;
+    }
+
+    .skeleton-cell {
+      border: 1px solid var(--red-ghost);
+    }
+
+    .skeleton-center {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, .82);
+      border: 1px solid var(--red-faint);
+    }
+
+    .skeleton-code {
+      display: block;
+      font-size: 11px;
+      letter-spacing: .08em;
+      color: var(--red);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .skeleton-msg {
+      font-size: 10px;
+      letter-spacing: .1em;
+      color: var(--red-dim);
+      text-transform: uppercase;
+    }
+
+    /* ───────── STATUS BAR ───────── */
+    .statusbar {
+      height: 18px;
+      background: var(--black);
+      border: 1px solid var(--red-faint);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+
+    .statusbar span {
+      font-size: 7px;
+      letter-spacing: .1em;
+      color: var(--red-dim);
+      text-transform: uppercase;
+    }
+
+    .statusbar .dot-live {
+      width: 5px;
+      height: 5px;
+      background: var(--red);
+      display: inline-block;
+      margin-right: 4px;
+      animation: blink 1.4s steps(2) infinite;
+    }
+
+    @keyframes blink { 50% { opacity: .25; } }
+
+    /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
+    @media (max-width: 768px) {
+      html, body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      #stage {
+        position: relative;
+        top: 32px;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        height: auto;
+        min-height: calc(100vh - 32px);
+        padding: 10px;
+      }
+
+      #frame {
+        --size: unset;
+        width: 100%;
+        height: calc(100vh - 52px);
+        min-height: 420px;
+        padding: 10px;
+      }
+
+      .skeleton-grid {
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(6, 1fr);
+      }
+
+      .skeleton-code { font-size: 10px; }
+      .skeleton-msg { font-size: 9px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Barra madre fija superior -->
+  <div id="master-bar">
+    <span class="slz">///</span>
+    <div class="dot5"></div>
+    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button" aria-label="Volver al inicio" title="Volver al inicio">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+    <span class="mtitle">STUDIO GLAM</span>
+    <span class="msep">—</span>
+    <span class="msub">DAISY</span>
+    <div class="mright">
+      <div class="mctrl">—</div>
+      <div class="mctrl">□</div>
+      <div class="mctrl mctrl--close" id="mclose" role="button" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</div>
+    </div>
+    <span class="slz">///</span>
+  </div>
+
+  <!-- Stage centrado -->
+  <div id="stage">
+    <div id="frame">
+      <div class="win">
+        <div class="win__bar">
+          <span class="slz">///</span>
+          <div class="win__bar-dot"></div>
+          <span class="win__bar-title">VIEWPORT.DAISY</span>
+          <span class="win__bar-sub">— EN DESARROLLO</span>
+          <div class="win__bar-controls">
+            <div class="win__ctrl">—</div>
+            <div class="win__ctrl">□</div>
+            <div class="win__ctrl" id="wclose" role="button" aria-label="Cerrar" title="Cerrar">✕</div>
+          </div>
+        </div>
+
+        <div class="skeleton-body">
+          <div class="skeleton-grid" aria-hidden="true">
+            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
+            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
+            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
+            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
+            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
+            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
+            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
+            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
+          </div>
+          <div class="skeleton-center">
+            <span class="skeleton-code">C:\TOOLS\DAISY.EXE</span>
+            <span class="skeleton-msg">— en desarrollo —</span>
+          </div>
+        </div>
+
+        <div class="statusbar">
+          <span><span class="dot-live"></span>EN CURSO</span>
+          <span>DAISY</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // El ícono de casita y el botón de cerrar vuelven siempre al inicio
+    // del sitio (fuera del iframe), igual sea cual sea el modo en que
+    // esta página se esté sirviendo (directa o embebida).
+    function goHome() {
+      try {
+        if (window.top && window.top !== window) {
+          window.top.location.href = '/';
+        } else {
+          window.location.href = '/';
+        }
+      } catch (e) {
+        window.location.href = '/';
+      }
+    }
+
+    document.getElementById('mhouse').addEventListener('click', goHome);
+    document.getElementById('mclose').addEventListener('click', goHome);
+    document.getElementById('wclose').addEventListener('click', goHome);
+  </script>
+
+</body>
+
+</html>

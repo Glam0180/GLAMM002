@@ -4,6 +4,7 @@ import Layout from '@components/layout/Layout'
 import Home from '@pages/Home'
 import Floralis from '@pages/tools/Floralis'
 import Canicas3D from '@pages/tools/Canicas3D'
+import Daisy from '@pages/tools/Daisy'
 import TipografiaAdaptativa from '@pages/tools/TipografiaAdaptativa'
 import PosterGenerativo from '@pages/tools/PosterGenerativo'
 import FaceTracking from '@pages/tools/FaceTracking'
@@ -17,6 +18,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="tools/canicas-3d" element={<Canicas3D />} />
+        <Route path="tools/daisy" element={<Daisy />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="tools/floralis" element={<Floralis />} />

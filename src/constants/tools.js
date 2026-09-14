@@ -77,6 +77,18 @@ export const TOOLS = [
     path: '/tools/experimental',
     index: '006',
   },
+  {
+    id: 'daisy',
+    slug: 'daisy',
+    name: 'Daisy',
+    description: 'Próximamente. Estamos definiendo de qué se trata esta herramienta.',
+    category: 'experimental',
+    status: 'wip',
+    tech: ['TBD'],
+    path: '/tools/daisy',
+    index: '007',
+    // Sin thumbnail todavía a propósito: se muestra el placeholder del sistema.
+  },
 ]
 
 export const TOOL_STATUS = {
