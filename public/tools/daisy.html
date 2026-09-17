@@ -599,19 +599,70 @@
     $('mclose').addEventListener('click', goHome);
     $('wclose').addEventListener('click', goHome);
 
-    // ─────────── AJUSTE DEL CANVAS (mantiene 1080×1350 exacto) ───────────
+    // ─────────── AJUSTE DEL CONTENEDOR (frame + canvas se ajustan
+    //             exactamente al formato 1080×1350, sin espacio vacío
+    //             sobrante alrededor) ───────────
     const CANVAS_W = 1080, CANVAS_H = 1350;
     const daisyCanvas = $('daisyCanvas');
+    const frameEl = $('frame');
+    const panelEl = document.querySelector('.daisy-panel');
+    const winBarEl = document.querySelector('.win__bar');
+    const statusBarEl = document.querySelector('.statusbar');
 
     function fitStage() {
-      const wrap = daisyCanvas.parentElement;
-      const availW = wrap.clientWidth - 4;
-      const availH = wrap.clientHeight - 4;
-      const ratio = CANVAS_W / CANVAS_H;
-      let w = availW, h = w / ratio;
-      if (h > availH) { h = availH; w = h * ratio; }
-      daisyCanvas.style.width = Math.max(120, Math.floor(w)) + 'px';
-      daisyCanvas.style.height = Math.max(150, Math.floor(h)) + 'px';
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+      if (isMobile) {
+        // en mobile el CSS ya maneja el layout apilado (ancho 100%,
+        // alto automático) — soltamos cualquier tamaño inline previo.
+        frameEl.style.width = '';
+        frameEl.style.height = '';
+        daisyCanvas.style.width = '';
+        daisyCanvas.style.height = '';
+        return;
+      }
+
+      // Paso 1: soltamos el tamaño del frame para que vuelva a su caja
+      // máxima (la definida en CSS) y así medir cuánto espacio hay
+      // realmente disponible antes de decidir el tamaño ideal.
+      frameEl.style.width = '';
+      frameEl.style.height = '';
+
+      const stage = $('stage');
+      const stageBox = stage.getBoundingClientRect();
+      const framePad = 20; // padding de #frame por lado (definido en CSS)
+      const winBorder = 2; // border de .win por lado
+
+      const maxAvailW = stageBox.width - 8;   // margen del stage
+      const maxAvailH = stageBox.height - 8;
+
+      const chromeW = panelEl.offsetWidth + winBorder * 2 + framePad * 2;
+      const chromeH = winBarEl.offsetHeight + statusBarEl.offsetHeight + winBorder * 2 + framePad * 2;
+
+      const maxCanvasW = maxAvailW - chromeW;
+      const maxCanvasH = maxAvailH - chromeH;
+
+      const ratio = CANVAS_W / CANVAS_H; // 1080/1350 = 0.8
+
+      // El canvas más grande posible que respeta 1080:1350 dentro del
+      // espacio disponible (limitado por el que primero se agote).
+      let canvasW = maxCanvasW;
+      let canvasH = canvasW / ratio;
+      if (canvasH > maxCanvasH) {
+        canvasH = maxCanvasH;
+        canvasW = canvasH * ratio;
+      }
+      canvasW = Math.max(120, Math.floor(canvasW));
+      canvasH = Math.max(150, Math.floor(canvasH));
+
+      daisyCanvas.style.width = canvasW + 'px';
+      daisyCanvas.style.height = canvasH + 'px';
+
+      // Paso 2: el #frame se achica para calzar EXACTO al canvas + panel,
+      // en vez de quedar como una caja de proporción arbitraria con
+      // espacio vacío alrededor.
+      frameEl.style.width = (canvasW + chromeW) + 'px';
+      frameEl.style.height = (canvasH + chromeH) + 'px';
     }
     window.addEventListener('resize', fitStage);
     window.addEventListener('load', fitStage);
