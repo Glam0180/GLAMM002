@@ -161,9 +161,8 @@
     }
 
     #frame {
-      --size: min(calc(100vw - 72px), calc(100vh - 72px), 1080px);
-      width: var(--size);
-      height: var(--size);
+      width: min(calc(100vw - 72px), 1180px);
+      height: min(calc(100vh - 72px), 860px);
       background: var(--black);
       padding: 20px;
       display: flex;
@@ -252,52 +251,164 @@
       color: var(--black);
     }
 
-    /* ───────── ESQUELETO / PLACEHOLDER ───────── */
-    .skeleton-body {
+    /* ───────── COMPOSICIÓN DAISY (canvas 1080×1350 + panel) ───────── */
+    .daisy-main {
       flex: 1;
-      position: relative;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      min-height: 0;
       overflow: hidden;
     }
 
-    .skeleton-grid {
+    /* Zona donde vive el canvas 1080×1350 — se centra y se ajusta por JS
+       (fitStage) manteniendo siempre la proporción 4:5, sin deformarse. */
+    .daisy-canvas-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      min-height: 0;
+      padding: 10px;
+      position: relative;
+    }
+
+    .daisy-canvas {
+      position: relative;
+      background: #000;
+      overflow: hidden;
+      border: 1px solid var(--red-faint);
+      aspect-ratio: 1080 / 1350;
+      max-width: 100%;
+      max-height: 100%;
+      /* width/height los fija fitStage() en px para un ajuste exacto */
+    }
+
+    .daisy-canvas video,
+    .daisy-canvas canvas {
       position: absolute;
       inset: 0;
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      grid-template-rows: repeat(4, 1fr);
-      pointer-events: none;
-    }
-
-    .skeleton-cell {
-      border: 1px solid var(--red-ghost);
-    }
-
-    .skeleton-center {
-      position: relative;
-      z-index: 2;
-      text-align: center;
-      padding: 24px;
-      background: rgba(0, 0, 0, .82);
-      border: 1px solid var(--red-faint);
-    }
-
-    .skeleton-code {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
       display: block;
-      font-size: 11px;
-      letter-spacing: .08em;
-      color: var(--red);
-      font-weight: 700;
-      margin-bottom: 8px;
     }
 
-    .skeleton-msg {
+    /* Orden de capas (de abajo hacia arriba):
+       1) #bg1    → base, se anima cuando hay movimiento de mano
+       2) #bg2    → variante de color, aparece (opacidad) al cerrar el pinch
+       3) #floresCanvas → flores con alfa real, siempre visible, encima de todo */
+    #bg1 { z-index: 1; }
+    #bg2 { z-index: 2; opacity: 0; }
+    #floresCanvas { z-index: 3; }
+
+    .daisy-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--black);
+      color: var(--red-dim);
       font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 20px;
+      transition: opacity .4s ease;
+    }
+
+    /* ───────── PANEL DE CONTROL LATERAL ───────── */
+    .daisy-panel {
+      width: 210px;
+      flex-shrink: 0;
+      border-left: 2px solid var(--red);
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .daisy-btn {
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 10px 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .daisy-btn:hover:not(:disabled) {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    .daisy-btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .daisy-status {
+      font-size: 9px;
+      line-height: 1.5;
+      letter-spacing: .03em;
+      color: var(--red-dim);
+    }
+
+    .daisy-cam-preview {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #000;
+      border: 1px solid var(--red-faint);
+      overflow: hidden;
+    }
+
+    .daisy-cam-preview video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .daisy-cam-preview canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: scaleX(-1);
+    }
+
+    .daisy-meter-label {
+      font-size: 8px;
       letter-spacing: .1em;
       color: var(--red-dim);
       text-transform: uppercase;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .daisy-meter-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 1, 0, .12);
+      border: 1px solid var(--red-faint);
+    }
+
+    .daisy-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--red);
+      transition: width .08s linear;
     }
 
     /* ───────── STATUS BAR ───────── */
@@ -350,20 +461,32 @@
       }
 
       #frame {
-        --size: unset;
         width: 100%;
-        height: calc(100vh - 52px);
-        min-height: 420px;
+        height: auto;
+        min-height: calc(100vh - 52px);
         padding: 10px;
       }
 
-      .skeleton-grid {
-        grid-template-columns: repeat(4, 1fr);
-        grid-template-rows: repeat(6, 1fr);
+      .daisy-main {
+        flex-direction: column;
+        overflow: visible;
       }
 
-      .skeleton-code { font-size: 10px; }
-      .skeleton-msg { font-size: 9px; }
+      .daisy-canvas-wrap {
+        flex: none;
+        padding: 6px;
+      }
+
+      .daisy-panel {
+        width: 100%;
+        border-left: none;
+        border-top: 2px solid var(--red);
+      }
+
+      .daisy-cam-preview {
+        max-width: 260px;
+        margin: 0 auto;
+      }
     }
   </style>
 </head>
@@ -396,7 +519,7 @@
           <span class="slz">///</span>
           <div class="win__bar-dot"></div>
           <span class="win__bar-title">VIEWPORT.DAISY</span>
-          <span class="win__bar-sub">— EN DESARROLLO</span>
+          <span class="win__bar-sub">— CONTROL POR GESTO</span>
           <div class="win__bar-controls">
             <div class="win__ctrl">—</div>
             <div class="win__ctrl">□</div>
@@ -404,20 +527,33 @@
           </div>
         </div>
 
-        <div class="skeleton-body">
-          <div class="skeleton-grid" aria-hidden="true">
-            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
-            <div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div>
+        <div class="daisy-main">
+          <div class="daisy-canvas-wrap">
+            <div class="daisy-canvas" id="daisyCanvas">
+              <video id="bg1" muted loop playsinline preload="auto"></video>
+              <video id="bg2" muted playsinline preload="auto"></video>
+              <canvas id="floresCanvas" width="1080" height="1350"></canvas>
+              <div class="daisy-loading" id="daisyLoading">CARGANDO ASSETS…</div>
+            </div>
           </div>
-          <div class="skeleton-center">
-            <span class="skeleton-code">C:\TOOLS\DAISY.EXE</span>
-            <span class="skeleton-msg">— en desarrollo —</span>
+
+          <div class="daisy-panel">
+            <button class="daisy-btn" id="gestBtn" disabled>🖐 ACTIVAR CÁMARA</button>
+            <div class="daisy-status" id="gestStatus">Cargando assets del lienzo…</div>
+
+            <div class="daisy-cam-preview" id="camPreview" style="display:none;">
+              <video id="gestVideo" autoplay muted playsinline></video>
+              <canvas id="gestLandmarks"></canvas>
+            </div>
+
+            <div>
+              <div class="daisy-meter-label"><span>PINCH</span><span id="pinchPct">0%</span></div>
+              <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="pinchFill"></div></div>
+            </div>
+            <div>
+              <div class="daisy-meter-label"><span>MOVIMIENTO</span><span id="movePct">0%</span></div>
+              <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="moveFill"></div></div>
+            </div>
           </div>
         </div>
 
@@ -429,10 +565,25 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    // ═══════════════════════════════════════════════════════════
+    //  DAISY — composición de 3 capas controlada por gesto de mano
+    //  (MediaPipe Hands, mismo patrón que Canicas 3D):
+    //
+    //  #bg1 (video, z=1)        → base; se anima cuando hay MOVIMIENTO
+    //  #bg2 (video, z=2)        → variante de color; opacidad + avance
+    //                              de tiempo según qué tan cerrado
+    //                              está el PINCH (0 abierto → 1 cerrado)
+    //  #floresCanvas (z=3)      → secuencia PNG/WebP con alfa real;
+    //                              siempre visible, el frame mostrado
+    //                              también depende del valor del PINCH
+    // ═══════════════════════════════════════════════════════════
+
+    const $ = (id) => document.getElementById(id);
+
     // El ícono de casita y el botón de cerrar vuelven siempre al inicio
-    // del sitio (fuera del iframe), igual sea cual sea el modo en que
-    // esta página se esté sirviendo (directa o embebida).
+    // del sitio (fuera del iframe), sea cual sea el modo en que esta
+    // página se esté sirviendo (directa o embebida).
     function goHome() {
       try {
         if (window.top && window.top !== window) {
@@ -444,10 +595,260 @@
         window.location.href = '/';
       }
     }
+    $('mhouse').addEventListener('click', goHome);
+    $('mclose').addEventListener('click', goHome);
+    $('wclose').addEventListener('click', goHome);
 
-    document.getElementById('mhouse').addEventListener('click', goHome);
-    document.getElementById('mclose').addEventListener('click', goHome);
-    document.getElementById('wclose').addEventListener('click', goHome);
+    // ─────────── AJUSTE DEL CANVAS (mantiene 1080×1350 exacto) ───────────
+    const CANVAS_W = 1080, CANVAS_H = 1350;
+    const daisyCanvas = $('daisyCanvas');
+
+    function fitStage() {
+      const wrap = daisyCanvas.parentElement;
+      const availW = wrap.clientWidth - 4;
+      const availH = wrap.clientHeight - 4;
+      const ratio = CANVAS_W / CANVAS_H;
+      let w = availW, h = w / ratio;
+      if (h > availH) { h = availH; w = h * ratio; }
+      daisyCanvas.style.width = Math.max(120, Math.floor(w)) + 'px';
+      daisyCanvas.style.height = Math.max(150, Math.floor(h)) + 'px';
+    }
+    window.addEventListener('resize', fitStage);
+    window.addEventListener('load', fitStage);
+
+    // ─────────── CAPA 1: BG1 (video base, reacciona al MOVIMIENTO) ───────────
+    const bg1 = $('bg1');
+    bg1.src = '/tools/daisy-media/bg1.mp4';
+
+    // ─────────── CAPA 2: BG2 (video, opacidad + scrub por PINCH) ───────────
+    const bg2 = $('bg2');
+    bg2.src = '/tools/daisy-media/bg2.mp4';
+
+    // ─────────── CAPA 3: FLORES (secuencia WebP con alfa, scrub por PINCH) ───────────
+    const FLORES_FRAME_COUNT = 60;
+    const floresCtx = $('floresCanvas').getContext('2d');
+    const floresFrames = [];
+    let floresLoadedCount = 0;
+    let assetsReady = false;
+
+    function pad3(n) { return String(n).padStart(3, '0'); }
+
+    function preloadFlores() {
+      return new Promise((resolve) => {
+        for (let i = 1; i <= FLORES_FRAME_COUNT; i++) {
+          const img = new Image();
+          img.onload = img.onerror = () => {
+            floresLoadedCount++;
+            const st = $('daisyLoading');
+            if (st) st.textContent = `CARGANDO ASSETS… ${Math.round(floresLoadedCount / FLORES_FRAME_COUNT * 100)}%`;
+            if (floresLoadedCount === FLORES_FRAME_COUNT) resolve();
+          };
+          img.src = `/tools/daisy-media/flores/frame_${pad3(i)}.webp`;
+          floresFrames[i - 1] = img;
+        }
+      });
+    }
+
+    function drawFloresFrame(idx) {
+      const img = floresFrames[idx];
+      if (!img || !img.complete) return;
+      floresCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      floresCtx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H);
+    }
+
+    let lastFrameIdx = -1;
+
+    // ─────────── ESTADO derivado del gesto ───────────
+    let pinchValue = 0;      // 0 = abierto … 1 = cerrado (suavizado)
+    let moveValue = 0;       // 0 = quieta … 1 = en movimiento activo (suavizado, solo visual)
+    let isMoving = false;    // estado con histéresis para play/pause de bg1
+
+    function applyPinch(p) {
+      pinchValue = p;
+      // BG2: opacidad 0→100% y avance de tiempo 0→duración
+      bg2.style.opacity = String(p);
+      if (bg2.duration && isFinite(bg2.duration)) {
+        try { bg2.currentTime = p * Math.max(0, bg2.duration - 0.04); } catch (e) {}
+      }
+      // FLORES: frame 0 (pinch abierto) → último frame (pinch cerrado)
+      const idx = Math.min(FLORES_FRAME_COUNT - 1, Math.round(p * (FLORES_FRAME_COUNT - 1)));
+      if (idx !== lastFrameIdx) { drawFloresFrame(idx); lastFrameIdx = idx; }
+
+      $('pinchFill').style.width = (p * 100).toFixed(0) + '%';
+      $('pinchPct').textContent = Math.round(p * 100) + '%';
+    }
+
+    function applyMovement(moving, magnitude01) {
+      moveValue = magnitude01;
+      $('moveFill').style.width = (magnitude01 * 100).toFixed(0) + '%';
+      $('movePct').textContent = Math.round(magnitude01 * 100) + '%';
+      if (moving !== isMoving) {
+        isMoving = moving;
+        if (isMoving) { bg1.play().catch(() => {}); }
+        else { bg1.pause(); }
+      }
+    }
+
+    // ─────────── MEDIAPIPE HANDS (mismo patrón que Canicas 3D) ───────────
+    let handLandmarker = null;
+    let gestureActive = false;
+    let gestureStream = null;
+    let smoothedPinchDist = null;
+    let lastHandCenter = null;
+    let stillSince = 0;
+
+    const PINCH_OPEN_T = 0.55;
+    const PINCH_CLOSED_T = 0.32;
+    const MOVE_THRESHOLD = 0.012;   // desplazamiento normalizado por frame para considerar "movimiento"
+    const MOVE_NORMALIZE = 0.05;    // para la barra visual de movimiento
+    const STILL_MS = 380;           // quietud sostenida antes de pausar BG1
+
+    const HAND_CONNECTIONS = [
+      [0,1],[1,2],[2,3],[3,4],
+      [0,5],[5,6],[6,7],[7,8],
+      [0,9],[9,10],[10,11],[11,12],
+      [0,13],[13,14],[14,15],[15,16],
+      [0,17],[17,18],[18,19],[19,20],
+      [5,9],[9,13],[13,17]
+    ];
+
+    function drawHandLandmarks(lm) {
+      const canvas = $('gestLandmarks');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      if (!w || !h) return;
+      ctx.clearRect(0, 0, w, h);
+      if (!lm) return;
+      ctx.strokeStyle = '#FF0100';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (const [a, b] of HAND_CONNECTIONS) {
+        ctx.moveTo(lm[a].x * w, lm[a].y * h);
+        ctx.lineTo(lm[b].x * w, lm[b].y * h);
+      }
+      ctx.stroke();
+      ctx.fillStyle = '#FF0100';
+      for (const p of lm) {
+        ctx.beginPath();
+        ctx.arc(p.x * w, p.y * h, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#FFFFFF';
+      [lm[4], lm[8]].forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x * w, p.y * h, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    async function toggleGestureControl() {
+      if (gestureActive) { stopGestureControl(); return; }
+      const btn = $('gestBtn'), st = $('gestStatus');
+      btn.disabled = true;
+      st.textContent = 'Cargando modelo de mano…';
+      try {
+        if (!handLandmarker) {
+          const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+          const fileset = await vision.FilesetResolver.forVisionTasks(
+            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+          );
+          handLandmarker = await vision.HandLandmarker.createFromOptions(fileset, {
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+              delegate: 'GPU'
+            },
+            runningMode: 'VIDEO',
+            numHands: 1
+          });
+        }
+        st.textContent = 'Pidiendo acceso a la cámara…';
+        gestureStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 480, height: 360, facingMode: 'user' }, audio: false
+        });
+        const video = $('gestVideo');
+        video.srcObject = gestureStream;
+        await video.play();
+        gestureActive = true;
+        smoothedPinchDist = null;
+        lastHandCenter = null;
+        stillSince = performance.now();
+        btn.textContent = '🖐 DESACTIVAR CÁMARA';
+        st.textContent = 'Mueve la mano para animar el fondo — cierra el pinch para revelar las flores';
+        $('camPreview').style.display = 'block';
+        const lmCanvas = $('gestLandmarks');
+        lmCanvas.width = lmCanvas.clientWidth;
+        lmCanvas.height = lmCanvas.clientHeight;
+      } catch (err) {
+        st.textContent = '❌ No se pudo activar la cámara o el modelo de mano';
+        console.error(err);
+      }
+      btn.disabled = false;
+    }
+
+    function stopGestureControl() {
+      gestureActive = false;
+      if (gestureStream) { gestureStream.getTracks().forEach(t => t.stop()); gestureStream = null; }
+      $('gestBtn').textContent = '🖐 ACTIVAR CÁMARA';
+      $('gestStatus').textContent = 'Cierra el pinch (pulgar + índice) para revelar las flores';
+      $('camPreview').style.display = 'none';
+      const lmCanvas = $('gestLandmarks');
+      lmCanvas.getContext('2d').clearRect(0, 0, lmCanvas.width, lmCanvas.height);
+      // vuelve al estado de reposo
+      applyMovement(false, 0);
+    }
+
+    function updateGestureControl() {
+      if (!gestureActive || !handLandmarker) return;
+      const video = $('gestVideo');
+      if (video.readyState < 2) return;
+
+      const result = handLandmarker.detectForVideo(video, performance.now());
+      const lm = result && result.landmarks && result.landmarks[0];
+      drawHandLandmarks(lm || null);
+      if (!lm) { applyMovement(false, 0); return; }
+
+      // ── Pinch: distancia pulgar↔índice normalizada por el tamaño de la mano ──
+      const thumb = lm[4], index = lm[8], wrist = lm[0], midMcp = lm[9];
+      const handScale = Math.hypot(midMcp.x - wrist.x, midMcp.y - wrist.y) || 0.0001;
+      const pinchDist = Math.hypot(thumb.x - index.x, thumb.y - index.y) / handScale;
+      smoothedPinchDist = smoothedPinchDist === null ? pinchDist : smoothedPinchDist + (pinchDist - smoothedPinchDist) * 0.35;
+
+      const raw = 1 - Math.min(1, Math.max(0, (smoothedPinchDist - PINCH_CLOSED_T) / (PINCH_OPEN_T - PINCH_CLOSED_T)));
+      applyPinch(raw);
+
+      // ── Movimiento: velocidad del centro de la mano entre frames ──
+      const center = { x: (wrist.x + midMcp.x) / 2, y: (wrist.y + midMcp.y) / 2 };
+      let speed = 0;
+      if (lastHandCenter) speed = Math.hypot(center.x - lastHandCenter.x, center.y - lastHandCenter.y);
+      lastHandCenter = center;
+
+      const now = performance.now();
+      if (speed > MOVE_THRESHOLD) stillSince = now;
+      const moving = (now - stillSince) < STILL_MS;
+      applyMovement(moving, Math.min(1, speed / MOVE_NORMALIZE));
+    }
+
+    $('gestBtn').addEventListener('click', toggleGestureControl);
+
+    // ─────────── LOOP PRINCIPAL ───────────
+    function loop() {
+      updateGestureControl();
+      requestAnimationFrame(loop);
+    }
+
+    // ─────────── INIT ───────────
+    (async function init() {
+      fitStage();
+      await preloadFlores();
+      assetsReady = true;
+      fitStage();
+      drawFloresFrame(0);
+      $('daisyLoading').style.opacity = '0';
+      setTimeout(() => { $('daisyLoading').style.display = 'none'; }, 400);
+      $('gestBtn').disabled = false;
+      $('gestStatus').textContent = 'Cierra el pinch (pulgar + índice) para revelar las flores';
+      requestAnimationFrame(loop);
+    })();
   </script>
 
 </body>
