@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import InfoPanel from './InfoPanel'
 import './ToolSystemShell.css'
 
 /**
@@ -12,8 +13,11 @@ import './ToolSystemShell.css'
  * Daisy ("EN DESARROLLO"). Si se le pasan `children` (p. ej. una experiencia
  * ya funcional como Floralis), los muestra dentro de la ventana, manteniendo
  * el mismo look & feel para todo el laboratorio.
+ *
+ * `whatItDoes` (string) y `steps` (array, máx. 5) alimentan el InfoPanel
+ * flotante y arrastrable con las instrucciones de la herramienta.
  */
-export default function ToolSystemShell({ tool, children }) {
+export default function ToolSystemShell({ tool, children, whatItDoes, steps }) {
   const name = tool?.name || 'HERRAMIENTA'
   const subLabel = children ? name.toUpperCase() : `${name.toUpperCase()} — EN DESARROLLO`
 
@@ -54,6 +58,9 @@ export default function ToolSystemShell({ tool, children }) {
             </div>
 
             <div className="tss__body">
+              {(whatItDoes || (steps && steps.length > 0)) && (
+                <InfoPanel title={`cómo usar — ${name.toLowerCase()}`} whatItDoes={whatItDoes} steps={steps} />
+              )}
               {children ? children : (
                 <div className="tss__skeleton">
                   <div className="tss__skeleton-grid" aria-hidden="true">

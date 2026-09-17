@@ -1,0 +1,155 @@
+/* InfoPanel — pestaña flotante de instrucciones, mismo lenguaje
+   visual del system UI (rojo/negro, Space Mono). Ligeramente
+   horizontal (más ancha que alta). */
+
+.ip {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: min(310px, calc(100% - 20px));
+  background: #000;
+  border: 2px solid #FF0100;
+  z-index: 50;
+  font-family: 'Space Mono', monospace !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
+  user-select: none;
+}
+
+.ip__bar {
+  height: 22px;
+  background: #FF0100;
+  border-bottom: 2px solid #000;
+  display: flex;
+  align-items: center;
+  padding: 0 5px 0 7px;
+  gap: 5px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.ip__bar:active {
+  cursor: grabbing;
+}
+
+.ip__slz {
+  font-size: 8px;
+  font-weight: 700 !important;
+  color: rgba(0, 0, 0, .5);
+  font-family: 'Space Mono', monospace !important;
+}
+
+.ip__dot {
+  width: 5px;
+  height: 5px;
+  background: #000;
+  flex-shrink: 0;
+}
+
+.ip__title {
+  font-size: 9px;
+  font-weight: 700 !important;
+  letter-spacing: .12em;
+  color: #000;
+  text-transform: lowercase;
+  font-family: 'Space Mono', monospace !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ip__ctrls {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.ip__ctrl {
+  width: 16px;
+  height: 14px;
+  background: #000;
+  border: 1px solid rgba(255, 1, 0, .4);
+  color: #FF0100;
+  font-size: 8px;
+  font-weight: 700 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace !important;
+}
+
+.ip__ctrl:hover {
+  background: #FF0100;
+  color: #000;
+}
+
+.ip__body {
+  padding: 10px 12px 12px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.ip__desc {
+  font-size: 10px !important;
+  line-height: 1.5;
+  letter-spacing: .02em;
+  color: #FF0100;
+  text-transform: lowercase;
+  font-family: 'Space Mono', monospace !important;
+  font-weight: 400 !important;
+  margin-bottom: 8px;
+}
+
+.ip__steps {
+  list-style: none;
+  counter-reset: ip-step;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ip__steps li {
+  counter-increment: ip-step;
+  font-size: 9px !important;
+  line-height: 1.5;
+  letter-spacing: .02em;
+  color: rgba(255, 1, 0, .8);
+  text-transform: lowercase;
+  font-family: 'Space Mono', monospace !important;
+  font-weight: 400 !important;
+  display: flex;
+  gap: 6px;
+}
+
+.ip__steps li::before {
+  content: counter(ip-step) ".";
+  color: #FF0100;
+  font-weight: 700 !important;
+  flex-shrink: 0;
+}
+
+.ip-reopen {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 26px;
+  height: 26px;
+  background: #000;
+  border: 2px solid #FF0100;
+  color: #FF0100;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 13px;
+  font-weight: 700 !important;
+  cursor: pointer;
+  z-index: 50;
+}
+
+.ip-reopen:hover {
+  background: #FF0100;
+  color: #000;
+}
+
+@media (max-width: 640px) {
+  .ip { width: min(88vw, 280px); }
+  .ip__body { max-height: 180px; }
+}

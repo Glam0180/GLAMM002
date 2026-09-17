@@ -5,5 +5,15 @@ import { TOOLS } from '@constants/tools'
 const tool = TOOLS.find(t => t.id === 'face-tracking')
 
 export default function FaceTracking() {
-  return <ToolSystemShell tool={tool} />
+  return (
+    <ToolSystemShell
+      tool={tool}
+      whatItDoes="herramienta en desarrollo — todavía no tiene funcionalidad activa."
+      steps={[
+        'por ahora este es solo el esqueleto visual',
+        'pronto vas a poder interactuar con ella',
+        'vuelve más adelante para probarla',
+      ]}
+    />
+  )
 }

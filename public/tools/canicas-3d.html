@@ -1017,6 +1017,73 @@
       }
     }
 
+    /* ───────── INFO PANEL (arrastrable, minimizable, cerrable) ───────── */
+    .ip {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: min(270px, calc(100% - 16px));
+      background: #000;
+      border: 2px solid var(--red);
+      z-index: 40;
+      box-shadow: 0 6px 18px rgba(0,0,0,.5);
+      user-select: none;
+    }
+
+    .ip__bar {
+      height: 20px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      cursor: grab;
+      touch-action: none;
+    }
+    .ip__bar:active { cursor: grabbing; }
+
+    .ip__slz { font-size: 8px; font-weight: 700; color: rgba(0,0,0,.5); }
+    .ip__dot { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
+    .ip__title {
+      font-size: 9px; font-weight: 700; letter-spacing: .1em;
+      color: var(--black); text-transform: lowercase;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ip__ctrls { display: flex; gap: 4px; margin-left: auto; }
+    .ip__ctrl {
+      width: 15px; height: 13px; background: var(--black);
+      border: 1px solid rgba(255,1,0,.4); color: var(--red);
+      font-size: 8px; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; cursor: pointer;
+    }
+    .ip__ctrl:hover { background: var(--red); color: var(--black); }
+
+    .ip__body { padding: 9px 11px 11px; max-height: 220px; overflow-y: auto; }
+    .ip__desc {
+      font-size: 9px; line-height: 1.5; letter-spacing: .02em;
+      color: var(--red); text-transform: lowercase; margin-bottom: 7px;
+    }
+    .ip__steps { list-style: none; counter-reset: ip-step; display: flex; flex-direction: column; gap: 5px; }
+    .ip__steps li {
+      counter-increment: ip-step; font-size: 8px; line-height: 1.5;
+      letter-spacing: .02em; color: var(--red-dim); text-transform: lowercase;
+      display: flex; gap: 6px;
+    }
+    .ip__steps li::before { content: counter(ip-step) "."; color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+    .ip-reopen {
+      position: absolute; top: 10px; left: 10px; width: 24px; height: 24px;
+      background: #000; border: 2px solid var(--red); color: var(--red);
+      font-size: 12px; font-weight: 700; cursor: pointer; z-index: 40;
+    }
+    .ip-reopen:hover { background: var(--red); color: var(--black); }
+
+    @media (max-width: 640px) {
+      .ip { width: min(80vw, 240px); }
+      .ip__body { max-height: 160px; }
+    }
+
   </style>
 </head>
 
@@ -1057,6 +1124,28 @@
         </div>
         <div id="canvas-inner">
           <div id="vp-fit">
+          <div class="ip" id="infoPanel">
+            <div class="ip__bar" id="infoPanelBar">
+              <span class="ip__slz">///</span>
+              <span class="ip__dot"></span>
+              <span class="ip__title">cómo usar — canicas 3d</span>
+              <div class="ip__ctrls">
+                <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
+                <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
+              </div>
+            </div>
+            <div class="ip__body" id="infoBody">
+              <p class="ip__desc">lanza canicas con física real — apunta y dispara con mouse o con tu mano.</p>
+              <ol class="ip__steps">
+                <li>haz click y arrastra para apuntar y cargar potencia</li>
+                <li>suelta para disparar la canica</li>
+                <li>activa "activar cámara" para usar tu mano</li>
+                <li>cierra el pinch para cargar y apunta moviendo la mano</li>
+                <li>abre el pinch para disparar</li>
+              </ol>
+            </div>
+          </div>
+          <button class="ip-reopen" id="infoReopen" style="display:none;" title="Mostrar instrucciones">?</button>
           <div id="bg-layer"></div>
           <video id="hitVideo" muted playsinline preload="auto"></video>
           <div id="dropzone">
@@ -1476,6 +1565,69 @@
     }
 
     const $ = id => document.getElementById(id);
+
+    // ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ───────────
+    // Bloque agregado, no interfiere con el resto de la lógica de la escena.
+    (function setupInfoPanel() {
+      const panel = $('infoPanel');
+      const bar = $('infoPanelBar');
+      const body = $('infoBody');
+      const minBtn = $('infoMin');
+      const closeBtn = $('infoClose');
+      const reopenBtn = $('infoReopen');
+      if (!panel || !bar) return;
+
+      let dragging = false, offsetX = 0, offsetY = 0;
+      function getPoint(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
+
+      function onDown(e) {
+        if (e.target === minBtn || e.target === closeBtn) return;
+        const p = getPoint(e);
+        const rect = panel.getBoundingClientRect();
+        dragging = true;
+        offsetX = p.clientX - rect.left;
+        offsetY = p.clientY - rect.top;
+      }
+
+      function onMove(e) {
+        if (!dragging) return;
+        const p = getPoint(e);
+        const parentRect = panel.offsetParent.getBoundingClientRect();
+        const pw = panel.offsetWidth, ph = panel.offsetHeight;
+        let x = p.clientX - parentRect.left - offsetX;
+        let y = p.clientY - parentRect.top - offsetY;
+        x = Math.max(0, Math.min(parentRect.width - pw, x));
+        y = Math.max(0, Math.min(parentRect.height - ph, y));
+        panel.style.left = x + 'px';
+        panel.style.top = y + 'px';
+        if (e.cancelable) e.preventDefault();
+      }
+
+      function onUp() { dragging = false; }
+
+      bar.addEventListener('mousedown', onDown);
+      bar.addEventListener('touchstart', onDown, { passive: true });
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchend', onUp);
+
+      let minimized = false;
+      minBtn.addEventListener('click', () => {
+        minimized = !minimized;
+        body.style.display = minimized ? 'none' : '';
+      });
+
+      closeBtn.addEventListener('click', () => {
+        panel.style.display = 'none';
+        reopenBtn.style.display = 'block';
+      });
+
+      reopenBtn.addEventListener('click', () => {
+        panel.style.display = '';
+        reopenBtn.style.display = 'none';
+      });
+    })();
 
     // ═══════════════════════════════════════════════════════════
     //  ATAJO DE CARGA — sondeo de rutas EN PARALELO.
