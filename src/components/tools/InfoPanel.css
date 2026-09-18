@@ -128,10 +128,8 @@
   flex-shrink: 0;
 }
 
-.ip-reopen {
+.ip-bubble {
   position: absolute;
-  top: 14px;
-  left: 14px;
   width: 26px;
   height: 26px;
   background: #000;
@@ -142,9 +140,13 @@
   font-weight: 700 !important;
   cursor: pointer;
   z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
 }
 
-.ip-reopen:hover {
+.ip-bubble:hover {
   background: #FF0100;
   color: #000;
 }

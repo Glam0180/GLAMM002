@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import InfoPanel from './InfoPanel'
 import './ToolSystemShell.css'
@@ -15,14 +15,17 @@ import './ToolSystemShell.css'
  * el mismo look & feel para todo el laboratorio.
  *
  * `whatItDoes` (string) y `steps` (array, máx. 5) alimentan el InfoPanel
- * flotante y arrastrable con las instrucciones de la herramienta.
+ * flotante: vive FUERA de la ventana de contenido (`.tss__frame`, el
+ * "canvas" de la herramienta) y solo puede arrastrarse por fuera de ella.
  */
 export default function ToolSystemShell({ tool, children, whatItDoes, steps }) {
   const name = tool?.name || 'HERRAMIENTA'
   const subLabel = children ? name.toUpperCase() : `${name.toUpperCase()} — EN DESARROLLO`
+  const boundsRef = useRef(null)
+  const frameRef = useRef(null)
 
   return (
-    <section className="tss">
+    <section className="tss" ref={boundsRef}>
       <div className="tss__master-bar">
         <span className="tss__slz">///</span>
         <div className="tss__dot5" />
@@ -43,7 +46,7 @@ export default function ToolSystemShell({ tool, children, whatItDoes, steps }) {
       </div>
 
       <div className="tss__stage">
-        <div className="tss__frame">
+        <div className="tss__frame" ref={frameRef}>
           <div className="tss__win">
             <div className="tss__win-bar">
               <span className="tss__slz">///</span>
@@ -58,9 +61,6 @@ export default function ToolSystemShell({ tool, children, whatItDoes, steps }) {
             </div>
 
             <div className="tss__body">
-              {(whatItDoes || (steps && steps.length > 0)) && (
-                <InfoPanel title={`cómo usar — ${name.toLowerCase()}`} whatItDoes={whatItDoes} steps={steps} />
-              )}
               {children ? children : (
                 <div className="tss__skeleton">
                   <div className="tss__skeleton-grid" aria-hidden="true">
@@ -85,6 +85,16 @@ export default function ToolSystemShell({ tool, children, whatItDoes, steps }) {
           </div>
         </div>
       </div>
+
+      {(whatItDoes || (steps && steps.length > 0)) && (
+        <InfoPanel
+          title={`cómo usar — ${name.toLowerCase()}`}
+          whatItDoes={whatItDoes}
+          steps={steps}
+          boundsRef={boundsRef}
+          contentRef={frameRef}
+        />
+      )}
     </section>
   )
 }
