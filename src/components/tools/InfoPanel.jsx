@@ -6,15 +6,15 @@ import './InfoPanel.css'
  * herramienta" + hasta 5 pasos), con el mismo look del system UI
  * (rojo/negro, Space Mono).
  *
- * Vive FUERA del área de contenido de la herramienta (`contentRef`,
- * el "canvas"/viewport): nunca puede arrastrarse encima de ella, se
- * empuja siempre al borde más cercano por fuera. Minimizar y cerrar
- * hacen lo mismo: colapsan a una pequeña burbuja "?" en el mismo
- * lugar, que al hacer click reabre el panel donde estaba.
+ * El arrastre es 100% libre: no hay límites de contenedor ni zonas
+ * excluidas, se puede soltar donde sea. Solo se calcula una posición
+ * inicial razonable (afuera de la ventana de contenido) la primera vez
+ * que aparece. Minimizar y cerrar hacen lo mismo: colapsan a una
+ * burbuja "?" en el mismo lugar, que al hacer click reabre el panel.
  *
  * Props:
- *  - boundsRef: contenedor donde se puede mover (position:relative)
- *  - contentRef: elemento que el panel NUNCA debe tapar
+ *  - boundsRef: contenedor de referencia para la posición inicial
+ *  - contentRef: ventana de contenido (para calcular esa posición inicial)
  */
 export default function InfoPanel({ title = 'CÓMO USAR', whatItDoes, steps = [], boundsRef, contentRef }) {
   const panelRef = useRef(null)
@@ -25,88 +25,43 @@ export default function InfoPanel({ title = 'CÓMO USAR', whatItDoes, steps = []
   const [bubblePos, setBubblePos] = useState({ x: 14, y: 14 })
   const [collapsed, setCollapsed] = useState(false)
 
-  const contentRectRel = useCallback(() => {
-    const b = boundsRef?.current?.getBoundingClientRect()
-    const c = contentRef?.current?.getBoundingClientRect()
-    if (!b || !c) return null
-    return { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height }
-  }, [boundsRef, contentRef])
-
-  const clampOutside = useCallback((x, y, w, h) => {
-    const b = boundsRef?.current?.getBoundingClientRect()
-    if (!b) return { x, y }
-    x = Math.max(0, Math.min(b.width - w, x))
-    y = Math.max(0, Math.min(b.height - h, y))
-    const ex = contentRectRel()
-    if (ex) {
-      const overlapX = x < ex.x + ex.w && x + w > ex.x
-      const overlapY = y < ex.y + ex.h && y + h > ex.y
-      if (overlapX && overlapY) {
-        const pushLeft = (x + w) - ex.x
-        const pushRight = (ex.x + ex.w) - x
-        const pushUp = (y + h) - ex.y
-        const pushDown = (ex.y + ex.h) - y
-        const min = Math.min(pushLeft, pushRight, pushUp, pushDown)
-        if (min === pushRight) x = ex.x + ex.w
-        else if (min === pushDown) y = ex.y + ex.h
-        else if (min === pushLeft) x = ex.x - w
-        else y = ex.y - h
-        x = Math.max(0, Math.min(b.width - w, x))
-        y = Math.max(0, Math.min(b.height - h, y))
-      }
-    }
-    return { x, y }
-  }, [boundsRef, contentRectRel])
-
   const computeDefaultPos = useCallback((w, h) => {
     const b = boundsRef?.current?.getBoundingClientRect()
-    const ex = contentRectRel()
-    if (!b || !ex) return { x: 14, y: 14 }
+    const c = contentRef?.current?.getBoundingClientRect()
+    if (!b || !c) return { x: 14, y: 14 }
+    const ex = { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height }
     const roomRight = b.width - (ex.x + ex.w)
     const roomBelow = b.height - (ex.y + ex.h)
     if (roomRight >= w + 14) return { x: ex.x + ex.w + 8, y: ex.y + 8 }
     if (roomBelow >= h + 14) return { x: 8, y: ex.y + ex.h + 8 }
-    return clampOutside(8, 8, w, h)
-  }, [boundsRef, contentRectRel, clampOutside])
+    return { x: 8, y: 8 }
+  }, [boundsRef, contentRef])
 
-  // Posición inicial + recalcular en resize (si el usuario no la movió a mano)
+  // Posición inicial (solo si el usuario no la ha movido a mano todavía)
   useEffect(() => {
-    function place() {
-      const el = collapsed ? bubbleRef.current : panelRef.current
-      if (!el) return
+    if (collapsed || userMoved.current) return
+    const el = panelRef.current
+    if (!el) return
+    const raf1 = requestAnimationFrame(() => requestAnimationFrame(() => {
       const rect = el.getBoundingClientRect()
-      if (collapsed) {
-        setBubblePos((p) => clampOutside(p.x, p.y, rect.width, rect.height))
-      } else if (!userMoved.current) {
-        setPos(computeDefaultPos(rect.width, rect.height))
-      } else {
-        setPos((p) => clampOutside(p.x, p.y, rect.width, rect.height))
-      }
-    }
-    const raf1 = requestAnimationFrame(() => requestAnimationFrame(place))
-    window.addEventListener('resize', place)
-    return () => {
-      cancelAnimationFrame(raf1)
-      window.removeEventListener('resize', place)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collapsed])
+      setPos(computeDefaultPos(rect.width, rect.height))
+    }))
+    return () => cancelAnimationFrame(raf1)
+  }, [collapsed, computeDefaultPos])
 
+  // ── Drag libre, sin restricciones ──
   useEffect(() => {
     function getPoint(e) {
       return e.touches && e.touches[0] ? e.touches[0] : e
     }
 
     function onMove(e) {
-      if (!drag.current.dragging || !panelRef.current) return
+      if (!drag.current.dragging || !boundsRef?.current) return
       const point = getPoint(e)
-      const b = boundsRef?.current?.getBoundingClientRect()
-      if (!b) return
-      const pw = panelRef.current.offsetWidth
-      const ph = panelRef.current.offsetHeight
+      const b = boundsRef.current.getBoundingClientRect()
       const x = point.clientX - b.left - drag.current.offsetX
       const y = point.clientY - b.top - drag.current.offsetY
-      setPos(clampOutside(x, y, pw, ph))
+      setPos({ x, y })
       if (e.cancelable) e.preventDefault()
     }
 
@@ -124,7 +79,7 @@ export default function InfoPanel({ title = 'CÓMO USAR', whatItDoes, steps = []
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onUp)
     }
-  }, [boundsRef, clampOutside])
+  }, [boundsRef])
 
   function startDrag(e) {
     if (e.target.closest('.ip__ctrl')) return // no arrastrar al tocar — / ✕
@@ -147,7 +102,7 @@ export default function InfoPanel({ title = 'CÓMO USAR', whatItDoes, steps = []
   function expand() {
     const rect = bubbleRef.current.getBoundingClientRect()
     const b = boundsRef?.current?.getBoundingClientRect()
-    if (b) setPos(clampOutside(rect.left - b.left, rect.top - b.top, panelRef.current?.offsetWidth || 200, panelRef.current?.offsetHeight || 120))
+    if (b) setPos({ x: rect.left - b.left, y: rect.top - b.top })
     setCollapsed(false)
   }
 

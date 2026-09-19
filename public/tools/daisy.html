@@ -992,53 +992,19 @@
       const bounds = $('stage');
       const exclusionEl = $('frame');
 
-      function canvasRectRelativeToBounds() {
-        const c = exclusionEl.getBoundingClientRect();
-        const b = bounds.getBoundingClientRect();
-        return { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height };
-      }
-
-      // Empuja (x,y) del panel (w×h) para que quede SIEMPRE fuera del
-      // rectángulo excluido `ex`, dentro de los límites de `bounds`.
-      function clampOutside(x, y, w, h) {
-        const b = bounds.getBoundingClientRect();
-        x = Math.max(0, Math.min(b.width - w, x));
-        y = Math.max(0, Math.min(b.height - h, y));
-        const ex = canvasRectRelativeToBounds();
-        const overlapX = x < ex.x + ex.w && x + w > ex.x;
-        const overlapY = y < ex.y + ex.h && y + h > ex.y;
-        if (overlapX && overlapY) {
-          const pushLeft = (x + w) - ex.x;
-          const pushRight = (ex.x + ex.w) - x;
-          const pushUp = (y + h) - ex.y;
-          const pushDown = (ex.y + ex.h) - y;
-          const min = Math.min(pushLeft, pushRight, pushUp, pushDown);
-          if (min === pushRight) x = ex.x + ex.w;
-          else if (min === pushDown) y = ex.y + ex.h;
-          else if (min === pushLeft) x = ex.x - w;
-          else y = ex.y - h;
-          x = Math.max(0, Math.min(b.width - w, x));
-          y = Math.max(0, Math.min(b.height - h, y));
-        }
-        return { x, y };
-      }
-
-      // Posición inicial "inteligente": a la derecha del canvas si hay
-      // espacio (columna de control), si no, debajo (layout mobile).
+      // Posición inicial razonable (a la derecha de la ventana si hay
+      // espacio, si no debajo) — pero el arrastre en sí es 100% libre,
+      // sin límites ni exclusión: se puede soltar donde sea.
       function defaultPos() {
         const b = bounds.getBoundingClientRect();
-        const ex = canvasRectRelativeToBounds();
+        const c = exclusionEl.getBoundingClientRect();
+        const ex = { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height };
         const pw = panel.offsetWidth, ph = panel.offsetHeight;
         const roomRight = b.width - (ex.x + ex.w);
         const roomBelow = b.height - (ex.y + ex.h);
-        if (roomRight >= pw + 14) {
-          return { x: ex.x + ex.w + 8, y: ex.y + 8 };
-        }
-        if (roomBelow >= ph + 14) {
-          return { x: 8, y: ex.y + ex.h + 8 };
-        }
-        // último recurso: lo más lejos posible del centro del canvas
-        return clampOutside(8, 8, pw, ph);
+        if (roomRight >= pw + 14) return { x: ex.x + ex.w + 8, y: ex.y + 8 };
+        if (roomBelow >= ph + 14) return { x: 8, y: ex.y + ex.h + 8 };
+        return { x: 8, y: 8 };
       }
 
       function placeAt(pos) {
@@ -1058,7 +1024,7 @@
         placeAt(defaultPos());
       }
 
-      // ── Drag ──
+      // ── Drag libre, sin restricciones ──
       let dragging = false, offsetX = 0, offsetY = 0;
       function getPoint(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
 
@@ -1076,10 +1042,9 @@
         if (!dragging) return;
         const p = getPoint(e);
         const b = bounds.getBoundingClientRect();
-        const pw = panel.offsetWidth, ph = panel.offsetHeight;
         const rawX = p.clientX - b.left - offsetX;
         const rawY = p.clientY - b.top - offsetY;
-        placeAt(clampOutside(rawX, rawY, pw, ph));
+        placeAt({ x: rawX, y: rawY }); // libre, sin clamp ni exclusion
         if (e.cancelable) e.preventDefault();
       }
 
@@ -1108,8 +1073,7 @@
       bubble.addEventListener('click', () => {
         const bRect = bubble.getBoundingClientRect();
         const bnd = bounds.getBoundingClientRect();
-        const pw = panel.offsetWidth, ph = panel.offsetHeight;
-        placeAt(clampOutside(bRect.left - bnd.left, bRect.top - bnd.top, pw, ph));
+        placeAt({ x: bRect.left - bnd.left, y: bRect.top - bnd.top });
         bubble.style.display = 'none';
         panel.style.display = '';
       });
