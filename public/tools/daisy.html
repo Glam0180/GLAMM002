@@ -495,7 +495,7 @@
       position: absolute;
       top: 30px;
       left: 10px;
-      width: min(196px, calc(100% - 16px));
+      width: min(240px, calc(100% - 16px));
       background: #000;
       border: 2px solid var(--red);
       z-index: 40;
@@ -628,38 +628,38 @@
           </div>
         </div>
 
-        <!-- El panel de instrucciones vive fuera del canvas del poster:
-             es hijo de .win (no de #daisyCanvas), así el área de arrastre
-             y el propio panel quedan siempre por fuera del lienzo. -->
-        <div class="ip" id="infoPanel">
-          <div class="ip__bar" id="infoPanelBar">
-            <span class="ip__slz">///</span>
-            <span class="ip__dot"></span>
-            <span class="ip__title">cómo usar — daisy</span>
-            <div class="ip__ctrls">
-              <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
-              <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
-            </div>
-          </div>
-          <div class="ip__body" id="infoBody">
-            <p class="ip__desc">composición de flores controlada con gestos de tu mano frente a la cámara.</p>
-            <ol class="ip__steps">
-              <li>activa "activar cámara" en el panel derecho</li>
-              <li>mueve la mano para animar el fondo base</li>
-              <li>cierra el pinch (pulgar + índice) para revelar el fondo alterno</li>
-              <li>sigue cerrando el pinch para hacer crecer las flores</li>
-              <li>abre la mano para volver al estado inicial</li>
-            </ol>
-          </div>
-        </div>
-        <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
-
         <div class="statusbar">
           <span><span class="dot-live"></span>EN CURSO</span>
           <span>DAISY</span>
         </div>
       </div>
     </div>
+
+    <!-- El panel de instrucciones vive AFUERA de .win por completo
+         (canvas + panel de propiedades incluidos): es hijo de #stage,
+         flotando en el margen que pertenece al marco "STUDIO GLAM". -->
+    <div class="ip" id="infoPanel">
+      <div class="ip__bar" id="infoPanelBar">
+        <span class="ip__slz">///</span>
+        <span class="ip__dot"></span>
+        <span class="ip__title">cómo usar — daisy</span>
+        <div class="ip__ctrls">
+          <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
+          <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
+        </div>
+      </div>
+      <div class="ip__body" id="infoBody">
+        <p class="ip__desc">composición de flores controlada con gestos de tu mano frente a la cámara.</p>
+        <ol class="ip__steps">
+          <li>activa "activar cámara" en el panel derecho</li>
+          <li>mueve la mano para animar el fondo base</li>
+          <li>cierra el pinch (pulgar + índice) para revelar el fondo alterno</li>
+          <li>sigue cerrando el pinch para hacer crecer las flores</li>
+          <li>abre la mano para volver al estado inicial</li>
+        </ol>
+      </div>
+    </div>
+    <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
   </div>
 
   <script type="module">
@@ -989,10 +989,11 @@
       const minBtn = $('infoMin');
       const closeBtn = $('infoClose');
       const bubble = $('infoBubble');
-      const bounds = panel.offsetParent || $('frame').querySelector('.win') || document.querySelector('.win');
+      const bounds = $('stage');
+      const exclusionEl = $('frame');
 
       function canvasRectRelativeToBounds() {
-        const c = $('daisyCanvas').getBoundingClientRect();
+        const c = exclusionEl.getBoundingClientRect();
         const b = bounds.getBoundingClientRect();
         return { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height };
       }
