@@ -39,8 +39,8 @@
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid var(--color-flat-fg);
-  border-left: 1px solid var(--color-flat-fg);
+  gap: 5px;
+  background: var(--color-flat-bg);
 }
 
 /* ── Responsive ── */

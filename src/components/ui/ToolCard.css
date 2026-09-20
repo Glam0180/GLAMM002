@@ -2,8 +2,7 @@
 /* Cabecera = bloque rojo con texto negro (estilo .win__bar) ──── */
 
 .tc {
-  border-right: 1px solid var(--color-flat-fg);
-  border-bottom: 1px solid var(--color-flat-fg);
+  /* sin stroke en los bordes de la pieza */
 }
 
 .tc__inner {
@@ -20,8 +19,7 @@
   gap: 12px;
   padding: 0 12px;
   height: 34px;
-  background: var(--color-red);
-  border-top: 2px solid var(--color-flat-on-red);
+  background: var(--color-flat-bg);
 }
 
 .tc__num {
@@ -30,7 +28,7 @@
   font-weight: 600 !important;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: var(--color-flat-on-red);
+  color: var(--color-red);
   flex-shrink: 0;
 }
 
@@ -40,7 +38,7 @@
   font-weight: 600 !important;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: var(--color-flat-on-red);
+  color: var(--color-red);
   margin-left: auto;
   text-align: right;
   overflow: hidden;
