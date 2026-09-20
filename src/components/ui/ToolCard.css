@@ -19,7 +19,7 @@
   gap: 12px;
   padding: 0 12px;
   height: 34px;
-  background: var(--color-flat-bg);
+  background: var(--color-red);
 }
 
 .tc__num {
@@ -28,7 +28,7 @@
   font-weight: 600 !important;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: var(--color-red);
+  color: var(--color-flat-on-red);
   flex-shrink: 0;
 }
 
@@ -38,7 +38,7 @@
   font-weight: 600 !important;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: var(--color-red);
+  color: var(--color-flat-on-red);
   margin-left: auto;
   text-align: right;
   overflow: hidden;
