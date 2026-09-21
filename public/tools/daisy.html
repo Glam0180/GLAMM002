@@ -294,12 +294,14 @@
     }
 
     /* Orden de capas (de abajo hacia arriba):
-       1) #bg1    → base, se anima cuando hay movimiento de mano
-       2) #bg2    → variante de color, aparece (opacidad) al cerrar el pinch
-       3) #floresCanvas → flores con alfa real, siempre visible, encima de todo */
-    #bg1 { z-index: 1; }
-    #bg2 { z-index: 2; opacity: 0; }
-    #floresCanvas { z-index: 3; }
+       1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
+       2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
+       3) #unoCanvas    → una flor grande, aparece (opacidad) con el SCROLL
+       4) #variasCanvas → varias flores con alfa, aparece (opacidad) con el SCROLL */
+    #bg1Canvas    { z-index: 1; }
+    #bg2Canvas    { z-index: 2; opacity: 0; }
+    #unoCanvas    { z-index: 3; opacity: 0; }
+    #variasCanvas { z-index: 4; opacity: 0; }
 
     .daisy-loading {
       position: absolute;
@@ -359,32 +361,6 @@
       line-height: 1.5;
       letter-spacing: .03em;
       color: var(--red-dim);
-    }
-
-    .daisy-cam-preview {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 4 / 3;
-      background: #000;
-      border: 1px solid var(--red-faint);
-      overflow: hidden;
-    }
-
-    .daisy-cam-preview video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
-    }
-
-    .daisy-cam-preview canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      transform: scaleX(-1);
     }
 
     .daisy-meter-label {
@@ -483,10 +459,6 @@
         border-top: 2px solid var(--red);
       }
 
-      .daisy-cam-preview {
-        max-width: 260px;
-        margin: 0 auto;
-      }
     }
     /* ───────── INFO PANEL (arrastrable, minimizable, cerrable) ─────────
        Vive fuera de #daisyCanvas: su área de arrastre está acotada a
@@ -590,7 +562,7 @@
           <span class="slz">///</span>
           <div class="win__bar-dot"></div>
           <span class="win__bar-title">VIEWPORT.DAISY</span>
-          <span class="win__bar-sub">— CONTROL POR GESTO</span>
+          <span class="win__bar-sub">— MOUSE + SCROLL</span>
           <div class="win__bar-controls">
             <div class="win__ctrl">—</div>
             <div class="win__ctrl">□</div>
@@ -601,29 +573,24 @@
         <div class="daisy-main">
           <div class="daisy-canvas-wrap">
             <div class="daisy-canvas" id="daisyCanvas">
-              <video id="bg1" muted loop playsinline preload="auto"></video>
-              <video id="bg2" muted playsinline preload="auto"></video>
-              <canvas id="floresCanvas" width="1080" height="1350"></canvas>
+              <canvas id="bg1Canvas" width="1080" height="1350"></canvas>
+              <canvas id="bg2Canvas" width="1080" height="1350"></canvas>
+              <canvas id="unoCanvas" width="1080" height="1350"></canvas>
+              <canvas id="variasCanvas" width="1080" height="1350"></canvas>
               <div class="daisy-loading" id="daisyLoading">CARGANDO ASSETS…</div>
             </div>
           </div>
 
           <div class="daisy-panel">
-            <button class="daisy-btn" id="gestBtn" disabled>🖐 ACTIVAR CÁMARA</button>
-            <div class="daisy-status" id="gestStatus">Cargando assets del lienzo…</div>
-
-            <div class="daisy-cam-preview" id="camPreview" style="display:none;">
-              <video id="gestVideo" autoplay muted playsinline></video>
-              <canvas id="gestLandmarks"></canvas>
-            </div>
+            <div class="daisy-status" id="daisyStatus">mueve el mouse sobre el lienzo, o haz scroll con la ruedita.</div>
 
             <div>
-              <div class="daisy-meter-label"><span>PINCH</span><span id="pinchPct">0%</span></div>
-              <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="pinchFill"></div></div>
-            </div>
-            <div>
-              <div class="daisy-meter-label"><span>MOVIMIENTO</span><span id="movePct">0%</span></div>
+              <div class="daisy-meter-label"><span>MOUSE</span><span id="movePct">0%</span></div>
               <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="moveFill"></div></div>
+            </div>
+            <div>
+              <div class="daisy-meter-label"><span>SCROLL</span><span id="scrollPct">0%</span></div>
+              <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="scrollFill"></div></div>
             </div>
           </div>
         </div>
@@ -649,13 +616,13 @@
         </div>
       </div>
       <div class="ip__body" id="infoBody">
-        <p class="ip__desc">composición de flores controlada con gestos de tu mano frente a la cámara.</p>
+        <p class="ip__desc">composición de flores controlada con el mouse y el scroll.</p>
         <ol class="ip__steps">
-          <li>activa "activar cámara" en el panel derecho</li>
-          <li>mueve la mano para animar el fondo base</li>
-          <li>cierra el pinch (pulgar + índice) para revelar el fondo alterno</li>
-          <li>sigue cerrando el pinch para hacer crecer las flores</li>
-          <li>abre la mano para volver al estado inicial</li>
+          <li>mueve el mouse sobre el lienzo para animar el fondo base</li>
+          <li>haz scroll con la ruedita para revelar el fondo alterno y las flores</li>
+          <li>mientras más scrolleas, más flores aparecen encima</li>
+          <li>al dejar de scrollear, vuelve solo al fondo base</li>
+          <li>si no hay movimiento, la escena queda quieta</li>
         </ol>
       </div>
     </div>
@@ -764,219 +731,154 @@
     window.addEventListener('resize', fitStage);
     window.addEventListener('load', fitStage);
 
-    // ─────────── CAPA 1: BG1 (video base, reacciona al MOVIMIENTO) ───────────
-    const bg1 = $('bg1');
-    bg1.src = '/tools/daisy-media/bg1.mp4';
+    // ─────────── LAS 4 CAPAS: secuencias WebP precargadas ───────────
+    // BG1 y BG2: 171 frames (0-170), sin alfa, fondo completo.
+    // UNO: 171 frames (0-170), con alfa, una flor grande (707×707).
+    // VARIAS: solo 62 frames, del índice 109 al 170 (con alfa) — antes
+    // de ese punto no hay flores todavía, así que esa capa queda vacía.
+    const BG1_COUNT = 171, BG2_COUNT = 171, UNO_COUNT = 171;
+    const VARIAS_START = 109, VARIAS_END = 170;
 
-    // ─────────── CAPA 2: BG2 (video, opacidad + scrub por PINCH) ───────────
-    const bg2 = $('bg2');
-    bg2.src = '/tools/daisy-media/bg2.mp4';
+    const bg1Ctx = $('bg1Canvas').getContext('2d');
+    const bg2Ctx = $('bg2Canvas').getContext('2d');
+    const unoCtx = $('unoCanvas').getContext('2d');
+    const variasCtx = $('variasCanvas').getContext('2d');
 
-    // ─────────── CAPA 3: FLORES (secuencia WebP con alfa, scrub por PINCH) ───────────
-    const FLORES_FRAME_COUNT = 60;
-    const floresCtx = $('floresCanvas').getContext('2d');
-    const floresFrames = [];
-    let floresLoadedCount = 0;
+    function pad5(n) { return String(n).padStart(5, '0'); }
+
+    const bg1Frames = [];
+    const bg2Frames = [];
+    const unoFrames = [];
+    const variasFrames = []; // indexado 0..170, solo 109..170 tienen imagen real
+
+    const TOTAL_ASSETS = BG1_COUNT + BG2_COUNT + UNO_COUNT + (VARIAS_END - VARIAS_START + 1);
+    let loadedCount = 0;
     let assetsReady = false;
 
-    function pad3(n) { return String(n).padStart(3, '0'); }
+    function bump() {
+      loadedCount++;
+      const st = $('daisyLoading');
+      if (st) st.textContent = `CARGANDO ASSETS… ${Math.round(loadedCount / TOTAL_ASSETS * 100)}%`;
+    }
 
-    function preloadFlores() {
-      return new Promise((resolve) => {
-        for (let i = 1; i <= FLORES_FRAME_COUNT; i++) {
+    function loadSeq(prefix, folder, count, targetArray, startIdx = 0) {
+      const promises = [];
+      for (let i = 0; i < count; i++) {
+        const realIdx = startIdx + i;
+        promises.push(new Promise((resolve) => {
           const img = new Image();
-          img.onload = img.onerror = () => {
-            floresLoadedCount++;
-            const st = $('daisyLoading');
-            if (st) st.textContent = `CARGANDO ASSETS… ${Math.round(floresLoadedCount / FLORES_FRAME_COUNT * 100)}%`;
-            if (floresLoadedCount === FLORES_FRAME_COUNT) resolve();
-          };
-          img.src = `/tools/daisy-media/flores/frame_${pad3(i)}.webp`;
-          floresFrames[i - 1] = img;
-        }
-      });
-    }
-
-    function drawFloresFrame(idx) {
-      const img = floresFrames[idx];
-      if (!img || !img.complete) return;
-      floresCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-      floresCtx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H);
-    }
-
-    let lastFrameIdx = -1;
-
-    // ─────────── ESTADO derivado del gesto ───────────
-    let pinchValue = 0;      // 0 = abierto … 1 = cerrado (suavizado)
-    let moveValue = 0;       // 0 = quieta … 1 = en movimiento activo (suavizado, solo visual)
-    let isMoving = false;    // estado con histéresis para play/pause de bg1
-
-    function applyPinch(p) {
-      pinchValue = p;
-      // BG2: opacidad 0→100% y avance de tiempo 0→duración
-      bg2.style.opacity = String(p);
-      if (bg2.duration && isFinite(bg2.duration)) {
-        try { bg2.currentTime = p * Math.max(0, bg2.duration - 0.04); } catch (e) {}
+          img.onload = img.onerror = () => { bump(); resolve(); };
+          img.src = `/tools/daisy-media/${folder}/${prefix}_${pad5(realIdx)}.webp`;
+          targetArray[realIdx] = img;
+        }));
       }
-      // FLORES: frame 0 (pinch abierto) → último frame (pinch cerrado)
-      const idx = Math.min(FLORES_FRAME_COUNT - 1, Math.round(p * (FLORES_FRAME_COUNT - 1)));
-      if (idx !== lastFrameIdx) { drawFloresFrame(idx); lastFrameIdx = idx; }
-
-      $('pinchFill').style.width = (p * 100).toFixed(0) + '%';
-      $('pinchPct').textContent = Math.round(p * 100) + '%';
+      return Promise.all(promises);
     }
 
-    function applyMovement(moving, magnitude01) {
-      moveValue = magnitude01;
-      $('moveFill').style.width = (magnitude01 * 100).toFixed(0) + '%';
-      $('movePct').textContent = Math.round(magnitude01 * 100) + '%';
-      if (moving !== isMoving) {
-        isMoving = moving;
-        if (isMoving) { bg1.play().catch(() => {}); }
-        else { bg1.pause(); }
+    function preloadAll() {
+      return Promise.all([
+        loadSeq('BG1', 'bg1', BG1_COUNT, bg1Frames, 0),
+        loadSeq('BG2', 'bg2', BG2_COUNT, bg2Frames, 0),
+        loadSeq('UNO', 'uno', UNO_COUNT, unoFrames, 0),
+        loadSeq('FLORES', 'varias', VARIAS_END - VARIAS_START + 1, variasFrames, VARIAS_START),
+      ]);
+    }
+
+    function drawFull(ctx, img) {
+      if (!img || !img.complete || !img.naturalWidth) return;
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H);
+    }
+
+    // UNO es 707×707 (cuadrada): se dibuja centrada, sin deformarse.
+    function drawUno(ctx, img) {
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      if (!img || !img.complete || !img.naturalWidth) return;
+      const size = CANVAS_W * 0.62;
+      const x = (CANVAS_W - size) / 2;
+      const y = (CANVAS_H - size) / 2;
+      ctx.drawImage(img, x, y, size, size);
+    }
+
+    let lastBg1Idx = -1, lastBg2Idx = -1, lastUnoIdx = -1, lastVariasIdx = -1;
+
+    function renderBg1(idx) {
+      if (idx === lastBg1Idx) return;
+      lastBg1Idx = idx;
+      drawFull(bg1Ctx, bg1Frames[idx]);
+    }
+
+    function renderScrollLayers(idx) {
+      if (idx !== lastBg2Idx) { lastBg2Idx = idx; drawFull(bg2Ctx, bg2Frames[idx]); }
+      if (idx !== lastUnoIdx) { lastUnoIdx = idx; drawUno(unoCtx, unoFrames[idx]); }
+      if (idx !== lastVariasIdx) {
+        lastVariasIdx = idx;
+        if (idx >= VARIAS_START) drawFull(variasCtx, variasFrames[idx]);
+        else variasCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
       }
     }
 
-    // ─────────── MEDIAPIPE HANDS (mismo patrón que Canicas 3D) ───────────
-    let handLandmarker = null;
-    let gestureActive = false;
-    let gestureStream = null;
-    let smoothedPinchDist = null;
-    let lastHandCenter = null;
-    let stillSince = 0;
+    // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
+    const PLAYBACK_FPS = 24;           // velocidad de reproduccion en loop
+    const STILL_MS = 380;              // quietud sostenida antes de congelar
+    const OPACITY_LERP = 0.08;         // suavizado del fundido de opacidad
 
-    const PINCH_OPEN_T = 0.85;
-    const PINCH_CLOSED_T = 0.40;
-    const MOVE_THRESHOLD = 0.012;   // desplazamiento normalizado por frame para considerar "movimiento"
-    const MOVE_NORMALIZE = 0.05;    // para la barra visual de movimiento
-    const STILL_MS = 380;           // quietud sostenida antes de pausar BG1
+    let lastMouseMoveAt = 0;
+    let lastScrollAt = 0;
+    let bg1FrameFloat = 0;
+    let scrollFrameFloat = 0;
+    let scrollGroupOpacity = 0;
 
-    const HAND_CONNECTIONS = [
-      [0,1],[1,2],[2,3],[3,4],
-      [0,5],[5,6],[6,7],[7,8],
-      [0,9],[9,10],[10,11],[11,12],
-      [0,13],[13,14],[14,15],[15,16],
-      [0,17],[17,18],[18,19],[19,20],
-      [5,9],[9,13],[13,17]
-    ];
+    function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
+    function isScrolling() { return (performance.now() - lastScrollAt) < STILL_MS; }
 
-    function drawHandLandmarks(lm) {
-      const canvas = $('gestLandmarks');
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width, h = canvas.height;
-      if (!w || !h) return;
-      ctx.clearRect(0, 0, w, h);
-      if (!lm) return;
-      ctx.strokeStyle = '#FF0100';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      for (const [a, b] of HAND_CONNECTIONS) {
-        ctx.moveTo(lm[a].x * w, lm[a].y * h);
-        ctx.lineTo(lm[b].x * w, lm[b].y * h);
-      }
-      ctx.stroke();
-      ctx.fillStyle = '#FF0100';
-      for (const p of lm) {
-        ctx.beginPath();
-        ctx.arc(p.x * w, p.y * h, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.fillStyle = '#FFFFFF';
-      [lm[4], lm[8]].forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x * w, p.y * h, 3.5, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    }
+    const daisyCanvasEl = $('daisyCanvas');
+    daisyCanvasEl.addEventListener('mousemove', () => { lastMouseMoveAt = performance.now(); });
+    daisyCanvasEl.addEventListener('touchmove', () => {
+      lastMouseMoveAt = performance.now();
+      lastScrollAt = performance.now(); // en touch, arrastrar cuenta como ambos
+    }, { passive: true });
+    daisyCanvasEl.addEventListener('wheel', (e) => {
+      lastScrollAt = performance.now();
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
 
-    async function toggleGestureControl() {
-      if (gestureActive) { stopGestureControl(); return; }
-      const btn = $('gestBtn'), st = $('gestStatus');
-      btn.disabled = true;
-      st.textContent = 'Cargando modelo de mano…';
-      try {
-        if (!handLandmarker) {
-          const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
-          const fileset = await vision.FilesetResolver.forVisionTasks(
-            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
-          );
-          handLandmarker = await vision.HandLandmarker.createFromOptions(fileset, {
-            baseOptions: {
-              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
-              delegate: 'GPU'
-            },
-            runningMode: 'VIDEO',
-            numHands: 1
-          });
-        }
-        st.textContent = 'Pidiendo acceso a la cámara…';
-        gestureStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 480, height: 360, facingMode: 'user' }, audio: false
-        });
-        const video = $('gestVideo');
-        video.srcObject = gestureStream;
-        await video.play();
-        gestureActive = true;
-        smoothedPinchDist = null;
-        lastHandCenter = null;
-        stillSince = performance.now();
-        btn.textContent = '🖐 DESACTIVAR CÁMARA';
-        st.textContent = 'Mueve la mano para animar el fondo — cierra el pinch para revelar las flores';
-        $('camPreview').style.display = 'block';
-        const lmCanvas = $('gestLandmarks');
-        lmCanvas.width = lmCanvas.clientWidth;
-        lmCanvas.height = lmCanvas.clientHeight;
-      } catch (err) {
-        st.textContent = '❌ No se pudo activar la cámara o el modelo de mano';
-        console.error(err);
-      }
-      btn.disabled = false;
-    }
+    let lastTick = performance.now();
 
-    function stopGestureControl() {
-      gestureActive = false;
-      if (gestureStream) { gestureStream.getTracks().forEach(t => t.stop()); gestureStream = null; }
-      $('gestBtn').textContent = '🖐 ACTIVAR CÁMARA';
-      $('gestStatus').textContent = 'Cierra el pinch (pulgar + índice) para revelar las flores';
-      $('camPreview').style.display = 'none';
-      const lmCanvas = $('gestLandmarks');
-      lmCanvas.getContext('2d').clearRect(0, 0, lmCanvas.width, lmCanvas.height);
-      // vuelve al estado de reposo
-      applyMovement(false, 0);
-    }
-
-    function updateGestureControl() {
-      if (!gestureActive || !handLandmarker) return;
-      const video = $('gestVideo');
-      if (video.readyState < 2) return;
-
-      const result = handLandmarker.detectForVideo(video, performance.now());
-      const lm = result && result.landmarks && result.landmarks[0];
-      drawHandLandmarks(lm || null);
-      if (!lm) { applyMovement(false, 0); return; }
-
-      // ── Pinch: distancia pulgar↔índice normalizada por el tamaño de la mano ──
-      const thumb = lm[4], index = lm[8], wrist = lm[0], midMcp = lm[9];
-      const handScale = Math.hypot(midMcp.x - wrist.x, midMcp.y - wrist.y) || 0.0001;
-      const pinchDist = Math.hypot(thumb.x - index.x, thumb.y - index.y) / handScale;
-      smoothedPinchDist = smoothedPinchDist === null ? pinchDist : smoothedPinchDist + (pinchDist - smoothedPinchDist) * 0.35;
-
-      const raw = 1 - Math.min(1, Math.max(0, (smoothedPinchDist - PINCH_CLOSED_T) / (PINCH_OPEN_T - PINCH_CLOSED_T)));
-      applyPinch(raw);
-
-      // ── Movimiento: velocidad del centro de la mano entre frames ──
-      const center = { x: (wrist.x + midMcp.x) / 2, y: (wrist.y + midMcp.y) / 2 };
-      let speed = 0;
-      if (lastHandCenter) speed = Math.hypot(center.x - lastHandCenter.x, center.y - lastHandCenter.y);
-      lastHandCenter = center;
-
+    function updateScene() {
       const now = performance.now();
-      if (speed > MOVE_THRESHOLD) stillSince = now;
-      const moving = (now - stillSince) < STILL_MS;
-      applyMovement(moving, Math.min(1, speed / MOVE_NORMALIZE));
-    }
+      const dt = Math.min(0.1, (now - lastTick) / 1000);
+      lastTick = now;
 
-    $('gestBtn').addEventListener('click', toggleGestureControl);
+      const moving = isMouseMoving();
+      const scrolling = isScrolling();
+
+      // BG1: avanza en loop mientras el mouse se mueve; si no, se congela.
+      if (moving) {
+        bg1FrameFloat = (bg1FrameFloat + dt * PLAYBACK_FPS) % BG1_COUNT;
+      }
+      renderBg1(Math.floor(bg1FrameFloat));
+
+      // Grupo BG2+UNO+VARIAS: avanza en loop mientras hay scroll activo;
+      // su opacidad se desvanece suavemente hacia 0/1 según corresponda.
+      if (scrolling) {
+        scrollFrameFloat = (scrollFrameFloat + dt * PLAYBACK_FPS) % BG2_COUNT;
+      }
+      renderScrollLayers(Math.floor(scrollFrameFloat));
+
+      const target = scrolling ? 1 : 0;
+      scrollGroupOpacity += (target - scrollGroupOpacity) * OPACITY_LERP;
+      if (Math.abs(target - scrollGroupOpacity) < 0.004) scrollGroupOpacity = target;
+      $('bg2Canvas').style.opacity = String(scrollGroupOpacity);
+      $('unoCanvas').style.opacity = String(scrollGroupOpacity);
+      $('variasCanvas').style.opacity = String(scrollGroupOpacity);
+
+      // Medidores del panel lateral (solo informativos)
+      $('moveFill').style.width = (moving ? 100 : 0) + '%';
+      $('movePct').textContent = (moving ? 100 : 0) + '%';
+      $('scrollFill').style.width = Math.round(scrollGroupOpacity * 100) + '%';
+      $('scrollPct').textContent = Math.round(scrollGroupOpacity * 100) + '%';
+    }
 
     // ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ───────────
     // Vive fuera de #daisyCanvas (es hijo de .win). Su área de arrastre
@@ -1085,21 +987,21 @@
 
     // ─────────── LOOP PRINCIPAL ───────────
     function loop() {
-      updateGestureControl();
+      updateScene();
       requestAnimationFrame(loop);
     }
 
     // ─────────── INIT ───────────
     (async function init() {
       fitStage();
-      await preloadFlores();
+      await preloadAll();
       assetsReady = true;
       fitStage();
-      drawFloresFrame(0);
+      renderBg1(0);
+      renderScrollLayers(0);
       $('daisyLoading').style.opacity = '0';
       setTimeout(() => { $('daisyLoading').style.display = 'none'; }, 400);
-      $('gestBtn').disabled = false;
-      $('gestStatus').textContent = 'Cierra el pinch (pulgar + índice) para revelar las flores';
+      $('daisyStatus').textContent = 'mueve el mouse sobre el lienzo, o haz scroll con la ruedita.';
       requestAnimationFrame(loop);
     })();
   </script>

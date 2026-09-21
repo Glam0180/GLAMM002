@@ -3,7 +3,7 @@
   left: 0;
   right: 0;
   z-index: 3;
-  height: 58px;
+  height: 38px;
   overflow: hidden;
   pointer-events: none;
 }
@@ -37,7 +37,7 @@
   font-weight: 700;
   text-transform: capitalize;
   letter-spacing: -0.09em;
-  font-size: clamp(20px, 3.2vw, 34px);
+  font-size: clamp(14px, 2.2vw, 24px);
   color: #dadbde;
 }
 
@@ -47,6 +47,6 @@
 }
 
 @media (max-width: 640px) {
-  .hero-ticker { height: 40px; }
-  .hero-ticker__item { font-size: 19px; padding: 0 0.1em; }
+  .hero-ticker { height: 28px; }
+  .hero-ticker__item { font-size: 13px; padding: 0 0.1em; }
 }
