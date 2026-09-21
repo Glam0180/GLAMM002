@@ -831,7 +831,8 @@
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
-    let scrollFrameFloat = 0;
+    let scrollPhase = 0;       // acumulador que solo crece
+    let scrollFrameFloat = 0;  // frame resultante (ping-pong: avanza y vuelve)
     let scrollGroupOpacity = 0;
 
     function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
@@ -864,11 +865,16 @@
       }
       renderBg1(Math.floor(bg1FrameFloat));
 
-      // Grupo BG2+UNO+VARIAS: avanza en loop mientras hay scroll activo;
-      // su opacidad se desvanece suavemente hacia 0/1 según corresponda.
+      // Grupo BG2+UNO+VARIAS: avanza mientras hay scroll activo, pero en
+      // vez de saltar del último frame al primero (se vería como un
+      // "corte" feo, sobre todo en VARIAS pasando de florecido a vacío),
+      // hace un loop tipo ping-pong: avanza hasta el final y vuelve.
       if (scrolling) {
-        scrollFrameFloat = (scrollFrameFloat + dt * PLAYBACK_FPS) % BG2_COUNT;
+        scrollPhase += dt * PLAYBACK_FPS;
       }
+      const period = (BG2_COUNT - 1) * 2;
+      const pos = scrollPhase % period;
+      scrollFrameFloat = pos <= (BG2_COUNT - 1) ? pos : period - pos;
       renderScrollLayers(Math.floor(scrollFrameFloat));
 
       const target = scrolling ? 1 : 0;
