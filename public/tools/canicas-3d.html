@@ -1072,12 +1072,14 @@
     }
     .ip__steps li::before { content: counter(ip-step) "."; color: var(--red); font-weight: 700; flex-shrink: 0; }
 
-    .ip-reopen {
-      position: absolute; top: 10px; left: 10px; width: 24px; height: 24px;
+    .ip-bubble {
+      position: absolute; width: 26px; height: 26px;
       background: #000; border: 2px solid var(--red); color: var(--red);
-      font-size: 12px; font-weight: 700; cursor: pointer; z-index: 40;
+      font-size: 13px; font-weight: 700; cursor: pointer; z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,.5);
     }
-    .ip-reopen:hover { background: var(--red); color: var(--black); }
+    .ip-bubble:hover { background: var(--red); color: var(--black); }
 
     @media (max-width: 640px) {
       .ip { width: min(80vw, 240px); }
@@ -1093,14 +1095,14 @@
   <div id="master-bar">
     <span class="slz">///</span>
     <div class="dot5"></div>
-    <svg class="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button" aria-label="Volver al inicio" title="Volver al inicio"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
     <span class="mtitle">STUDIO GLAM</span>
     <span class="msep">—</span>
     <span class="msub">CANICAS.3D</span>
     <div class="mright">
       <div class="mctrl">—</div>
       <div class="mctrl">□</div>
-      <div class="mctrl">✕</div>
+      <div class="mctrl mctrl--close" id="mclose" role="button" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</div>
     </div>
     <span class="slz">///</span>
   </div>
@@ -1118,34 +1120,12 @@
           <div class="win__bar-controls">
             <div class="win__ctrl">—</div>
             <div class="win__ctrl">□</div>
-            <div class="win__ctrl">✕</div>
+            <div class="win__ctrl" id="wclose" role="button" aria-label="Cerrar" title="Cerrar">✕</div>
           </div>
           <span class="slz end">///</span>
         </div>
         <div id="canvas-inner">
           <div id="vp-fit">
-          <div class="ip" id="infoPanel">
-            <div class="ip__bar" id="infoPanelBar">
-              <span class="ip__slz">///</span>
-              <span class="ip__dot"></span>
-              <span class="ip__title">cómo usar — canicas 3d</span>
-              <div class="ip__ctrls">
-                <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
-                <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
-              </div>
-            </div>
-            <div class="ip__body" id="infoBody">
-              <p class="ip__desc">lanza canicas con física real — apunta y dispara con mouse o con tu mano.</p>
-              <ol class="ip__steps">
-                <li>haz click y arrastra para apuntar y cargar potencia</li>
-                <li>suelta para disparar la canica</li>
-                <li>activa "activar cámara" para usar tu mano</li>
-                <li>cierra el pinch para cargar y apunta moviendo la mano</li>
-                <li>abre el pinch para disparar</li>
-              </ol>
-            </div>
-          </div>
-          <button class="ip-reopen" id="infoReopen" style="display:none;" title="Mostrar instrucciones">?</button>
           <div id="bg-layer"></div>
           <video id="hitVideo" muted playsinline preload="auto"></video>
           <div id="dropzone">
@@ -1326,6 +1306,33 @@
 
       </div>
     </div>
+
+    <!-- El panel de instrucciones vive AFUERA de #frame por completo
+         (viewport 3D + sidebar de propiedades incluidos): es hijo de
+         #stage, flotando en el margen que pertenece al marco "STUDIO
+         GLAM". Drag totalmente libre, sin límites ni exclusión. -->
+    <div class="ip" id="infoPanel">
+      <div class="ip__bar" id="infoPanelBar">
+        <span class="ip__slz">///</span>
+        <span class="ip__dot"></span>
+        <span class="ip__title">cómo usar — canicas 3d</span>
+        <div class="ip__ctrls">
+          <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
+          <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
+        </div>
+      </div>
+      <div class="ip__body" id="infoBody">
+        <p class="ip__desc">lanza canicas con física real — apunta y dispara con mouse o con tu mano.</p>
+        <ol class="ip__steps">
+          <li>haz click y arrastra para apuntar y cargar potencia</li>
+          <li>suelta para disparar la canica</li>
+          <li>activa "activar cámara" para usar tu mano</li>
+          <li>cierra el pinch para cargar y apunta moviendo la mano</li>
+          <li>abre el pinch para disparar</li>
+        </ol>
+      </div>
+    </div>
+    <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
   </div>
 
   <!-- Contadores internos del juego (sin panel visual, el juego los sigue usando) -->
@@ -1566,17 +1573,69 @@
 
     const $ = id => document.getElementById(id);
 
+    // El ícono de casita y los botones de cerrar vuelven siempre al
+    // inicio del sitio (fuera del iframe), igual que en las demás
+    // herramientas.
+    function goHome() {
+      try {
+        if (window.top && window.top !== window) {
+          window.top.location.href = '/';
+        } else {
+          window.location.href = '/';
+        }
+      } catch (e) {
+        window.location.href = '/';
+      }
+    }
+    if ($('mhouse')) $('mhouse').addEventListener('click', goHome);
+    if ($('mclose')) $('mclose').addEventListener('click', goHome);
+    if ($('wclose')) $('wclose').addEventListener('click', goHome);
+
     // ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ───────────
     // Bloque agregado, no interfiere con el resto de la lógica de la escena.
     (function setupInfoPanel() {
       const panel = $('infoPanel');
       const bar = $('infoPanelBar');
-      const body = $('infoBody');
       const minBtn = $('infoMin');
       const closeBtn = $('infoClose');
-      const reopenBtn = $('infoReopen');
-      if (!panel || !bar) return;
+      const bubble = $('infoBubble');
+      const bounds = $('stage');
+      const exclusionEl = $('frame');
+      if (!panel || !bar || !bounds) return;
 
+      // Posición inicial razonable (a la derecha del frame si hay
+      // espacio, si no debajo) — el arrastre en sí es 100% libre,
+      // sin límites ni exclusión: se puede soltar donde sea.
+      function defaultPos() {
+        const b = bounds.getBoundingClientRect();
+        const c = exclusionEl.getBoundingClientRect();
+        const ex = { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height };
+        const pw = panel.offsetWidth, ph = panel.offsetHeight;
+        const roomRight = b.width - (ex.x + ex.w);
+        const roomBelow = b.height - (ex.y + ex.h);
+        if (roomRight >= pw + 14) return { x: ex.x + ex.w + 8, y: ex.y + 8 };
+        if (roomBelow >= ph + 14) return { x: 8, y: ex.y + ex.h + 8 };
+        return { x: 8, y: 8 };
+      }
+
+      function placeAt(pos) {
+        panel.style.left = pos.x + 'px';
+        panel.style.top = pos.y + 'px';
+      }
+
+      function placeBubbleAt(pos) {
+        bubble.style.left = pos.x + 'px';
+        bubble.style.top = pos.y + 'px';
+      }
+
+      let userMoved = false;
+
+      function resetToDefault() {
+        if (userMoved) return; // respeta si el usuario ya lo movió a mano
+        placeAt(defaultPos());
+      }
+
+      // ── Drag libre, sin restricciones ──
       let dragging = false, offsetX = 0, offsetY = 0;
       function getPoint(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
 
@@ -1585,6 +1644,7 @@
         const p = getPoint(e);
         const rect = panel.getBoundingClientRect();
         dragging = true;
+        userMoved = true;
         offsetX = p.clientX - rect.left;
         offsetY = p.clientY - rect.top;
       }
@@ -1592,14 +1652,10 @@
       function onMove(e) {
         if (!dragging) return;
         const p = getPoint(e);
-        const parentRect = panel.offsetParent.getBoundingClientRect();
-        const pw = panel.offsetWidth, ph = panel.offsetHeight;
-        let x = p.clientX - parentRect.left - offsetX;
-        let y = p.clientY - parentRect.top - offsetY;
-        x = Math.max(0, Math.min(parentRect.width - pw, x));
-        y = Math.max(0, Math.min(parentRect.height - ph, y));
-        panel.style.left = x + 'px';
-        panel.style.top = y + 'px';
+        const b = bounds.getBoundingClientRect();
+        const rawX = p.clientX - b.left - offsetX;
+        const rawY = p.clientY - b.top - offsetY;
+        placeAt({ x: rawX, y: rawY }); // libre, sin clamp ni exclusion
         if (e.cancelable) e.preventDefault();
       }
 
@@ -1612,21 +1668,29 @@
       window.addEventListener('mouseup', onUp);
       window.addEventListener('touchend', onUp);
 
-      let minimized = false;
-      minBtn.addEventListener('click', () => {
-        minimized = !minimized;
-        body.style.display = minimized ? 'none' : '';
-      });
-
-      closeBtn.addEventListener('click', () => {
+      // ── Minimizar y Cerrar hacen lo mismo: colapsan a una burbuja "?"
+      //    en el mismo lugar donde estaba el panel. Un click la reabre. ──
+      function collapseToBubble() {
+        const rect = panel.getBoundingClientRect();
+        const b = bounds.getBoundingClientRect();
+        placeBubbleAt({ x: rect.left - b.left, y: rect.top - b.top });
         panel.style.display = 'none';
-        reopenBtn.style.display = 'block';
+        bubble.style.display = 'flex';
+      }
+
+      minBtn.addEventListener('click', collapseToBubble);
+      closeBtn.addEventListener('click', collapseToBubble);
+
+      bubble.addEventListener('click', () => {
+        const bRect = bubble.getBoundingClientRect();
+        const bnd = bounds.getBoundingClientRect();
+        placeAt({ x: bRect.left - bnd.left, y: bRect.top - bnd.top });
+        bubble.style.display = 'none';
+        panel.style.display = '';
       });
 
-      reopenBtn.addEventListener('click', () => {
-        panel.style.display = '';
-        reopenBtn.style.display = 'none';
-      });
+      window.addEventListener('resize', resetToDefault);
+      requestAnimationFrame(() => requestAnimationFrame(resetToDefault));
     })();
 
     // ═══════════════════════════════════════════════════════════
