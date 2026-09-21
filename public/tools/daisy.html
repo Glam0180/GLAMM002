@@ -808,13 +808,18 @@
       drawFull(bg1Ctx, bg1Frames[idx]);
     }
 
+    const VARIAS_COUNT = VARIAS_END - VARIAS_START + 1;
+
     function renderScrollLayers(idx) {
       if (idx !== lastBg2Idx) { lastBg2Idx = idx; drawFull(bg2Ctx, bg2Frames[idx]); }
       if (idx !== lastUnoIdx) { lastUnoIdx = idx; drawUno(unoCtx, unoFrames[idx]); }
-      if (idx !== lastVariasIdx) {
-        lastVariasIdx = idx;
-        if (idx >= VARIAS_START) drawFull(variasCtx, variasFrames[idx]);
-        else variasCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      // VARIAS solo tiene 62 frames (109..170): los estiramos a lo largo
+      // de todo el ciclo (0..170) para que arranque y avance en sincro
+      // con BG2/UNO, en vez de aparecer recién a mitad del loop.
+      const variasLocal = Math.round((idx / (BG2_COUNT - 1)) * (VARIAS_COUNT - 1));
+      if (variasLocal !== lastVariasIdx) {
+        lastVariasIdx = variasLocal;
+        drawFull(variasCtx, variasFrames[VARIAS_START + variasLocal]);
       }
     }
 
