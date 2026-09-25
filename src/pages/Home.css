@@ -1,7 +1,8 @@
 /* ─── HOME — flat design, SOLO rojo/negro, fondo negro, tipografía bold ─── */
 
-/* Gutter único del grid (referencia: nonisha.myportfolio.com) */
-:root { --grid-gap: 8px; }
+/* Gutter único del grid: separación entre piezas, padding exterior de la
+   sección y separación entre cada foto y su pie de foto. */
+:root { --grid-gap: 5px; }
 
 .home {
   display: flex;

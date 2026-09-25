@@ -28,9 +28,9 @@
 .tc__inner {
   display: flex;
   flex-direction: column;
-  /* Mismo gutter que entre piezas: el pie de foto se separa 8px de la
-     imagen (referencia: nonisha.myportfolio.com) */
-  gap: var(--grid-gap, 8px);
+  /* Mismo gutter que entre piezas: el pie de foto se separa de su imagen
+     lo mismo que las piezas entre si (--grid-gap, en Home.css) */
+  gap: var(--grid-gap, 5px);
 }
 .tc__inner--soon { cursor: default; }
 
