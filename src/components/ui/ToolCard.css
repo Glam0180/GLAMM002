@@ -27,9 +27,9 @@
 .tc__inner {
   display: flex;
   flex-direction: column;
-  /* Mismo gutter que entre piezas: el pie de foto se separa de su imagen
-     lo mismo que las piezas entre si (--grid-gap, en Home.css) */
-  gap: var(--grid-gap, 5px);
+  /* Sin hueco: el pie pertenece a su foto y va pegado a ella. El gutter
+     de 2px separa piezas enteras, no la foto de su propio pie. */
+  gap: 0;
 }
 .tc__inner--soon { cursor: default; }
 
