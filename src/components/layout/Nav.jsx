@@ -4,12 +4,25 @@ import './Nav.css'
 
 export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const location = useLocation()
+  const isHome = location.pathname === '/'
 
   useEffect(() => { setMenuOpen(false) }, [location])
 
+  // En home, el nav flota transparente encima del hero y solo aparece
+  // (fade-in) una vez que se empieza a hacer scroll. En el resto de
+  // páginas se mantiene siempre visible, como antes.
+  useEffect(() => {
+    if (!isHome) { setScrolled(true); return }
+    function onScroll() { setScrolled(window.scrollY > 40) }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [isHome])
+
   return (
-    <header className="nav">
+    <header className={`nav ${isHome ? 'nav--overlay' : ''} ${scrolled ? 'nav--visible' : ''}`}>
       <div className="nav__row">
 
         {/* Izquierda */}

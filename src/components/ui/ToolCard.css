@@ -3,7 +3,19 @@
 
 .tc {
   /* sin stroke en los bordes de la pieza */
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .7s ease, transform .7s ease;
 }
+.tc--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* pequeño stagger por columna (desktop, 4 columnas) */
+.tc:nth-child(4n+1) { transition-delay: 0s; }
+.tc:nth-child(4n+2) { transition-delay: .08s; }
+.tc:nth-child(4n+3) { transition-delay: .16s; }
+.tc:nth-child(4n+4) { transition-delay: .24s; }
 
 .tc__inner {
   display: flex;

@@ -11,26 +11,14 @@
 .hero {
   position: relative;
   width: 100%;
-  height: calc(72svh - var(--nav-height));
-  height: calc(72dvh - var(--nav-height));
-  min-height: calc(72svh - var(--nav-height));
-  min-height: calc(72dvh - var(--nav-height));
+  height: 100svh;
+  height: 100dvh;
+  min-height: 100svh;
+  min-height: 100dvh;
   overflow: hidden;
   background: var(--color-flat-bg);
 }
 
-@media (max-width: 900px) {
-  .hero { height: min(65vh, 720px); min-height: 340px; }
-}
-@media (max-width: 600px) {
-  .hero {
-    /* llena exactamente el resto de la pantalla debajo del nav */
-    height: calc(100svh - var(--nav-height));
-    height: calc(100dvh - var(--nav-height));
-    min-height: calc(100svh - var(--nav-height));
-    min-height: calc(100dvh - var(--nav-height));
-  }
-}
 
 /* ── Herramientas ── */
 .tools-section { }

@@ -9,6 +9,24 @@
   border-bottom: 2px solid var(--color-flat-on-red);
 }
 
+/* En home: flota encima del hero, invisible hasta que se hace scroll */
+.nav--overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  background: transparent;
+  border-bottom-color: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s ease, background .4s ease, border-color .4s ease;
+}
+.nav--overlay.nav--visible {
+  opacity: 1;
+  pointer-events: auto;
+  background: var(--color-red);
+  border-bottom: 2px solid var(--color-flat-on-red);
+}
+
 .nav__row {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
