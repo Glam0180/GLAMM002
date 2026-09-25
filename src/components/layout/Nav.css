@@ -27,27 +27,29 @@
   border-bottom: 2px solid var(--color-flat-on-red);
 }
 
+/* Medidas tomadas de la referencia (gougoucore.com, viewport 1024):
+   banda de 43px, texto metido 22px del borde, grupos separados ~88px. */
 .nav__row {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  min-height: 64px;
-  padding: 0 var(--space-8);
+  min-height: 44px;
+  padding: 0 22px;
 }
 
 .nav__group {
   display: flex;
   align-items: center;
-  gap: 100px; /* separación amplia entre apartados del nav */
+  gap: 88px;
 }
 .nav__group--left  { grid-column: 1; justify-self: start; }
 .nav__group--right { justify-self: end; }
 
 .nav__link {
-  font-family: var(--font-nav);  /* sans-serif tipo Helvetica Neue */
-  font-size: 14px;
+  font-family: var(--font-nav);  /* neo-grotesque, ver tokens.css */
+  font-size: 12px;
   font-weight: var(--weight-ui);
-  letter-spacing: var(--tracking-ui);
+  letter-spacing: var(--tracking-tighter);
   text-transform: uppercase;
   color: var(--color-flat-on-red);
   white-space: nowrap;
@@ -72,7 +74,8 @@ a.nav__link:hover  { opacity: 0.6; }
   line-height: 0;
 }
 .nav__logo-img {
-  height: 28px;
+  /* proporcionado a la banda de 44px, como en la referencia */
+  height: 20px;
   width: auto;
   display: block;
 }
@@ -89,8 +92,8 @@ a.nav__link:hover  { opacity: 0.6; }
   display: none;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: var(--color-flat-on-red);
   border: 1px solid var(--color-flat-fg);
   color: var(--color-flat-fg);
@@ -103,7 +106,7 @@ a.nav__link:hover  { opacity: 0.6; }
 .nav__menu-btn:hover { background: var(--color-red-dark); color: var(--color-flat-on-red); }
 
 /* ── Layout height ── */
-:root { --nav-height: 65px; }
+:root { --nav-height: 45px; }
 
 /* Mobile drawer — panel lateral fijo, entra desde la derecha */
 .nav__drawer-overlay {
@@ -143,12 +146,12 @@ a.nav__link:hover  { opacity: 0.6; }
 }
 
 @media (max-width: 640px) {
-  .nav__row { padding: 0 var(--space-4); min-height: 56px; }
+  .nav__row { padding: 0 16px; min-height: 40px; }
   .nav__group--left  { display: none; }
   .nav__group--right { display: none; }
   .nav__menu-btn      { display: flex; }
-  .nav__logo-img { height: 22px; }
-  :root { --nav-height: 57px; }
+  .nav__logo-img { height: 18px; }
+  :root { --nav-height: 41px; }
 
   .nav__drawer-overlay {
     display: block;

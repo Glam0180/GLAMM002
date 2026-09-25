@@ -102,6 +102,10 @@
      que en los titulares, donde el tracking negativo se nota antes. */
   --tracking-ui:      -0.05em;   /* 9–16px en versales */
   --tracking-display: -0.035em;  /* 22px en adelante */
+  /* La referencia no aplica un tracking uniforme: apreta mas los
+     rotulos cortos de navegacion y los numeros de pieza (-1px sobre
+     11-12px) que los titulos (-0.6px sobre 12px). */
+  --tracking-tighter: -0.085em;
 
   /* Peso base del sistema. Antes todo iba forzado a 700, lo que dejaba
      el conjunto sin jerarquía: 500 es el peso de lectura y 700 queda

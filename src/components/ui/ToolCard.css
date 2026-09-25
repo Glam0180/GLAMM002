@@ -19,11 +19,10 @@
 .tc--settled {
   will-change: auto;
 }
-/* pequeño stagger por columna (desktop, 4 columnas) */
-.tc:nth-child(4n+1) { transition-delay: 0s; }
-.tc:nth-child(4n+2) { transition-delay: .08s; }
-.tc:nth-child(4n+3) { transition-delay: .16s; }
-.tc:nth-child(4n+4) { transition-delay: .24s; }
+/* pequeño stagger por columna (desktop, 3 columnas) */
+.tc:nth-child(3n+1) { transition-delay: 0s; }
+.tc:nth-child(3n+2) { transition-delay: .08s; }
+.tc:nth-child(3n+3) { transition-delay: .16s; }
 
 .tc__inner {
   display: flex;
@@ -34,34 +33,40 @@
 }
 .tc__inner--soon { cursor: default; }
 
-/* ── Pie de foto / titlebar ── */
+/* ── Pie de foto ──
+   Como en la referencia: no es una barra de color, es texto sobre el
+   fondo de la pagina. Numero a la izquierda, titulo a la derecha,
+   ambos metidos 20px del borde de la columna. */
 .tc__label {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 12px;
-  height: 34px;
-  background: var(--color-red);
+  padding: 0 20px;
+  height: var(--caption-h, 21px);
+  background: transparent;
 }
 
+/* El contraste del pie es de PESO, no de tamano: el numero va en bold y
+   el titulo en medium, casi al mismo cuerpo. Es lo que hace la
+   referencia y lo que le da el aire de ficha de catalogo. */
 .tc__num {
   font-family: var(--font-flat);
-  font-size: 16px;
-  font-weight: var(--weight-ui);
-  letter-spacing: var(--tracking-ui);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tighter);
   text-transform: uppercase;
-  color: var(--color-flat-on-red);
+  color: var(--color-flat-fg);
   flex-shrink: 0;
 }
 
 .tc__name {
   font-family: var(--font-flat);
-  font-size: 16px;
+  font-size: 12px;
   font-weight: var(--weight-ui);
   letter-spacing: var(--tracking-ui);
   text-transform: uppercase;
-  color: var(--color-flat-on-red);
+  color: var(--color-flat-fg);
   margin-left: auto;
   text-align: right;
   overflow: hidden;

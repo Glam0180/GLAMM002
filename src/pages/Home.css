@@ -1,8 +1,14 @@
 /* ─── HOME — flat design, SOLO rojo/negro, fondo negro, tipografía bold ─── */
 
-/* Gutter único del grid: separación entre piezas, padding exterior de la
-   sección y separación entre cada foto y su pie de foto. */
-:root { --grid-gap: 5px; }
+/* Gutter del grid. La referencia (gougoucore.com) va a sangre y sin
+   gutter: las piezas se tocan entre si y llegan a los bordes del
+   viewport; lo unico que separa las filas es la banda del pie.
+   Se mantiene como token: subirlo aqui reabre el aire en los tres
+   sitios a la vez (entre piezas, borde exterior y foto/pie). */
+:root { --grid-gap: 0px; }
+
+/* Banda del pie de cada pieza (numero + titulo). 21px en la referencia. */
+:root { --caption-h: 21px; }
 
 .home {
   display: flex;
@@ -57,7 +63,7 @@
 
 .tools-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--grid-gap);
   background: var(--color-flat-bg);
 }
