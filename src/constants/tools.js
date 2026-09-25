@@ -31,7 +31,7 @@ export const TOOLS = [
     tech: ['Canvas API', 'Variable Fonts'],
     path: '/tools/tipografia-adaptativa',
     index: '002',
-    thumbnail: '/tool-thumbnails/3-2-01.png',
+    thumbnail: '/tool-thumbnails/3-2-01.webp',
   },
   {
     id: 'poster-generativo',
