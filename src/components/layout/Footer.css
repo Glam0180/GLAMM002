@@ -1,6 +1,10 @@
 /* ─── FOOTER — bloque rojo con texto negro, igual paleta que el nav ── */
 
 .footer {
+  /* En el home el hero es `position: fixed`; sin esto el footer quedaría
+     pintado por debajo de él. */
+  position: relative;
+  z-index: 1;
   background: var(--color-red);
   border-top: 2px solid var(--color-flat-on-red);
 }

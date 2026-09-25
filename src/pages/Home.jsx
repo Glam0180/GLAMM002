@@ -26,18 +26,35 @@ export default function Home() {
       { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
     )
 
-    items.forEach((el) => io.observe(el))
-    return () => io.disconnect()
+    // Al acabar el fade-in se suelta el will-change de esa pieza, para no
+    // mantener 8 capas de GPU vivas durante toda la sesión.
+    const onSettled = (e) => {
+      if (e.propertyName === 'opacity') e.currentTarget.classList.add('tc--settled')
+    }
+
+    items.forEach((el) => {
+      io.observe(el)
+      el.addEventListener('transitionend', onSettled)
+    })
+
+    return () => {
+      io.disconnect()
+      items.forEach((el) => el.removeEventListener('transitionend', onSettled))
+    }
   }, [])
 
   return (
     <div className="home">
 
+      {/* Hero fijo al viewport: los proyectos scrollean por encima */}
       <section className="hero" aria-label="Túnel de velocidad hiperespacial">
         <HeroWarpTunnel />
         <HeroTicker position="top" />
         <HeroTicker position="bottom" reverse />
       </section>
+
+      {/* Reserva el alto del hero en el flujo del documento */}
+      <div className="hero-spacer" aria-hidden="true" />
 
       {/* ── HERRAMIENTAS ── */}
       <section className="tools-section" id="tools">

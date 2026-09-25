@@ -6,10 +6,18 @@
   opacity: 0;
   transform: translateY(28px);
   transition: opacity .7s ease, transform .7s ease;
+  /* Promueve la pieza a su propia capa SOLO mientras está pendiente de
+     entrar. Sin esto el navegador rasteriza las 8 piezas a la vez en el
+     primer scroll (el tirón). Se libera en .tc--settled. */
+  will-change: opacity, transform;
 }
 .tc--visible {
   opacity: 1;
   transform: translateY(0);
+}
+/* Animación terminada: se suelta la capa para no gastar memoria de GPU */
+.tc--settled {
+  will-change: auto;
 }
 /* pequeño stagger por columna (desktop, 4 columnas) */
 .tc:nth-child(4n+1) { transition-delay: 0s; }
@@ -20,6 +28,9 @@
 .tc__inner {
   display: flex;
   flex-direction: column;
+  /* Mismo gutter que entre piezas: el pie de foto se separa 8px de la
+     imagen (referencia: nonisha.myportfolio.com) */
+  gap: var(--grid-gap, 8px);
 }
 .tc__inner--soon { cursor: default; }
 

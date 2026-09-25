@@ -15,10 +15,30 @@ export default function Nav() {
   // páginas se mantiene siempre visible, como antes.
   useEffect(() => {
     if (!isHome) { setScrolled(true); return }
-    function onScroll() { setScrolled(window.scrollY > 40) }
-    onScroll()
+
+    // El handler se agenda con rAF: el evento de scroll puede dispararse
+    // muchas veces por frame, y antes cada uno entraba a React. Ahora se
+    // lee scrollY una sola vez por frame y solo se actualiza el estado
+    // cuando el umbral realmente cruza.
+    let raf = 0
+    let last = null
+
+    const update = () => {
+      raf = 0
+      const next = window.scrollY > 40
+      if (next !== last) { last = next; setScrolled(next) }
+    }
+    const onScroll = () => {
+      if (raf) return
+      raf = requestAnimationFrame(update)
+    }
+
+    update()
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
   }, [isHome])
 
   return (

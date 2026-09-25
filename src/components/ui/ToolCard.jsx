@@ -10,7 +10,18 @@ export default function ToolCard({ tool, index }) {
   const media = (
     <div className="tc__media">
       {thumbnail
-        ? <img src={thumbnail} alt={name} className="tc__img" />
+        ? <img
+            src={thumbnail}
+            alt={name}
+            className="tc__img"
+            /* loading + decoding async: evita que el navegador decodifique
+               todas las miniaturas en el hilo principal durante el primer
+               scroll. width/height reservan el espacio y evitan reflow. */
+            loading="lazy"
+            decoding="async"
+            width="1080"
+            height="1350"
+          />
         : <div className="tc__placeholder" aria-hidden="true" />
       }
     </div>

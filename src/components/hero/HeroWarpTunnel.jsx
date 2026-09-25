@@ -85,6 +85,12 @@ export default function HeroWarpTunnel() {
     // ── Cámara: seguimiento del mouse (desktop, limitado) o
     // rotación 100% libre por arrastre táctil (mobile) ─────────
     const isMobile = ('ontouchstart' in window) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+
+    // En móvil el composer (bloom) a devicePixelRatio 2 significa
+    // renderizar ~4x los píxeles de la pantalla en varios passes. Se
+    // limita a 1.5: visualmente idéntico y deja margen de GPU para que
+    // el scroll siga fluido.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2))
     const pointer = { x: 0, y: 0 }
     const tilt = { x: 0, y: 0 }
     const freeDrag = { yaw: 0, pitch: 0 }
@@ -328,9 +334,88 @@ export default function HeroWarpTunnel() {
       logValues: () => console.log(JSON.stringify(params, null, 2)), // eslint-disable-line no-console
     }, 'logValues').name('⎘ copiar valores (consola)')
 
-    function resize(){ const w=mount.clientWidth||1,h=mount.clientHeight||1; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); composer.setSize(w,h) }
-    resize(); window.addEventListener('resize', resize)
+    // ── Resize ──────────────────────────────────────────────────────
+    // setSize() en el renderer + composer reasigna los render targets:
+    // es caro. En mobile la barra de direcciones aparece/desaparece al
+    // hacer el primer scroll y dispara un 'resize' con solo un cambio de
+    // alto, justo en el peor momento. Por eso: (a) se ignoran los
+    // cambios de alto pequeños sin cambio de ancho, y (b) el resto se
+    // agrupa con rAF en lugar de correr por cada evento.
+    let lastW = 0, lastH = 0, resizeRaf = 0
+
+    function applyResize(){
+      resizeRaf = 0
+      const w = mount.clientWidth || 1, h = mount.clientHeight || 1
+      if (w === lastW && h === lastH) return
+      lastW = w; lastH = h
+      camera.aspect = w / h
+      camera.updateProjectionMatrix()
+      renderer.setSize(w, h)
+      composer.setSize(w, h)
+    }
+
+    function resize(){
+      const w = mount.clientWidth || 1, h = mount.clientHeight || 1
+      // Solo en mobile: mismo ancho + variación pequeña de alto = la barra
+      // del navegador entrando/saliendo, no un resize real → ignorar.
+      // En desktop cualquier cambio sí se aplica (redimensionar ventana).
+      if (isMobile && w === lastW && Math.abs(h - lastH) < 140) return
+      if (resizeRaf) return
+      resizeRaf = requestAnimationFrame(applyResize)
+    }
+
+    applyResize(); window.addEventListener('resize', resize)
     const clock = new THREE.Clock()
+
+    // ── Pausa del render loop ───────────────────────────────────────
+    // El túnel solo se renderiza cuando el hero se está viendo de
+    // verdad. Antes seguía a 60fps a pantalla completa aunque estuviera
+    // tapado por el grid de proyectos: eso competía con el scroll y era
+    // la causa principal del tirón al empezar a hacer scroll.
+    //
+    // El hero es `position: fixed`, así que para el IntersectionObserver
+    // siempre está en pantalla; lo que lo oculta es que los proyectos
+    // pasan por encima. Por eso hacen falta las dos señales:
+    //   inView    → el elemento intersecta el viewport (caso no-fixed)
+    //   uncovered → todavía no se ha scrolleado más allá del hero
+    let inView = true
+    let uncovered = true
+    let running = false
+
+    function stop(){
+      if (!running) return
+      running = false
+      cancelAnimationFrame(raf)
+      raf = 0
+    }
+    function start(){
+      if (running || disposed) return
+      if (!inView || !uncovered || document.hidden) return
+      running = true
+      clock.getDelta() // descarta el dt acumulado durante la pausa
+      raf = requestAnimationFrame(animate)
+    }
+    function sync(){ if (inView && uncovered && !document.hidden) start(); else stop() }
+
+    const visObserver = new IntersectionObserver(
+      ([entry]) => { inView = entry.isIntersecting; sync() },
+      { threshold: 0 }
+    )
+    visObserver.observe(mount)
+
+    // Tapado por el contenido que scrollea encima
+    let scrollRaf = 0
+    const readCover = () => {
+      scrollRaf = 0
+      const next = window.scrollY < (mount.clientHeight || window.innerHeight)
+      if (next !== uncovered) { uncovered = next; sync() }
+    }
+    const onScrollCover = () => { if (!scrollRaf) scrollRaf = requestAnimationFrame(readCover) }
+    readCover()
+    window.addEventListener('scroll', onScrollCover, { passive: true })
+
+    const onVisibility = () => sync()
+    document.addEventListener('visibilitychange', onVisibility)
 
     function animate(){
       raf = requestAnimationFrame(animate)
@@ -392,10 +477,15 @@ export default function HeroWarpTunnel() {
 
       composer.render()
     }
-    animate()
+    start()
 
     return()=>{
-      disposed=true; cancelAnimationFrame(raf)
+      disposed=true; stop(); cancelAnimationFrame(raf)
+      if (resizeRaf) cancelAnimationFrame(resizeRaf)
+      if (scrollRaf) cancelAnimationFrame(scrollRaf)
+      visObserver.disconnect()
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('scroll', onScrollCover)
       window.removeEventListener('resize',resize)
       if (isMobile) {
         mount.removeEventListener('touchstart', onTouchStart)

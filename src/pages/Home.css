@@ -1,5 +1,8 @@
 /* ─── HOME — flat design, SOLO rojo/negro, fondo negro, tipografía bold ─── */
 
+/* Gutter único del grid (referencia: nonisha.myportfolio.com) */
+:root { --grid-gap: 8px; }
+
 .home {
   display: flex;
   flex-direction: column;
@@ -7,26 +10,54 @@
   color: var(--color-flat-fg);
 }
 
-/* ── Hero — escena 3D interactiva, responsiva por dispositivo ── */
+/* ── Hero — escena 3D fija al viewport ──────────────────────────────
+   El hero queda anclado al viewport (position: fixed) en su propia
+   capa de composición: al hacer scroll el navegador NO lo repinta, y
+   los proyectos pasan por encima tapándolo. Eso da el efecto de
+   "el fondo se esconde detrás de los proyectos" y, de paso, elimina
+   el tirón del primer scroll (antes el canvas WebGL a pantalla
+   completa se repintaba junto con el resto de la página).
+
+   Se usa 100svh (small viewport height) en lugar de 100dvh porque en
+   mobile dvh cambia al aparecer/ocultarse la barra del navegador, y
+   ese cambio dispara un resize del renderer WebGL justo durante el
+   primer scroll — la causa principal del lag en móvil. */
 .hero {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 100vh;
   height: 100svh;
-  height: 100dvh;
-  min-height: 100svh;
-  min-height: 100dvh;
+  z-index: 0;
   overflow: hidden;
   background: var(--color-flat-bg);
 }
 
+/* Espaciador: ocupa en el flujo el alto del hero fijo, de modo que la
+   primera pantalla sea el hero y el grid entre al hacer scroll.
+   Misma lógica en desktop y en mobile. */
+.hero-spacer {
+  flex: none;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  pointer-events: none;
+}
 
-/* ── Herramientas ── */
-.tools-section { }
+/* ── Herramientas ──
+   Se apoyan sobre el hero fijo (z-index superior + fondo opaco). */
+.tools-section {
+  position: relative;
+  z-index: 1;
+  background: var(--color-flat-bg);
+  padding: var(--grid-gap);
+}
 
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: var(--grid-gap);
   background: var(--color-flat-bg);
 }
 
@@ -36,4 +67,9 @@
 }
 @media (max-width: 600px) {
   .tools-grid { grid-template-columns: 1fr; }
+}
+
+/* Accesibilidad: sin animaciones de entrada si el usuario las desactiva */
+@media (prefers-reduced-motion: reduce) {
+  .tc { opacity: 1 !important; transform: none !important; transition: none !important; }
 }
