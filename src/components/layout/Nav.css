@@ -47,7 +47,8 @@
 
 .nav__link {
   font-family: var(--font-nav);  /* neo-grotesque, ver tokens.css */
-  font-size: 12px;
+  /* La referencia usa 12px; aqui se sube un paso a peticion. */
+  font-size: 13px;
   font-weight: var(--weight-ui);
   letter-spacing: var(--tracking-tighter);
   text-transform: uppercase;
