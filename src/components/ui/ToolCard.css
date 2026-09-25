@@ -48,8 +48,8 @@
 .tc__num {
   font-family: var(--font-flat);
   font-size: 16px;
-  font-weight: 600 !important;
-  letter-spacing: -0.02em;
+  font-weight: var(--weight-ui);
+  letter-spacing: var(--tracking-ui);
   text-transform: uppercase;
   color: var(--color-flat-on-red);
   flex-shrink: 0;
@@ -58,8 +58,8 @@
 .tc__name {
   font-family: var(--font-flat);
   font-size: 16px;
-  font-weight: 600 !important;
-  letter-spacing: -0.02em;
+  font-weight: var(--weight-ui);
+  letter-spacing: var(--tracking-ui);
   text-transform: uppercase;
   color: var(--color-flat-on-red);
   margin-left: auto;

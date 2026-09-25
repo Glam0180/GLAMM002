@@ -15,7 +15,7 @@
   min-height: calc(100svh - var(--nav-height));
   min-height: calc(100dvh - var(--nav-height));
   background: var(--tss-black);
-  font-family: 'Space Mono', 'Montserrat', monospace;
+  font-family: 'Space Mono', monospace;
   border: 1px solid var(--tss-red);
   display: flex;
   flex-direction: column;

@@ -32,7 +32,10 @@
   white-space: nowrap;
   padding: 0 0.15em;
 
-  font-family: 'Yemeyi', 'Helvetica Neue Condensed', 'Arial Narrow', var(--font-nav), Helvetica, Arial, sans-serif;
+  /* !important para ganar al reset de familia de global.css, igual que
+     hacen los paneles con Space Mono. Sin esto el ticker caia en la
+     sans del sistema y Yemeyi (self-hosted en /fonts) no se veia nunca. */
+  font-family: 'Yemeyi', 'Helvetica Neue Condensed', 'Arial Narrow', var(--font-sans), Helvetica, Arial, sans-serif !important;
   font-style: italic;
   font-weight: 700;
   text-transform: capitalize;

@@ -33,8 +33,8 @@
 .footer__link {
   font-family: var(--font-nav);
   font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-weight: var(--weight-ui);
+  letter-spacing: var(--tracking-ui);
   text-transform: uppercase;
   color: var(--color-flat-on-red);
   transition: opacity var(--duration-fast);
@@ -50,8 +50,8 @@ a.footer__link:hover { opacity: 0.6; }
 .footer__meta-item {
   font-family: var(--font-nav);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: var(--weight-ui);
+  letter-spacing: var(--tracking-ui);
   text-transform: uppercase;
   color: var(--color-flat-on-red);
 }

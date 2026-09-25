@@ -47,14 +47,23 @@
   --color-tag-green:   rgba(80,160,80,0.1);
   --color-tag-green-t: #5a8c5a;
 
-  /* ── Tipografía ── */
-  --font-display: 'Montserrat', sans-serif;
-  --font-mono:    'Montserrat', sans-serif;
-  --font-win:     'Montserrat', sans-serif;
+  /* ── Tipografía ──
+     Neo-grotesque, no geométrica. Montserrat (la anterior) es geométrica:
+     O circular, letras anchas, ascendentes largas — lo contrario del
+     aire Helvetica. Inter es la neo-grotesque libre más cercana y está
+     dibujada para texto pequeño en pantalla, que es donde vive casi todo
+     este sistema (9–16px en mayúsculas).
+     Los fallbacks son metricamente próximos para versales, así que el
+     swap no descoloca la maqueta. */
+  --font-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+  --font-display: var(--font-sans);
+  --font-mono:    var(--font-sans);  /* nombre heredado: nunca fue monoespaciada */
+  --font-win:     var(--font-sans);
 
   /* Fuente plana para Home/Nav — SOLO rojo y negro, fondo negro, sin blanco */
-  --font-flat: 'Montserrat', sans-serif;
-  --font-nav:  'Montserrat', sans-serif;
+  --font-flat: var(--font-sans);
+  --font-nav:  var(--font-sans);
   --color-flat-bg:      #000000;  /* fondo — negro */
   --color-flat-fg:      #FF0100;  /* texto/bordes sobre negro — rojo */
   --color-flat-on-red:  #000000;  /* texto sobre superficies rojas — negro */
@@ -86,6 +95,19 @@
   --tracking-normal:  0em;
   --tracking-wide:    0.08em;
   --tracking-wider:   0.14em;
+
+  /* Tracking del sistema. En una neo-grotesque en mayúsculas el aire por
+     defecto entre letras sobra: apretarlo es la mitad del look. Se
+     aprieta más en los textos pequeños de interfaz (nav, pies de foto)
+     que en los titulares, donde el tracking negativo se nota antes. */
+  --tracking-ui:      -0.05em;   /* 9–16px en versales */
+  --tracking-display: -0.035em;  /* 22px en adelante */
+
+  /* Peso base del sistema. Antes todo iba forzado a 700, lo que dejaba
+     el conjunto sin jerarquía: 500 es el peso de lectura y 700 queda
+     libre para lo que de verdad debe destacar. */
+  --weight-ui:   500;
+  --weight-bold: 700;
 
   /* ── Espacio ── */
   --space-1:   0.25rem;
