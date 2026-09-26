@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 18 22" shape-rendering="crispEdges"><!--
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="22" viewBox="0 0 18 22" shape-rendering="crispEdges"><!--
   Cursor del sitio: mano apuntando, estilo Windows 95.
   Vectorial pero dibujado con rects de 1px, para que los bordes
-  salgan duros a cualquier densidad. 1 px de arte = 2 px CSS.
-  Hotspot: 10 0 (punta del indice).
+  salgan duros a cualquier densidad. 1 px de arte = 1 px CSS.
+  Hotspot: 5 0 (punta del indice).
 
   Para editarlo, cambia este bitmap y vuelve a generar los rects:
   '#' negro, 'o' blanco, '.' transparente.

@@ -72,14 +72,16 @@ body, body * {
    por eso los bordes salen duros en cualquier densidad de pantalla en
    vez de suavizarse, que es lo que da el aspecto pixelado.
 
-   `10 0` es el hotspot: la punta del dedo indice, en px CSS del propio
-   SVG. El keyword del final es el fallback que exige la spec y lo que
-   se ve durante el instante en que el archivo aun no ha cargado.
+   `5 0` es el hotspot: la punta del dedo indice, en px CSS del propio
+   SVG. Si se cambia el tamano del SVG hay que cambiarlo tambien, o el
+   cursor apunta desviado. El keyword del final es el fallback que exige
+   la spec y lo que se ve durante el instante en que el archivo aun no
+   ha cargado.
 
    Va sobre `*` porque se pide en TODO el sitio, tambien sobre texto y
    sobre elementos que traian su propio cursor. */
 *, *::before, *::after {
-  cursor: url('/cursors/hand.svg') 10 0, pointer !important;
+  cursor: url('/cursors/hand.svg') 5 0, pointer !important;
 }
 
 ::selection { background: var(--color-red); color: #fff; }
