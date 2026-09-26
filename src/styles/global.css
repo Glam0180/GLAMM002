@@ -66,6 +66,22 @@ body, body * {
 ::-webkit-scrollbar-thumb { background: var(--color-red); }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-red-dark); }
 
+/* ── Cursor del sitio ──────────────────────────────────────────────
+   Mano apuntando pixelada, estilo Windows 95. El SVG es vectorial pero
+   esta dibujado a base de rects de 1px (ver public/cursors/hand.svg):
+   por eso los bordes salen duros en cualquier densidad de pantalla en
+   vez de suavizarse, que es lo que da el aspecto pixelado.
+
+   `10 0` es el hotspot: la punta del dedo indice, en px CSS del propio
+   SVG. El keyword del final es el fallback que exige la spec y lo que
+   se ve durante el instante en que el archivo aun no ha cargado.
+
+   Va sobre `*` porque se pide en TODO el sitio, tambien sobre texto y
+   sobre elementos que traian su propio cursor. */
+*, *::before, *::after {
+  cursor: url('/cursors/hand.svg') 10 0, pointer !important;
+}
+
 ::selection { background: var(--color-red); color: #fff; }
 :focus-visible { outline: 1px solid var(--color-red); outline-offset: 0; }
 

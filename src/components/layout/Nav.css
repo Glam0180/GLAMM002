@@ -6,7 +6,6 @@
   z-index: var(--z-nav);
   width: 100%;
   background: var(--color-red);
-  border-bottom: 2px solid var(--color-flat-on-red);
 }
 
 /* En home: flota encima del hero, invisible hasta que se hace scroll */
@@ -15,16 +14,14 @@
   left: 0;
   right: 0;
   background: transparent;
-  border-bottom-color: transparent;
   opacity: 0;
   pointer-events: none;
-  transition: opacity .4s ease, background .4s ease, border-color .4s ease;
+  transition: opacity .4s ease, background .4s ease;
 }
 .nav--overlay.nav--visible {
   opacity: 1;
   pointer-events: auto;
   background: var(--color-red);
-  border-bottom: 2px solid var(--color-flat-on-red);
 }
 
 /* Medidas tomadas de la referencia (gougoucore.com, viewport 1024):
