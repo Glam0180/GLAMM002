@@ -3,7 +3,7 @@
 /* Gutter ENTRE piezas. Solo eso: el grid sigue yendo a sangre (sin
    padding exterior) y el pie sigue pegado a su foto, como en la
    referencia. El hueco lo pinta el fondo negro de .tools-grid. */
-:root { --grid-gap: 2px; }
+:root { --grid-gap: 5px; }
 
 /* Banda del pie de cada pieza (numero + titulo). 21px en la referencia. */
 :root { --caption-h: 21px; }
