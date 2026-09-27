@@ -292,11 +292,13 @@
       position: relative;
     }
 
+    /* Sin borde propio: la ilustracion va a ras de la ventana, pegada a
+       la barra de titulo arriba y al borde de .win por los otros tres
+       lados. El unico trazo visible es el de la propia ventana. */
     .daisy-canvas {
       position: relative;
       background: #000;
       overflow: hidden;
-      border: 1px solid var(--red-faint);
       aspect-ratio: 1080 / 1350;
       max-width: 100%;
       max-height: 100%;
@@ -408,35 +410,7 @@
       transition: width .08s linear;
     }
 
-    /* ───────── STATUS BAR ───────── */
-    .statusbar {
-      height: 18px;
-      background: var(--black);
-      border: 1px solid var(--red-faint);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0 8px;
-      flex-shrink: 0;
-    }
 
-    .statusbar span {
-      font-size: 7px;
-      letter-spacing: .1em;
-      color: var(--red-dim);
-      text-transform: uppercase;
-    }
-
-    .statusbar .dot-live {
-      width: 5px;
-      height: 5px;
-      background: var(--red);
-      display: inline-block;
-      margin-right: 4px;
-      animation: blink 1.4s steps(2) infinite;
-    }
-
-    @keyframes blink { 50% { opacity: .25; } }
 
     /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
     @media (max-width: 768px) {
@@ -615,10 +589,6 @@
           </div>
         </div>
 
-        <div class="statusbar">
-          <span><span class="dot-live"></span>EN CURSO</span>
-          <span>DAISY</span>
-        </div>
       </div>
 
       <!-- Sidebar: el panel de estado pasa a ser su propia ventana, al
@@ -726,7 +696,6 @@
     const viewportEl = $('viewport');
     const sidebarEl = $('sidebar');
     const winBarEl = document.querySelector('.win__bar');
-    const statusBarEl = document.querySelector('.statusbar');
 
     function fitStage() {
       const isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -756,7 +725,7 @@
       // Espacio para el CANVAS: lo que queda del stage tras descontar el
       // padding del frame, el sidebar, el gap y el cromo de la ventana.
       const chromeW = winBorder * 2;
-      const chromeH = winBarEl.offsetHeight + statusBarEl.offsetHeight + winBorder * 2;
+      const chromeH = winBarEl.offsetHeight + winBorder * 2;
 
       const maxCanvasW = stageBox.width  - 8 - framePad * 2 - gap - sidebarW - chromeW;
       const maxCanvasH = stageBox.height - 8 - framePad * 2 - chromeH;
