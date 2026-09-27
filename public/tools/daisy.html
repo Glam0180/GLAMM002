@@ -573,10 +573,10 @@
         <div class="daisy-main">
           <div class="daisy-canvas-wrap">
             <div class="daisy-canvas" id="daisyCanvas">
-              <canvas id="bg1Canvas" width="1080" height="1350"></canvas>
-              <canvas id="bg2Canvas" width="1080" height="1350"></canvas>
-              <canvas id="unoCanvas" width="1080" height="1350"></canvas>
-              <canvas id="variasCanvas" width="1080" height="1350"></canvas>
+              <canvas id="bg1Canvas" width="810" height="1012"></canvas>
+              <canvas id="bg2Canvas" width="810" height="1012"></canvas>
+              <canvas id="unoCanvas" width="810" height="1012"></canvas>
+              <canvas id="variasCanvas" width="810" height="1012"></canvas>
               <div class="daisy-loading" id="daisyLoading">CARGANDO ASSETS…</div>
             </div>
           </div>
@@ -666,7 +666,10 @@
     // ─────────── AJUSTE DEL CONTENEDOR (frame + canvas se ajustan
     //             exactamente al formato 1080×1350, sin espacio vacío
     //             sobrante alrededor) ───────────
-    const CANVAS_W = 1080, CANVAS_H = 1350;
+    // El backing store del canvas baja junto con los frames. Si se dejara
+    // en 1080x1350, drawImage volveria a escalar hacia arriba los frames
+    // de 810 y se perderia la nitidez que se acaba de pagar.
+    const CANVAS_W = 810, CANVAS_H = 1012;
     const daisyCanvas = $('daisyCanvas');
     const frameEl = $('frame');
     const panelEl = document.querySelector('.daisy-panel');
@@ -731,13 +734,27 @@
     window.addEventListener('resize', fitStage);
     window.addEventListener('load', fitStage);
 
-    // ─────────── LAS 4 CAPAS: secuencias WebP precargadas ───────────
-    // BG1 y BG2: 171 frames (0-170), sin alfa, fondo completo.
-    // UNO: 171 frames (0-170), con alfa, una flor grande (707×707).
-    // VARIAS: solo 62 frames, del índice 109 al 170 (con alfa) — antes
-    // de ese punto no hay flores todavía, así que esa capa queda vacía.
-    const BG1_COUNT = 171, BG2_COUNT = 171, UNO_COUNT = 171;
-    const VARIAS_START = 109, VARIAS_END = 170;
+    // ─────────── LAS 4 CAPAS: secuencias WebP ───────────
+    // BG1 y BG2: 86 frames, sin alfa, fondo completo (810×1012).
+    // UNO: 86 frames, con alfa, una flor grande (530×530).
+    // VARIAS: 31 frames, con alfa — menos que las demas, se estiran a lo
+    // largo del ciclo para avanzar en sincro (ver renderScrollLayers).
+    //
+    // Todas se quedaron con la mitad de frames (1 de cada 2) y a menor
+    // resolucion. VARIAS ya no arranca en el indice 109: se renumero
+    // desde 0 como el resto.
+    const BG1_COUNT = 86, BG2_COUNT = 86, UNO_COUNT = 86;
+    const VARIAS_COUNT = 31;
+
+    // El backing store se fija desde CANVAS_W/H y no solo en el HTML.
+    // Tenerlo en dos sitios fue justo lo que hizo que, al bajar la
+    // resolucion, los frames se dibujaran en el 75% superior izquierdo
+    // del canvas y quedara el resto en negro.
+    ['bg1Canvas', 'bg2Canvas', 'unoCanvas', 'variasCanvas'].forEach((id) => {
+      const c = $(id);
+      c.width = CANVAS_W;
+      c.height = CANVAS_H;
+    });
 
     const bg1Ctx = $('bg1Canvas').getContext('2d');
     const bg2Ctx = $('bg2Canvas').getContext('2d');
@@ -749,82 +766,116 @@
     const bg1Frames = [];
     const bg2Frames = [];
     const unoFrames = [];
-    const variasFrames = []; // indexado 0..170, solo 109..170 tienen imagen real
+    const variasFrames = [];
 
-    const TOTAL_ASSETS = BG1_COUNT + BG2_COUNT + UNO_COUNT + (VARIAS_END - VARIAS_START + 1);
+    const SEQS = [
+      { prefix: 'BG1',    folder: 'bg1',    count: BG1_COUNT,    arr: bg1Frames },
+      { prefix: 'BG2',    folder: 'bg2',    count: BG2_COUNT,    arr: bg2Frames },
+      { prefix: 'UNO',    folder: 'uno',    count: UNO_COUNT,    arr: unoFrames },
+      { prefix: 'FLORES', folder: 'varias', count: VARIAS_COUNT, arr: variasFrames },
+    ];
+
+    const TOTAL_ASSETS = SEQS.reduce((n, s) => n + s.count, 0);
     let loadedCount = 0;
-    let assetsReady = false;
 
     function bump() {
       loadedCount++;
-      const st = $('daisyLoading');
-      if (st) st.textContent = `CARGANDO ASSETS… ${Math.round(loadedCount / TOTAL_ASSETS * 100)}%`;
-    }
-
-    function loadSeq(prefix, folder, count, targetArray, startIdx = 0) {
-      const promises = [];
-      for (let i = 0; i < count; i++) {
-        const realIdx = startIdx + i;
-        promises.push(new Promise((resolve) => {
-          const img = new Image();
-          img.onload = img.onerror = () => { bump(); resolve(); };
-          img.src = `/tools/daisy-media/${folder}/${prefix}_${pad5(realIdx)}.webp`;
-          targetArray[realIdx] = img;
-        }));
+      const st = $('daisyStatus');
+      if (st && loadedCount < TOTAL_ASSETS) {
+        st.textContent = `cargando ${Math.round(loadedCount / TOTAL_ASSETS * 100)}%… ya puedes mover el mouse y hacer scroll.`;
+      } else if (st) {
+        st.textContent = 'mueve el mouse sobre el lienzo, o haz scroll con la ruedita.';
       }
-      return Promise.all(promises);
     }
 
-    function preloadAll() {
-      return Promise.all([
-        loadSeq('BG1', 'bg1', BG1_COUNT, bg1Frames, 0),
-        loadSeq('BG2', 'bg2', BG2_COUNT, bg2Frames, 0),
-        loadSeq('UNO', 'uno', UNO_COUNT, unoFrames, 0),
-        loadSeq('FLORES', 'varias', VARIAS_END - VARIAS_START + 1, variasFrames, VARIAS_START),
-      ]);
+    function frameUrl(s, i) {
+      return `/tools/daisy-media/${s.folder}/${s.prefix}_${pad5(i)}.webp`;
     }
 
+    function loadImage(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.decoding = 'async';
+        img.onload = img.onerror = () => resolve(img);
+        img.src = src;
+      });
+    }
+
+    // Antes esto era un `await Promise.all` sobre los 575 frames: no se
+    // pintaba nada hasta que llegaba el ultimo byte de 143 MB. Ahora se
+    // espera solo al primer frame de cada capa —con eso ya hay algo que
+    // dibujar— y el resto entra en segundo plano.
+    function loadFirstFrames() {
+      return Promise.all(SEQS.map(async (s) => {
+        s.arr[0] = await loadImage(frameUrl(s, 0));
+        bump();
+      }));
+    }
+
+    // El resto se trae por lotes. Lanzar las 289 peticiones de golpe satura
+    // la conexion y retrasa justo los frames que hacen falta primero.
+    const LOTE = 4;
+    function loadRest() {
+      return Promise.all(SEQS.map(async (s) => {
+        for (let i = 1; i < s.count; i += LOTE) {
+          await Promise.all(
+            Array.from({ length: Math.min(LOTE, s.count - i) }, (_, k) =>
+              loadImage(frameUrl(s, i + k)).then((img) => { s.arr[i + k] = img; bump(); })
+            )
+          );
+        }
+      }));
+    }
+
+    // Devuelven si llegaron a pintar. Con la carga progresiva puede pedirse
+    // un frame que todavia no ha bajado: en ese caso se deja en pantalla el
+    // ultimo bueno en vez de dejar la capa en blanco.
     function drawFull(ctx, img) {
-      if (!img || !img.complete || !img.naturalWidth) return;
+      if (!img || !img.complete || !img.naturalWidth) return false;
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
       ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H);
+      return true;
     }
 
-    // UNO es 707×707 (cuadrada): se dibuja centrada, sin deformarse.
+    // UNO es cuadrada: se dibuja centrada, sin deformarse. El clearRect va
+    // DESPUES de comprobar la imagen — si no, un frame que falta borraria
+    // la capa y se veria parpadeo mientras carga.
     function drawUno(ctx, img) {
+      if (!img || !img.complete || !img.naturalWidth) return false;
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-      if (!img || !img.complete || !img.naturalWidth) return;
       const size = CANVAS_W * 0.62;
       const x = (CANVAS_W - size) / 2;
       const y = (CANVAS_H - size) / 2;
       ctx.drawImage(img, x, y, size, size);
+      return true;
     }
 
     let lastBg1Idx = -1, lastBg2Idx = -1, lastUnoIdx = -1, lastVariasIdx = -1;
 
+    // El indice solo se da por pintado si drawX lo consiguio. Si el frame
+    // aun no ha bajado, se reintenta en el siguiente tick en vez de quedar
+    // marcado como hecho y no volver a dibujarse nunca.
     function renderBg1(idx) {
       if (idx === lastBg1Idx) return;
-      lastBg1Idx = idx;
-      drawFull(bg1Ctx, bg1Frames[idx]);
+      if (drawFull(bg1Ctx, bg1Frames[idx])) lastBg1Idx = idx;
     }
 
-    const VARIAS_COUNT = VARIAS_END - VARIAS_START + 1;
-
     function renderScrollLayers(idx) {
-      if (idx !== lastBg2Idx) { lastBg2Idx = idx; drawFull(bg2Ctx, bg2Frames[idx]); }
-      if (idx !== lastUnoIdx) { lastUnoIdx = idx; drawUno(unoCtx, unoFrames[idx]); }
-      // VARIAS solo tiene 62 frames (109..170): los estiramos a lo largo
-      // de todo el ciclo (0..170) para que arranque y avance en sincro
-      // con BG2/UNO, en vez de aparecer recién a mitad del loop.
+      if (idx !== lastBg2Idx && drawFull(bg2Ctx, bg2Frames[idx])) lastBg2Idx = idx;
+      if (idx !== lastUnoIdx && drawUno(unoCtx, unoFrames[idx])) lastUnoIdx = idx;
+      // VARIAS tiene menos frames que el resto: se estiran a lo largo de
+      // todo el ciclo para que avance en sincro con BG2/UNO.
       const variasLocal = Math.round((idx / (BG2_COUNT - 1)) * (VARIAS_COUNT - 1));
-      if (variasLocal !== lastVariasIdx) {
+      if (variasLocal !== lastVariasIdx && drawFull(variasCtx, variasFrames[variasLocal])) {
         lastVariasIdx = variasLocal;
-        drawFull(variasCtx, variasFrames[VARIAS_START + variasLocal]);
       }
     }
 
     // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
-    const PLAYBACK_FPS = 24;           // velocidad de reproduccion en loop
+    // 12 y no 24: al quedarse las secuencias con la mitad de frames, a 24
+    // el ciclo duraria la mitad y la animacion iria al doble de rapido.
+    // Con 12 el loop dura lo mismo que antes; lo que baja es la suavidad.
+    const PLAYBACK_FPS = 12;           // velocidad de reproduccion en loop
     const STILL_MS = 380;              // quietud sostenida antes de congelar
     const OPACITY_LERP = 0.08;         // suavizado del fundido de opacidad
 
@@ -1005,15 +1056,19 @@
     // ─────────── INIT ───────────
     (async function init() {
       fitStage();
-      await preloadAll();
-      assetsReady = true;
+
+      // Solo se espera al primer frame de cada capa. En cuanto hay algo
+      // que dibujar, se quita la pantalla de carga y arranca el loop; los
+      // 285 frames restantes siguen entrando por detras.
+      await loadFirstFrames();
       fitStage();
       renderBg1(0);
       renderScrollLayers(0);
       $('daisyLoading').style.opacity = '0';
       setTimeout(() => { $('daisyLoading').style.display = 'none'; }, 400);
-      $('daisyStatus').textContent = 'mueve el mouse sobre el lienzo, o haz scroll con la ruedita.';
       requestAnimationFrame(loop);
+
+      loadRest(); // sin await: no debe bloquear el arranque
     })();
   </script>
 
