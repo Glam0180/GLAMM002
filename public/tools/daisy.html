@@ -735,16 +735,17 @@
     window.addEventListener('load', fitStage);
 
     // ─────────── LAS 4 CAPAS: secuencias WebP ───────────
-    // BG1 y BG2: 86 frames, sin alfa, fondo completo (810×1012).
-    // UNO: 86 frames, con alfa, una flor grande (530×530).
-    // VARIAS: 31 frames, con alfa — menos que las demas, se estiran a lo
+    // BG1 y BG2: 171 frames, sin alfa, fondo completo (810×1012).
+    // UNO: 171 frames, con alfa, una flor grande (530×530).
+    // VARIAS: 62 frames, con alfa — menos que las demas, se estiran a lo
     // largo del ciclo para avanzar en sincro (ver renderScrollLayers).
     //
-    // Todas se quedaron con la mitad de frames (1 de cada 2) y a menor
-    // resolucion. VARIAS ya no arranca en el indice 109: se renumero
-    // desde 0 como el resto.
-    const BG1_COUNT = 86, BG2_COUNT = 86, UNO_COUNT = 86;
-    const VARIAS_COUNT = 31;
+    // Se mantiene el numero original de frames: se probo con la mitad
+    // (1 de cada 2) y la animacion se veia a saltos. El ahorro de peso
+    // viene solo de bajar la resolucion. VARIAS ya no arranca en el
+    // indice 109: se renumero desde 0 como el resto.
+    const BG1_COUNT = 171, BG2_COUNT = 171, UNO_COUNT = 171;
+    const VARIAS_COUNT = 62;
 
     // El backing store se fija desde CANVAS_W/H y no solo en el HTML.
     // Tenerlo en dos sitios fue justo lo que hizo que, al bajar la
@@ -812,7 +813,7 @@
       }));
     }
 
-    // El resto se trae por lotes. Lanzar las 289 peticiones de golpe satura
+    // El resto se trae por lotes. Lanzar las 575 peticiones de golpe satura
     // la conexion y retrasa justo los frames que hacen falta primero.
     const LOTE = 4;
     function loadRest() {
@@ -872,10 +873,7 @@
     }
 
     // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
-    // 12 y no 24: al quedarse las secuencias con la mitad de frames, a 24
-    // el ciclo duraria la mitad y la animacion iria al doble de rapido.
-    // Con 12 el loop dura lo mismo que antes; lo que baja es la suavidad.
-    const PLAYBACK_FPS = 12;           // velocidad de reproduccion en loop
+    const PLAYBACK_FPS = 24;           // velocidad de reproduccion en loop
     const STILL_MS = 380;              // quietud sostenida antes de congelar
     const OPACITY_LERP = 0.08;         // suavizado del fundido de opacidad
 
@@ -1059,7 +1057,7 @@
 
       // Solo se espera al primer frame de cada capa. En cuanto hay algo
       // que dibujar, se quita la pantalla de carga y arranca el loop; los
-      // 285 frames restantes siguen entrando por detras.
+      // frames restantes siguen entrando por detras.
       await loadFirstFrames();
       fitStage();
       renderBg1(0);
