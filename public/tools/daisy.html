@@ -160,16 +160,36 @@
       z-index: 1;
     }
 
+    /* En fila, como canicas-3d: viewport a la izquierda y sidebar a la
+       derecha. El ancho/alto exactos los fija fitStage() para que el
+       canvas llene su ventana sin dejar franjas negras. */
     #frame {
       width: min(calc(100vw - 72px), 1180px);
-      height: min(calc(100vh - 72px), 860px);
+      height: min(calc(100vh - 72px), 900px);
       background: var(--black);
       padding: 20px;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       gap: 5px;
       position: relative;
     }
+
+    /* Ventana del viewport: su ancho lo fija fitStage a partir del canvas,
+       asi que el canvas la llena de borde a borde. */
+    #viewport {
+      flex: none;
+      min-width: 0;
+    }
+
+    #sidebar {
+      width: 210px;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: 0;
+    }
+    #sidebar > .win { flex: 1; min-height: 0; }
 
     /* ───────── COMPONENTE VENTANA ───────── */
     .win {
@@ -321,10 +341,11 @@
     }
 
     /* ───────── PANEL DE CONTROL LATERAL ───────── */
+    /* Ya no es una columna dentro del viewport: ahora es el cuerpo de su
+       propia ventana en el sidebar, asi que ni ancho fijo ni borde
+       izquierdo separandola del canvas. */
     .daisy-panel {
-      width: 210px;
-      flex-shrink: 0;
-      border-left: 2px solid var(--red);
+      flex: 1;
       padding: 14px 12px;
       display: flex;
       flex-direction: column;
@@ -441,7 +462,11 @@
         height: auto;
         min-height: calc(100vh - 52px);
         padding: 10px;
+        flex-direction: column;
       }
+
+      /* en mobile el viewport y el sidebar se apilan a ancho completo */
+      #viewport, #sidebar { width: 100% !important; flex: none; }
 
       .daisy-main {
         flex-direction: column;
@@ -453,10 +478,18 @@
         padding: 0;
       }
 
+      /* En desktop el alto del canvas lo fija fitStage; aqui no corre, y
+         sacarlo de max-height:100% no sirve porque el padre no tiene alto
+         propio en la pila vertical (colapsaba a 0). Se fija por ancho y
+         el aspect-ratio 4:5 deriva el alto. */
+      .daisy-canvas {
+        width: 100%;
+        height: auto;
+        max-height: none;
+      }
+
       .daisy-panel {
         width: 100%;
-        border-left: none;
-        border-top: 2px solid var(--red);
       }
 
     }
@@ -557,7 +590,7 @@
   <!-- Stage centrado -->
   <div id="stage">
     <div id="frame">
-      <div class="win">
+      <div class="win" id="viewport">
         <div class="win__bar">
           <span class="slz">///</span>
           <div class="win__bar-dot"></div>
@@ -580,6 +613,29 @@
               <div class="daisy-loading" id="daisyLoading">CARGANDO ASSETS…</div>
             </div>
           </div>
+        </div>
+
+        <div class="statusbar">
+          <span><span class="dot-live"></span>EN CURSO</span>
+          <span>DAISY</span>
+        </div>
+      </div>
+
+      <!-- Sidebar: el panel de estado pasa a ser su propia ventana, al
+           lado del viewport, como en canicas-3d. Antes vivia DENTRO de la
+           ventana del viewport, y por eso el viewport no se veia como el
+           de canicas. -->
+      <div id="sidebar">
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">ESTADO</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">—</div>
+              <div class="win__ctrl">□</div>
+            </div>
+          </div>
 
           <div class="daisy-panel">
             <div class="daisy-status" id="daisyStatus">mueve el mouse sobre el lienzo, o haz scroll con la ruedita.</div>
@@ -593,11 +649,6 @@
               <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="scrollFill"></div></div>
             </div>
           </div>
-        </div>
-
-        <div class="statusbar">
-          <span><span class="dot-live"></span>EN CURSO</span>
-          <span>DAISY</span>
         </div>
       </div>
     </div>
@@ -672,7 +723,8 @@
     const CANVAS_W = 810, CANVAS_H = 1012;
     const daisyCanvas = $('daisyCanvas');
     const frameEl = $('frame');
-    const panelEl = document.querySelector('.daisy-panel');
+    const viewportEl = $('viewport');
+    const sidebarEl = $('sidebar');
     const winBarEl = document.querySelector('.win__bar');
     const statusBarEl = document.querySelector('.statusbar');
 
@@ -689,35 +741,35 @@
         return;
       }
 
-      // Paso 1: soltamos el tamaño del frame para que vuelva a su caja
-      // máxima (la definida en CSS) y así medir cuánto espacio hay
-      // realmente disponible antes de decidir el tamaño ideal.
+      // Paso 1: soltamos los tamaños inline para volver a la caja máxima
+      // del CSS y medir cuánto espacio hay realmente disponible.
       frameEl.style.width = '';
       frameEl.style.height = '';
+      viewportEl.style.width = '';
 
-      const stage = $('stage');
-      const stageBox = stage.getBoundingClientRect();
-      const framePad = 20; // padding de #frame por lado (definido en CSS)
-      const winBorder = 2; // border de .win por lado
+      const stageBox = $('stage').getBoundingClientRect();
+      const framePad = 20;  // padding de #frame por lado
+      const winBorder = 2;  // border de .win por lado
+      const gap = 5;        // gap entre viewport y sidebar
+      const sidebarW = sidebarEl.offsetWidth;
 
-      const maxAvailW = stageBox.width - 8;   // margen del stage
-      const maxAvailH = stageBox.height - 8;
+      // Espacio para el CANVAS: lo que queda del stage tras descontar el
+      // padding del frame, el sidebar, el gap y el cromo de la ventana.
+      const chromeW = winBorder * 2;
+      const chromeH = winBarEl.offsetHeight + statusBarEl.offsetHeight + winBorder * 2;
 
-      const chromeW = panelEl.offsetWidth + winBorder * 2 + framePad * 2;
-      const chromeH = winBarEl.offsetHeight + statusBarEl.offsetHeight + winBorder * 2 + framePad * 2;
+      const maxCanvasW = stageBox.width  - 8 - framePad * 2 - gap - sidebarW - chromeW;
+      const maxCanvasH = stageBox.height - 8 - framePad * 2 - chromeH;
 
-      const maxCanvasW = maxAvailW - chromeW;
-      const maxCanvasH = maxAvailH - chromeH;
+      const ratio = CANVAS_W / CANVAS_H; // 0.8
 
-      const ratio = CANVAS_W / CANVAS_H; // 1080/1350 = 0.8
-
-      // El canvas más grande posible que respeta 1080:1350 dentro del
-      // espacio disponible (limitado por el que primero se agote).
-      let canvasW = maxCanvasW;
-      let canvasH = canvasW / ratio;
-      if (canvasH > maxCanvasH) {
-        canvasH = maxCanvasH;
-        canvasW = canvasH * ratio;
+      // El canvas más grande que respeta la proporción dentro de ese
+      // hueco; manda el eje que se agote primero.
+      let canvasH = maxCanvasH;
+      let canvasW = canvasH * ratio;
+      if (canvasW > maxCanvasW) {
+        canvasW = maxCanvasW;
+        canvasH = canvasW / ratio;
       }
       canvasW = Math.max(120, Math.floor(canvasW));
       canvasH = Math.max(150, Math.floor(canvasH));
@@ -725,11 +777,12 @@
       daisyCanvas.style.width = canvasW + 'px';
       daisyCanvas.style.height = canvasH + 'px';
 
-      // Paso 2: el #frame se achica para calzar EXACTO al canvas + panel,
-      // en vez de quedar como una caja de proporción arbitraria con
-      // espacio vacío alrededor.
-      frameEl.style.width = (canvasW + chromeW) + 'px';
-      frameEl.style.height = (canvasH + chromeH) + 'px';
+      // Paso 2: la ventana del viewport calza EXACTO al canvas, para que
+      // no queden franjas negras a los lados (es lo que la diferenciaba
+      // del viewport de canicas-3d). El frame envuelve viewport+sidebar.
+      viewportEl.style.width = (canvasW + chromeW) + 'px';
+      frameEl.style.width  = (canvasW + chromeW + gap + sidebarW + framePad * 2) + 'px';
+      frameEl.style.height = (canvasH + chromeH + framePad * 2) + 'px';
     }
     window.addEventListener('resize', fitStage);
     window.addEventListener('load', fitStage);
