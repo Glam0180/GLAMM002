@@ -1130,11 +1130,6 @@
     // de un salto. Mas alto = mas pegado al gesto y mas brusco.
     const SUAVIZADO = 0.14;
 
-    // Al dejar de scrollear, todo vuelve al inicio con un fundido: se
-    // desvanece, se reinicia el progreso ya invisible y vuelve a
-    // aparecer en el frame 0. Se hace por opacidad y no rebobinando
-    // frames para no reproducir la animacion en reversa.
-    const RETORNO_MS = 600;
 
     // BG2 si se reproduce, siempre hacia adelante (inicio -> fin ->
     // inicio), nunca en reversa. Lo que el scroll controla es su
@@ -1147,8 +1142,6 @@
     let scrollTarget = 0;      // 0..1, lo que fija el gesto
     let scrollProgress = 0;    // 0..1, lo que se dibuja, persigue al objetivo
     let bg2FrameFloat = 0;     // BG2 corre por tiempo, no por scroll
-    let retorno = 1;           // 1 visible, 0 oculto durante el reinicio
-    let reapareciendo = false; // ya reiniciado, volviendo a aparecer
 
     function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
     function isScrolling() { return (performance.now() - lastScrollAt) < STILL_MS; }
@@ -1269,40 +1262,16 @@
       const k = 1 - Math.pow(1 - SUAVIZADO, dt * 60);
       scrollProgress += (scrollTarget - scrollProgress) * k;
 
-      // Al dejar de scrollear todo vuelve al inicio con un fundido: baja
-      // la opacidad, se reinicia el progreso cuando ya no se ve y vuelve
-      // a aparecer en el frame 0. Se hace así y no rebobinando frames
-      // para no reproducir la animación en reversa.
-      const pasoRetorno = (dt * 1000) / RETORNO_MS;
-      if (scrolling) {
-        reapareciendo = false;
-        retorno = Math.min(1, retorno + pasoRetorno);
-      } else if (reapareciendo) {
-        retorno += pasoRetorno;
-        if (retorno >= 1) { retorno = 1; reapareciendo = false; }
-      } else if (scrollProgress > 0.001) {
-        retorno -= pasoRetorno;
-        if (retorno <= 0) {
-          retorno = 0;
-          scrollTarget = 0;      // reinicio en seco, pero invisible
-          scrollProgress = 0;
-          reapareciendo = true;
-        }
-      }
-
       tallo.update(dt);
       const punta = tallo.dibujar();
       renderScrollLayers(Math.round(scrollProgress * (UNO_COUNT - 1)), punta);
-      $('unoCanvas').style.opacity = String(retorno);
-      $('variasCanvas').style.opacity = String(retorno);
 
       // BG2: su OPACIDAD es el progreso de UNO/VARIAS — 0 al inicio de
       // esa animación y 1 al final. Bajando aparece progresivamente;
       // subiendo se va por el mismo camino a la inversa. Si se sigue
       // bajando al llegar al final, el progreso ya está en 1 y se queda
-      // corriendo a opacidad plena. El fundido de retorno la afecta
-      // igual, para que todo se vaya y vuelva junto.
-      $('bg2Canvas').style.opacity = String(scrollProgress * retorno);
+      // corriendo a opacidad plena.
+      $('bg2Canvas').style.opacity = String(scrollProgress);
 
       // Su secuencia sí corre, por tiempo y SIEMPRE hacia adelante
       // (inicio → fin → inicio), nunca en reversa. Solo avanza cuando se
