@@ -327,12 +327,16 @@
     /* Orden de capas (de abajo hacia arriba):
        1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
        2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
-       3) #unoCanvas    → una flor grande, aparece (opacidad) con el SCROLL
-       4) #variasCanvas → varias flores con alfa, aparece (opacidad) con el SCROLL */
+       3) #unoCanvas    → una flor grande, SIEMPRE visible
+       4) #variasCanvas → varias flores con alfa, SIEMPRE visible
+
+       UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
+       secuencia termina su ciclo parando en el frame 0, que es la imagen
+       estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
     #bg1Canvas    { z-index: 1; }
     #bg2Canvas    { z-index: 2; opacity: 0; }
-    #unoCanvas    { z-index: 3; opacity: 0; }
-    #variasCanvas { z-index: 4; opacity: 0; }
+    #unoCanvas    { z-index: 3; }
+    #variasCanvas { z-index: 4; }
 
     .daisy-loading {
       position: absolute;
@@ -783,7 +787,8 @@
 
     // ─────────── LAS 4 CAPAS: secuencias WebP ───────────
     // BG1 y BG2: 171 frames, sin alfa, fondo completo (810×1012).
-    // UNO: 171 frames, con alfa, una flor grande (530×530).
+    // UNO: 171 frames, con alfa, a fotograma completo (antes 530×530
+    //      centrada; ahora la flor ya viene posicionada en el frame).
     // VARIAS: 171 frames, con alfa, a pantalla completa. Al tener la
     // MISMA longitud que UNO, el estirado de indices de
     // renderScrollLayers sale 1:1 y las dos capas van sincronizadas.
@@ -888,22 +893,6 @@
       return true;
     }
 
-    // UNO es cuadrada: se dibuja centrada, sin deformarse. El clearRect va
-    // DESPUES de comprobar la imagen — si no, un frame que falta borraria
-    // la capa y se veria parpadeo mientras carga.
-    function drawUno(ctx, img) {
-      if (!img || !img.complete || !img.naturalWidth) return false;
-      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-      const size = CANVAS_W * 0.62;
-      const x = (CANVAS_W - size) / 2;
-      // Centrada respecto al FRAME COMPLETO y luego subida por el recorte:
-      // centrarla en el canvas ya recortado la dejaria medio recorte mas
-      // abajo de donde va en la composicion original.
-      const y = (SRC_H - size) / 2 - ART_CROP_TOP;
-      ctx.drawImage(img, x, y, size, size);
-      return true;
-    }
-
     let lastBg1Idx = -1, lastBg2Idx = -1, lastUnoIdx = -1, lastVariasIdx = -1;
 
     // El indice solo se da por pintado si drawX lo consiguio. Si el frame
@@ -916,7 +905,7 @@
 
     function renderScrollLayers(idx) {
       if (idx !== lastBg2Idx && drawFull(bg2Ctx, bg2Frames[idx])) lastBg2Idx = idx;
-      if (idx !== lastUnoIdx && drawUno(unoCtx, unoFrames[idx])) lastUnoIdx = idx;
+      if (idx !== lastUnoIdx && drawFull(unoCtx, unoFrames[idx])) lastUnoIdx = idx;
       // VARIAS tiene menos frames que el resto: se estiran a lo largo de
       // todo el ciclo para que avance en sincro con BG2/UNO.
       const variasLocal = Math.round((idx / (BG2_COUNT - 1)) * (VARIAS_COUNT - 1));
@@ -933,8 +922,8 @@
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
-    let scrollPhase = 0;       // acumulador que solo crece
-    let scrollFrameFloat = 0;  // frame resultante (ping-pong: avanza y vuelve)
+    let scrollFrameFloat = 0;  // 0..BG2_COUNT-1, siempre hacia adelante
+    let settling = false;      // cerrando el ciclo tras soltar el scroll
     let scrollGroupOpacity = 0;
 
     function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
@@ -967,24 +956,31 @@
       }
       renderBg1(Math.floor(bg1FrameFloat));
 
-      // Grupo BG2+UNO+VARIAS: avanza mientras hay scroll activo, pero en
-      // vez de saltar del último frame al primero (se vería como un
-      // "corte" feo, sobre todo en VARIAS pasando de florecido a vacío),
-      // hace un loop tipo ping-pong: avanza hasta el final y vuelve.
+      // Grupo BG2+UNO+VARIAS: el índice avanza SIEMPRE hacia adelante
+      // (inicio → fin → inicio). Antes hacía ping-pong (ida y vuelta).
+      // Al soltar el scroll no se corta en seco: sigue avanzando hasta
+      // cerrar el ciclo y se queda quieto en el frame 0, que es la
+      // imagen estática de partida.
       if (scrolling) {
-        scrollPhase += dt * PLAYBACK_FPS;
+        settling = false;
+        scrollFrameFloat = (scrollFrameFloat + dt * PLAYBACK_FPS) % BG2_COUNT;
+      } else if (scrollFrameFloat > 0) {
+        settling = true;
+        scrollFrameFloat += dt * PLAYBACK_FPS;
+        if (scrollFrameFloat >= BG2_COUNT) {
+          scrollFrameFloat = 0;
+          settling = false;
+        }
       }
-      const period = (BG2_COUNT - 1) * 2;
-      const pos = scrollPhase % period;
-      scrollFrameFloat = pos <= (BG2_COUNT - 1) ? pos : period - pos;
       renderScrollLayers(Math.floor(scrollFrameFloat));
 
-      const target = scrolling ? 1 : 0;
-      scrollGroupOpacity += (target - scrollGroupOpacity) * OPACITY_LERP;
-      if (Math.abs(target - scrollGroupOpacity) < 0.004) scrollGroupOpacity = target;
+      // Solo BG2 se funde, para que en reposo se vea BG1 debajo. Espera a
+      // que el ciclo termine (settling) en vez de desvanecerse a mitad de
+      // la animación. UNO y VARIAS no se tocan: quedan siempre visibles.
+      const bg2Target = (scrolling || settling) ? 1 : 0;
+      scrollGroupOpacity += (bg2Target - scrollGroupOpacity) * OPACITY_LERP;
+      if (Math.abs(bg2Target - scrollGroupOpacity) < 0.004) scrollGroupOpacity = bg2Target;
       $('bg2Canvas').style.opacity = String(scrollGroupOpacity);
-      $('unoCanvas').style.opacity = String(scrollGroupOpacity);
-      $('variasCanvas').style.opacity = String(scrollGroupOpacity);
 
       // Medidores del panel lateral (solo informativos)
       $('moveFill').style.width = (moving ? 100 : 0) + '%';
