@@ -460,7 +460,8 @@
       .daisy-canvas {
         width: 100%;
         height: auto;
-        aspect-ratio: 1080 / 1350;
+        /* proporcion del arte YA recortado (SRC_H - ART_CROP_TOP) */
+        aspect-ratio: 810 / 995;
       }
 
       .daisy-panel {
@@ -581,10 +582,10 @@
         <div class="daisy-main">
           <div class="daisy-canvas-wrap">
             <div class="daisy-canvas" id="daisyCanvas">
-              <canvas id="bg1Canvas" width="810" height="1012"></canvas>
-              <canvas id="bg2Canvas" width="810" height="1012"></canvas>
-              <canvas id="unoCanvas" width="810" height="1012"></canvas>
-              <canvas id="variasCanvas" width="810" height="1012"></canvas>
+              <canvas id="bg1Canvas" width="810" height="995"></canvas>
+              <canvas id="bg2Canvas" width="810" height="995"></canvas>
+              <canvas id="unoCanvas" width="810" height="995"></canvas>
+              <canvas id="variasCanvas" width="810" height="995"></canvas>
               <div class="daisy-loading" id="daisyLoading">CARGANDO ASSETS…</div>
             </div>
           </div>
@@ -691,7 +692,22 @@
     // El backing store del canvas baja junto con los frames. Si se dejara
     // en 1080x1350, drawImage volveria a escalar hacia arriba los frames
     // de 810 y se perderia la nitidez que se acaba de pagar.
-    const CANVAS_W = 810, CANVAS_H = 1012;
+    // Tamaño real de los frames en disco.
+    const SRC_W = 810, SRC_H = 1012;
+
+    // El arte trae una banda azul solida en su borde superior: el papel
+    // rasgado no llega arriba del todo y se ve el fondo del poster. En
+    // pantalla se lee como un hueco entre el poster y la ventana.
+    // Medido sobre los frames ya decodificados: bg1 la tiene en TODOS
+    // (17-18 px), bg2 alterna entre 0 y 15-17. Como bg1 es la capa
+    // visible en reposo, la banda se ve siempre.
+    // Se recorta por arriba al dibujar, sin tocar los archivos. Coste: en
+    // los frames de bg2 que no traen banda se pierden 17 px del borde
+    // superior (1.7% del alto). Poner a 0 para desactivarlo.
+    const ART_CROP_TOP = 17;
+
+    const CANVAS_W = SRC_W;
+    const CANVAS_H = SRC_H - ART_CROP_TOP;
     const frameEl = $('frame');
     const viewportEl = $('viewport');
     const sidebarEl = $('sidebar');
@@ -758,15 +774,16 @@
     // ─────────── LAS 4 CAPAS: secuencias WebP ───────────
     // BG1 y BG2: 171 frames, sin alfa, fondo completo (810×1012).
     // UNO: 171 frames, con alfa, una flor grande (530×530).
-    // VARIAS: 62 frames, con alfa — menos que las demas, se estiran a lo
-    // largo del ciclo para avanzar en sincro (ver renderScrollLayers).
+    // VARIAS: 171 frames, con alfa, a pantalla completa. Al tener la
+    // MISMA longitud que UNO, el estirado de indices de
+    // renderScrollLayers sale 1:1 y las dos capas van sincronizadas.
     //
     // Se mantiene el numero original de frames: se probo con la mitad
     // (1 de cada 2) y la animacion se veia a saltos. El ahorro de peso
     // viene solo de bajar la resolucion. VARIAS ya no arranca en el
     // indice 109: se renumero desde 0 como el resto.
     const BG1_COUNT = 171, BG2_COUNT = 171, UNO_COUNT = 171;
-    const VARIAS_COUNT = 62;
+    const VARIAS_COUNT = 171;
 
     // El backing store se fija desde CANVAS_W/H y no solo en el HTML.
     // Tenerlo en dos sitios fue justo lo que hizo que, al bajar la
@@ -852,10 +869,12 @@
     // Devuelven si llegaron a pintar. Con la carga progresiva puede pedirse
     // un frame que todavia no ha bajado: en ese caso se deja en pantalla el
     // ultimo bueno en vez de dejar la capa en blanco.
+    // Se dibuja saltandose la banda superior del arte: se toma el frame
+    // desde y=ART_CROP_TOP y se vuelca 1:1, sin escalar.
     function drawFull(ctx, img) {
       if (!img || !img.complete || !img.naturalWidth) return false;
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-      ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H);
+      ctx.drawImage(img, 0, ART_CROP_TOP, SRC_W, CANVAS_H, 0, 0, CANVAS_W, CANVAS_H);
       return true;
     }
 
@@ -867,7 +886,10 @@
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
       const size = CANVAS_W * 0.62;
       const x = (CANVAS_W - size) / 2;
-      const y = (CANVAS_H - size) / 2;
+      // Centrada respecto al FRAME COMPLETO y luego subida por el recorte:
+      // centrarla en el canvas ya recortado la dejaria medio recorte mas
+      // abajo de donde va en la composicion original.
+      const y = (SRC_H - size) / 2 - ART_CROP_TOP;
       ctx.drawImage(img, x, y, size, size);
       return true;
     }
