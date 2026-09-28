@@ -283,26 +283,27 @@
        (fitStage) manteniendo siempre la proporción 4:5, sin deformarse. */
     .daisy-canvas-wrap {
       flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: block;
       min-width: 0;
       min-height: 0;
       padding: 0;
       position: relative;
     }
 
-    /* Sin borde propio: la ilustracion va a ras de la ventana, pegada a
-       la barra de titulo arriba y al borde de .win por los otros tres
-       lados. El unico trazo visible es el de la propia ventana. */
+    /* La ilustracion va a ras de la ventana: pegada a la barra de titulo
+       arriba y al borde de .win por los otros tres lados. El unico trazo
+       visible es el de la propia ventana.
+       Ocupa el hueco ENTERO en vez de ser una caja de tamano fijo
+       centrada dentro de el: al centrarla, cualquier sobrante de
+       redondeo se repartia mitad arriba y mitad abajo y aparecia como un
+       hueco sobre la ilustracion. Quien mantiene la proporcion 4:5 es
+       fitStage, dimensionando la ventana; el canvas solo la rellena. */
     .daisy-canvas {
       position: relative;
       background: #000;
       overflow: hidden;
-      aspect-ratio: 1080 / 1350;
-      max-width: 100%;
-      max-height: 100%;
-      /* width/height los fija fitStage() en px para un ajuste exacto */
+      width: 100%;
+      height: 100%;
     }
 
     .daisy-canvas video,
@@ -452,14 +453,14 @@
         padding: 0;
       }
 
-      /* En desktop el alto del canvas lo fija fitStage; aqui no corre, y
-         sacarlo de max-height:100% no sirve porque el padre no tiene alto
-         propio en la pila vertical (colapsaba a 0). Se fija por ancho y
-         el aspect-ratio 4:5 deriva el alto. */
+      /* En desktop el alto sale de height:100% sobre un hueco que
+         fitStage ya dimensiono. Aqui fitStage no corre y el padre no
+         tiene alto propio en la pila vertical (colapsaba a 0), asi que
+         se fija por ancho y el aspect-ratio 4:5 deriva el alto. */
       .daisy-canvas {
         width: 100%;
         height: auto;
-        max-height: none;
+        aspect-ratio: 1080 / 1350;
       }
 
       .daisy-panel {
@@ -691,7 +692,6 @@
     // en 1080x1350, drawImage volveria a escalar hacia arriba los frames
     // de 810 y se perderia la nitidez que se acaba de pagar.
     const CANVAS_W = 810, CANVAS_H = 1012;
-    const daisyCanvas = $('daisyCanvas');
     const frameEl = $('frame');
     const viewportEl = $('viewport');
     const sidebarEl = $('sidebar');
@@ -705,8 +705,7 @@
         // alto automático) — soltamos cualquier tamaño inline previo.
         frameEl.style.width = '';
         frameEl.style.height = '';
-        daisyCanvas.style.width = '';
-        daisyCanvas.style.height = '';
+        viewportEl.style.width = '';
         return;
       }
 
@@ -743,12 +742,12 @@
       canvasW = Math.max(120, Math.floor(canvasW));
       canvasH = Math.max(150, Math.floor(canvasH));
 
-      daisyCanvas.style.width = canvasW + 'px';
-      daisyCanvas.style.height = canvasH + 'px';
-
-      // Paso 2: la ventana del viewport calza EXACTO al canvas, para que
-      // no queden franjas negras a los lados (es lo que la diferenciaba
-      // del viewport de canicas-3d). El frame envuelve viewport+sidebar.
+      // Paso 2: se dimensiona la VENTANA, no el canvas. El canvas es
+      // width/height 100% de su hueco, asi que queda exacto sin que
+      // sobre nada que repartir arriba y abajo. La ventana calza justo
+      // al canvas para que no queden franjas negras a los lados (era lo
+      // que la diferenciaba del viewport de canicas-3d), y el frame
+      // envuelve viewport + sidebar.
       viewportEl.style.width = (canvasW + chromeW) + 'px';
       frameEl.style.width  = (canvasW + chromeW + gap + sidebarW + framePad * 2) + 'px';
       frameEl.style.height = (canvasH + chromeH + framePad * 2) + 'px';
