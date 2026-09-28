@@ -461,7 +461,7 @@
         width: 100%;
         height: auto;
         /* proporcion del arte YA recortado (SRC_H - ART_CROP_TOP) */
-        aspect-ratio: 810 / 995;
+        aspect-ratio: 810 / 988;
       }
 
       .daisy-panel {
@@ -582,10 +582,10 @@
         <div class="daisy-main">
           <div class="daisy-canvas-wrap">
             <div class="daisy-canvas" id="daisyCanvas">
-              <canvas id="bg1Canvas" width="810" height="995"></canvas>
-              <canvas id="bg2Canvas" width="810" height="995"></canvas>
-              <canvas id="unoCanvas" width="810" height="995"></canvas>
-              <canvas id="variasCanvas" width="810" height="995"></canvas>
+              <canvas id="bg1Canvas" width="810" height="988"></canvas>
+              <canvas id="bg2Canvas" width="810" height="988"></canvas>
+              <canvas id="unoCanvas" width="810" height="988"></canvas>
+              <canvas id="variasCanvas" width="810" height="988"></canvas>
               <div class="daisy-loading" id="daisyLoading">CARGANDO ASSETS…</div>
             </div>
           </div>
@@ -704,7 +704,9 @@
     // Se recorta por arriba al dibujar, sin tocar los archivos. Coste: en
     // los frames de bg2 que no traen banda se pierden 17 px del borde
     // superior (1.7% del alto). Poner a 0 para desactivarlo.
-    const ART_CROP_TOP = 17;
+    // 24 = los 17 de la banda + 7 mas a peticion. A partir de 18 ya se
+    // come el borde rasgado (las gotas azules), no solo el fondo.
+    const ART_CROP_TOP = 24;
 
     const CANVAS_W = SRC_W;
     const CANVAS_H = SRC_H - ART_CROP_TOP;
