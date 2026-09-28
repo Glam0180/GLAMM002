@@ -787,8 +787,7 @@
 
     // ─────────── LAS 4 CAPAS: secuencias WebP ───────────
     // BG1 y BG2: 171 frames, sin alfa, fondo completo (810×1012).
-    // UNO: 171 frames, con alfa, a fotograma completo (antes 530×530
-    //      centrada; ahora la flor ya viene posicionada en el frame).
+    // UNO: 171 frames, con alfa, cuadrada (530×530), centrada al 62%.
     // VARIAS: 171 frames, con alfa, a pantalla completa. Al tener la
     // MISMA longitud que UNO, el estirado de indices de
     // renderScrollLayers sale 1:1 y las dos capas van sincronizadas.
@@ -893,6 +892,21 @@
       return true;
     }
 
+    // UNO vuelve a ser cuadrada: se dibuja centrada al 62% del ancho, sin
+    // deformarse. Como el resto de capas se pintan recortando la banda
+    // superior del arte, se centra respecto al frame COMPLETO y luego se
+    // resta el recorte; centrarla en el canvas ya recortado la dejaria
+    // medio recorte mas abajo de donde va en la composicion.
+    function drawUno(ctx, img) {
+      if (!img || !img.complete || !img.naturalWidth) return false;
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      const size = CANVAS_W * 0.62;
+      const x = (CANVAS_W - size) / 2;
+      const y = (SRC_H - size) / 2 - ART_CROP_TOP;
+      ctx.drawImage(img, x, y, size, size);
+      return true;
+    }
+
     let lastBg1Idx = -1, lastBg2Idx = -1, lastUnoIdx = -1, lastVariasIdx = -1;
 
     // El indice solo se da por pintado si drawX lo consiguio. Si el frame
@@ -905,7 +919,7 @@
 
     function renderScrollLayers(idx) {
       if (idx !== lastBg2Idx && drawFull(bg2Ctx, bg2Frames[idx])) lastBg2Idx = idx;
-      if (idx !== lastUnoIdx && drawFull(unoCtx, unoFrames[idx])) lastUnoIdx = idx;
+      if (idx !== lastUnoIdx && drawUno(unoCtx, unoFrames[idx])) lastUnoIdx = idx;
       // VARIAS tiene menos frames que el resto: se estiran a lo largo de
       // todo el ciclo para que avance en sincro con BG2/UNO.
       const variasLocal = Math.round((idx / (BG2_COUNT - 1)) * (VARIAS_COUNT - 1));
@@ -915,28 +929,55 @@
     }
 
     // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
-    const PLAYBACK_FPS = 24;           // velocidad de reproduccion en loop
+    const PLAYBACK_FPS = 24;           // solo para BG1 (mouse) y el cierre
     const STILL_MS = 380;              // quietud sostenida antes de congelar
     const OPACITY_LERP = 0.08;         // suavizado del fundido de opacidad
+
+    // Cuantos frames avanza el grupo de scroll por pixel de rueda. Un
+    // "click" de rueda son ~100 px, asi que con 0.25 el ciclo entero
+    // (171 frames) se recorre en unos 7 clicks.
+    const FRAMES_POR_PX = 0.25;
 
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
-    let scrollFrameFloat = 0;  // 0..BG2_COUNT-1, siempre hacia adelante
+    let scrollFrameFloat = 0;  // 0..BG2_COUNT-1
     let settling = false;      // cerrando el ciclo tras soltar el scroll
     let scrollGroupOpacity = 0;
 
     function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
     function isScrolling() { return (performance.now() - lastScrollAt) < STILL_MS; }
 
+    // El grupo BG2+UNO+VARIAS se mueve CON el scroll, no con un reloj: el
+    // delta de la rueda se traduce directamente a frames, asi que el
+    // avance sigue el gesto y al scrollear hacia atras la animacion
+    // retrocede. Las tres capas comparten el mismo indice, por eso van
+    // sincronizadas por construccion.
+    function avanzarScroll(deltaY) {
+      lastScrollAt = performance.now();
+      settling = false;
+      const n = BG2_COUNT;
+      scrollFrameFloat = ((scrollFrameFloat + deltaY * FRAMES_POR_PX) % n + n) % n;
+    }
+
     const daisyCanvasEl = $('daisyCanvas');
     daisyCanvasEl.addEventListener('mousemove', () => { lastMouseMoveAt = performance.now(); });
-    daisyCanvasEl.addEventListener('touchmove', () => {
-      lastMouseMoveAt = performance.now();
-      lastScrollAt = performance.now(); // en touch, arrastrar cuenta como ambos
+
+    let lastTouchY = null;
+    daisyCanvasEl.addEventListener('touchstart', (e) => {
+      lastTouchY = e.touches.length ? e.touches[0].clientY : null;
     }, { passive: true });
+    daisyCanvasEl.addEventListener('touchmove', (e) => {
+      lastMouseMoveAt = performance.now();
+      if (!e.touches.length) return;
+      const y = e.touches[0].clientY;
+      if (lastTouchY !== null) avanzarScroll(lastTouchY - y); // arrastrar = scrollear
+      lastTouchY = y;
+    }, { passive: true });
+    daisyCanvasEl.addEventListener('touchend', () => { lastTouchY = null; }, { passive: true });
+
     daisyCanvasEl.addEventListener('wheel', (e) => {
-      lastScrollAt = performance.now();
+      avanzarScroll(e.deltaY);
       if (e.cancelable) e.preventDefault();
     }, { passive: false });
 
@@ -956,15 +997,11 @@
       }
       renderBg1(Math.floor(bg1FrameFloat));
 
-      // Grupo BG2+UNO+VARIAS: el índice avanza SIEMPRE hacia adelante
-      // (inicio → fin → inicio). Antes hacía ping-pong (ida y vuelta).
-      // Al soltar el scroll no se corta en seco: sigue avanzando hasta
-      // cerrar el ciclo y se queda quieto en el frame 0, que es la
-      // imagen estática de partida.
-      if (scrolling) {
-        settling = false;
-        scrollFrameFloat = (scrollFrameFloat + dt * PLAYBACK_FPS) % BG2_COUNT;
-      } else if (scrollFrameFloat > 0) {
+      // Grupo BG2+UNO+VARIAS: mientras se scrollea el índice lo fija el
+      // gesto (ver avanzarScroll), aquí no se toca. Al soltar no se corta
+      // en seco: sigue hacia adelante hasta cerrar el ciclo y se queda
+      // quieto en el frame 0, la imagen estática de partida.
+      if (!scrolling && scrollFrameFloat > 0) {
         settling = true;
         scrollFrameFloat += dt * PLAYBACK_FPS;
         if (scrollFrameFloat >= BG2_COUNT) {
