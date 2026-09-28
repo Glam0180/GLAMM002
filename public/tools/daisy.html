@@ -1,93 +1,599 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <title>STUDIO GLAM — DAISY</title>
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
-    :root { --red: #FF0100; --red-dark: #CC0000; --red-dim: rgba(255, 1, 0, 0.55); --red-faint: rgba(255, 1, 0, 0.18); --black: #000000; }
-    html, body { width: 100vw; height: 100vh; overflow: hidden; background: var(--black); font-family: 'Space Mono', monospace; border: 1px solid var(--red); }
-    body::after { content: ''; position: fixed; inset: 0; background-image: radial-gradient(circle, rgba(255, 1, 0, 0.55) 1px, transparent 1px); background-size: 20px 20px; pointer-events: none; z-index: 0; }
-    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-size: 128px; pointer-events: none; z-index: 0; opacity: .2; mix-blend-mode: overlay; }
-    #master-bar { position: fixed; top: 4px; left: 4px; right: 4px; height: 28px; background: var(--red); border-bottom: 2px solid var(--black); display: flex; align-items: center; padding: 0 8px; gap: 6px; z-index: 1000; user-select: none; }
-    #master-bar .slz { font-size: 9px; font-weight: 700; color: rgba(0, 0, 0, .5); }
-    #master-bar .dot5 { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
-    .mhouse { cursor: pointer; flex-shrink: 0; }
-    #master-bar .mtitle { font-size: 9px; font-weight: 700; letter-spacing: .14em; color: var(--black); text-transform: uppercase; }
-    #master-bar .msep { color: rgba(0, 0, 0, .3); font-size: 9px; }
-    #master-bar .msub { font-size: 9px; font-weight: 700; color: rgba(0, 0, 0, .55); text-transform: uppercase; letter-spacing: .08em; }
-    #master-bar .mright { margin-left: auto; display: flex; gap: 4px; }
-    .mctrl { width: 20px; height: 16px; background: var(--black); border: 1px solid rgba(255, 1, 0, .25); color: var(--red); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    /* Space Mono — mismo design system que CANICAS.3D */
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+    }
+
+    :root {
+      --red: #FF0100;
+      --red-dark: #CC0000;
+      --red-dim: rgba(255, 1, 0, 0.55);
+      --red-faint: rgba(255, 1, 0, 0.18);
+      --red-ghost: rgba(255, 1, 0, 0.10);
+      --black: #000000;
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--black);
+      font-family: 'Space Mono', monospace;
+      border: 1px solid var(--red);
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255, 1, 0, 0.55) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 128px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .2;
+      mix-blend-mode: overlay;
+    }
+
+    ::selection {
+      background: var(--black);
+      color: var(--red);
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--red); }
+    ::-webkit-scrollbar-thumb { background: var(--black); }
+
+    /* ───────── MASTER BAR ───────── */
+    #master-bar {
+      position: fixed;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      height: 28px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    #master-bar .slz {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+    }
+
+    #master-bar .dot5 {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .mhouse {
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #master-bar .mtitle {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--black);
+      text-transform: uppercase;
+    }
+
+    #master-bar .msep {
+      color: rgba(0, 0, 0, .3);
+      font-size: 9px;
+    }
+
+    #master-bar .msub {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .55);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #master-bar .mright {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mctrl {
+      width: 20px;
+      height: 16px;
+      background: var(--black);
+      border: 1px solid rgba(255, 1, 0, .25);
+      color: var(--red);
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
     .mctrl:hover { background: var(--red-dark); }
-    #stage { position: fixed; top: 32px; left: 4px; right: 4px; bottom: 4px; display: flex; align-items: center; justify-content: center; z-index: 1; }
-    #frame { width: min(calc(100vw - 72px), 1180px); height: min(calc(100vh - 72px), 900px); background: var(--black); padding: 20px; display: flex; flex-direction: row; gap: 5px; position: relative; }
-    #viewport { flex: none; min-width: 0; }
-    #viewport .win__bar { border-bottom: 0; }
-    #sidebar { width: 210px; flex: none; display: flex; flex-direction: column; gap: 5px; min-height: 0; }
-    .win { background: var(--black); border: 2px solid var(--red); display: flex; flex-direction: column; position: relative; flex: 1; overflow: hidden; }
-    .win__bar { height: 22px; background: var(--red); border-bottom: 2px solid var(--black); display: flex; align-items: center; padding: 0 5px 0 7px; gap: 5px; user-select: none; flex-shrink: 0; }
-    .win__bar .slz { font-size: 8px; font-weight: 700; color: rgba(0, 0, 0, .5); }
-    .win__bar-dot { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
-    .win__bar-title { font-size: 8px; font-weight: 700; letter-spacing: .16em; color: var(--black); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .win__bar-sub { font-size: 8px; font-weight: 700; color: rgba(0, 0, 0, .5); text-transform: uppercase; letter-spacing: .1em; }
-    .win__bar-controls { display: flex; gap: 4px; margin-left: auto; }
-    .win__ctrl { width: 16px; height: 13px; background: var(--black); border: 1px solid var(--red); color: var(--red); font-size: 7px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .win__ctrl:hover { background: var(--red); color: var(--black); }
-    .daisy-main { flex: 1; display: flex; min-height: 0; overflow: hidden; }
-    .daisy-canvas-wrap { flex: 1; display: block; min-width: 0; min-height: 0; padding: 0; position: relative; }
-    .daisy-canvas { position: relative; background: #000; overflow: hidden; width: 100%; height: 100%; }
-    .daisy-canvas video, .daisy-canvas canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-    #bg1Canvas { z-index: 1; } #bg2Canvas { z-index: 2; opacity: 0; } #stemCanvas { z-index: 3; } #unoCanvas { z-index: 4; } #variasCanvas { z-index: 5; }
-    .daisy-loading { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: var(--black); color: var(--red-dim); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; text-align: center; padding: 20px; transition: opacity .4s ease; }
-    .daisy-panel { flex: 1; padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-    .daisy-btn { background: var(--black); border: 1px solid var(--red); color: var(--red); font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 10px 8px; cursor: pointer; width: 100%; }
-    .daisy-btn:hover:not(:disabled) { background: var(--red); color: var(--black); }
-    .daisy-status { font-size: 9px; line-height: 1.5; letter-spacing: .03em; color: var(--red-dim); }
-    .daisy-meter-label { font-size: 8px; letter-spacing: .1em; color: var(--red-dim); text-transform: uppercase; margin-bottom: 3px; display: flex; justify-content: space-between; }
-    .daisy-meter-bar { width: 100%; height: 6px; background: rgba(255, 1, 0, .12); border: 1px solid var(--red-faint); }
-    .daisy-meter-fill { height: 100%; width: 0%; background: var(--red); transition: width .08s linear; }
-    @media (max-width: 768px) { html, body { overflow: auto; height: auto; min-height: 100vh; } #stage { position: relative; top: 32px; left: 0; right: 0; bottom: auto; height: auto; min-height: calc(100vh - 32px); padding: 10px; } #frame { width: 100%; height: auto; min-height: calc(100vh - 52px); padding: 10px; flex-direction: column; } #viewport, #sidebar { width: 100% !important; flex: none; } .daisy-main { flex-direction: column; overflow: visible; } .daisy-canvas-wrap { flex: none; padding: 0; } .daisy-canvas { width: 100%; height: auto; aspect-ratio: 810 / 995; } .daisy-panel { width: 100%; } }
-    .ip { position: absolute; top: 30px; left: 10px; width: min(240px, calc(100% - 16px)); background: #000; border: 2px solid var(--red); z-index: 40; box-shadow: 0 6px 18px rgba(0,0,0,.5); user-select: none; }
-    .ip__bar { height: 20px; background: var(--red); border-bottom: 2px solid var(--black); display: flex; align-items: center; padding: 0 5px 0 7px; gap: 5px; cursor: grab; touch-action: none; }
+    .mctrl--close:hover { background: var(--red-dark); }
+
+    /* ───────── STAGE / FRAME ───────── */
+    #stage {
+      position: fixed;
+      top: 32px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    /* En fila, como canicas-3d: viewport a la izquierda y sidebar a la
+       derecha. El ancho/alto exactos los fija fitStage() para que el
+       canvas llene su ventana sin dejar franjas negras. */
+    #frame {
+      width: min(calc(100vw - 72px), 1180px);
+      height: min(calc(100vh - 72px), 900px);
+      background: var(--black);
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      gap: 5px;
+      position: relative;
+    }
+
+    /* Ventana del viewport: su ancho lo fija fitStage a partir del canvas,
+       asi que el canvas la llena de borde a borde. */
+    #viewport {
+      flex: none;
+      min-width: 0;
+    }
+
+    /* La barra de titulo lleva un border-bottom negro de 2px. Sobre el
+       panel negro del sidebar no se nota, pero aqui cae justo entre la
+       barra y la ilustracion y se lee como una linea negra separandolas.
+       Se quita solo en el viewport. */
+    #viewport .win__bar {
+      border-bottom: 0;
+    }
+
+    #sidebar {
+      width: 210px;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: 0;
+    }
+    #sidebar > .win { flex: 1; min-height: 0; }
+
+    /* ───────── COMPONENTE VENTANA ───────── */
+    .win {
+      background: var(--black);
+      border: 2px solid var(--red);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .win__bar {
+      height: 22px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .win__bar .slz {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+    }
+
+    .win__bar-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .win__bar-title {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--black);
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win__bar-sub {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .win__bar-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .win__ctrl {
+      width: 16px;
+      height: 13px;
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 7px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .win__ctrl:hover {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    /* ───────── COMPOSICIÓN DAISY (canvas 1080×1350 + panel) ───────── */
+    .daisy-main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Zona donde vive el canvas 1080×1350 — se centra y se ajusta por JS
+       (fitStage) manteniendo siempre la proporción 4:5, sin deformarse. */
+    .daisy-canvas-wrap {
+      flex: 1;
+      display: block;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    /* La ilustracion va a ras de la ventana: pegada a la barra de titulo
+       arriba y al borde de .win por los otros tres lados. El unico trazo
+       visible es el de la propia ventana.
+       Ocupa el hueco ENTERO en vez de ser una caja de tamano fijo
+       centrada dentro de el: al centrarla, cualquier sobrante de
+       redondeo se repartia mitad arriba y mitad abajo y aparecia como un
+       hueco sobre la ilustracion. Quien mantiene la proporcion 4:5 es
+       fitStage, dimensionando la ventana; el canvas solo la rellena. */
+    .daisy-canvas {
+      position: relative;
+      background: #000;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    .daisy-canvas video,
+    .daisy-canvas canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Orden de capas (de abajo hacia arriba):
+       1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
+       2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
+       3) #stemCanvas   → el tallo, se dibuja y se arrastra
+       4) #unoCanvas    → la flor grande, anclada por su CENTRO a la
+                          punta del tallo, asi que se mueve con el
+       5) #variasCanvas → varias flores con alfa, SIEMPRE visible
+
+       UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
+       secuencia termina su ciclo parando en el frame 0, que es la imagen
+       estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
+    #bg1Canvas    { z-index: 1; }
+    #bg2Canvas    { z-index: 2; opacity: 0; }
+    #stemCanvas   { z-index: 3; }
+    #unoCanvas    { z-index: 4; }
+    #variasCanvas { z-index: 5; }
+
+    .daisy-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--black);
+      color: var(--red-dim);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 20px;
+      transition: opacity .4s ease;
+    }
+
+    /* ───────── PANEL DE CONTROL LATERAL ───────── */
+    /* Ya no es una columna dentro del viewport: ahora es el cuerpo de su
+       propia ventana en el sidebar, asi que ni ancho fijo ni borde
+       izquierdo separandola del canvas. */
+    .daisy-panel {
+      flex: 1;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .daisy-btn {
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 10px 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .daisy-btn:hover:not(:disabled) {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    .daisy-btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .daisy-status {
+      font-size: 9px;
+      line-height: 1.5;
+      letter-spacing: .03em;
+      color: var(--red-dim);
+    }
+
+    .daisy-meter-label {
+      font-size: 8px;
+      letter-spacing: .1em;
+      color: var(--red-dim);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .daisy-meter-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 1, 0, .12);
+      border: 1px solid var(--red-faint);
+    }
+
+    .daisy-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--red);
+      transition: width .08s linear;
+    }
+
+
+
+    /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
+    @media (max-width: 768px) {
+      html, body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      #stage {
+        position: relative;
+        top: 32px;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        height: auto;
+        min-height: calc(100vh - 32px);
+        padding: 10px;
+      }
+
+      #frame {
+        width: 100%;
+        height: auto;
+        min-height: calc(100vh - 52px);
+        padding: 10px;
+        flex-direction: column;
+      }
+
+      /* en mobile el viewport y el sidebar se apilan a ancho completo */
+      #viewport, #sidebar { width: 100% !important; flex: none; }
+
+      .daisy-main {
+        flex-direction: column;
+        overflow: visible;
+      }
+
+      .daisy-canvas-wrap {
+        flex: none;
+        padding: 0;
+      }
+
+      /* En desktop el alto sale de height:100% sobre un hueco que
+         fitStage ya dimensiono. Aqui fitStage no corre y el padre no
+         tiene alto propio en la pila vertical (colapsaba a 0), asi que
+         se fija por ancho y el aspect-ratio 4:5 deriva el alto. */
+      .daisy-canvas {
+        width: 100%;
+        height: auto;
+        /* proporcion del arte YA recortado (SRC_H - ART_CROP_TOP) */
+        aspect-ratio: 810 / 995;
+      }
+
+      .daisy-panel {
+        width: 100%;
+      }
+
+    }
+    /* ───────── INFO PANEL (arrastrable, minimizable, cerrable) ─────────
+       Vive fuera de #daisyCanvas: su área de arrastre está acotada a
+       .win pero SIN poder entrar nunca al rectángulo del canvas. */
+    .ip {
+      position: absolute;
+      top: 30px;
+      left: 10px;
+      width: min(240px, calc(100% - 16px));
+      background: #000;
+      border: 2px solid var(--red);
+      z-index: 40;
+      box-shadow: 0 6px 18px rgba(0,0,0,.5);
+      user-select: none;
+    }
+
+    .ip__bar {
+      height: 20px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      cursor: grab;
+      touch-action: none;
+    }
     .ip__bar:active { cursor: grabbing; }
+
     .ip__slz { font-size: 8px; font-weight: 700; color: rgba(0,0,0,.5); }
     .ip__dot { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
-    .ip__title { font-size: 9px; font-weight: 700; letter-spacing: .1em; color: var(--black); text-transform: lowercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ip__title {
+      font-size: 9px; font-weight: 700; letter-spacing: .1em;
+      color: var(--black); text-transform: lowercase;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     .ip__ctrls { display: flex; gap: 4px; margin-left: auto; }
-    .ip__ctrl { width: 15px; height: 13px; background: var(--black); border: 1px solid rgba(255,1,0,.4); color: var(--red); font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .ip__ctrl {
+      width: 15px; height: 13px; background: var(--black);
+      border: 1px solid rgba(255,1,0,.4); color: var(--red);
+      font-size: 8px; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; cursor: pointer;
+    }
     .ip__ctrl:hover { background: var(--red); color: var(--black); }
+
     .ip__body { padding: 9px 11px 11px; max-height: 220px; overflow-y: auto; }
-    .ip__desc { font-size: 9px; line-height: 1.5; letter-spacing: .04em; color: var(--red); text-transform: lowercase; margin-bottom: 7px; }
+    .ip__desc {
+      font-size: 9px; line-height: 1.5; letter-spacing: .04em;
+      color: var(--red); text-transform: lowercase; margin-bottom: 7px;
+    }
     .ip__steps { list-style: none; counter-reset: ip-step; display: flex; flex-direction: column; gap: 5px; }
-    .ip__steps li { counter-increment: ip-step; font-size: 8px; line-height: 1.5; letter-spacing: .04em; color: var(--red-dim); text-transform: lowercase; display: flex; gap: 6px; }
+    .ip__steps li {
+      counter-increment: ip-step; font-size: 8px; line-height: 1.5;
+      letter-spacing: .04em; color: var(--red-dim); text-transform: lowercase;
+      display: flex; gap: 6px;
+    }
     .ip__steps li::before { content: counter(ip-step) "."; color: var(--red); font-weight: 700; flex-shrink: 0; }
-    .ip-bubble { position: absolute; width: 26px; height: 26px; background: #000; border: 2px solid var(--red); color: var(--red); font-size: 13px; font-weight: 700; cursor: pointer; z-index: 40; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+
+    /* Burbuja unificada: tanto minimizar como cerrar colapsan aquí */
+    .ip-bubble {
+      position: absolute; width: 26px; height: 26px;
+      background: #000; border: 2px solid var(--red); color: var(--red);
+      font-size: 13px; font-weight: 700; cursor: pointer; z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,.5);
+    }
     .ip-bubble:hover { background: var(--red); color: var(--black); }
+
+    @media (max-width: 640px) {
+      .ip { width: min(72vw, 210px); }
+      .ip__body { max-height: 160px; }
+    }
   </style>
 </head>
+
 <body>
 
+  <!-- Barra madre fija superior -->
   <div id="master-bar">
     <span class="slz">///</span>
     <div class="dot5"></div>
-    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-    <span class="mtitle">STUDIO GLAM</span><span class="msep">—</span><span class="msub">DAISY</span>
+    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button" aria-label="Volver al inicio" title="Volver al inicio">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+    <span class="mtitle">STUDIO GLAM</span>
+    <span class="msep">—</span>
+    <span class="msub">DAISY</span>
     <div class="mright">
-      <div class="mctrl">—</div><div class="mctrl">□</div><div class="mctrl mctrl--close" id="mclose" role="button">✕</div>
+      <div class="mctrl">—</div>
+      <div class="mctrl">□</div>
+      <div class="mctrl mctrl--close" id="mclose" role="button" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</div>
     </div>
     <span class="slz">///</span>
   </div>
 
+  <!-- Stage centrado -->
   <div id="stage">
     <div id="frame">
       <div class="win" id="viewport">
         <div class="win__bar">
-          <span class="slz">///</span><div class="win__bar-dot"></div>
-          <span class="win__bar-title">VIEWPORT.DAISY</span><span class="win__bar-sub">— MOUSE + SCROLL</span>
-          <div class="win__bar-controls"><div class="win__ctrl">—</div><div class="win__ctrl">□</div><div class="win__ctrl" id="wclose" role="button">✕</div></div>
+          <span class="slz">///</span>
+          <div class="win__bar-dot"></div>
+          <span class="win__bar-title">VIEWPORT.DAISY</span>
+          <span class="win__bar-sub">— MOUSE + SCROLL</span>
+          <div class="win__bar-controls">
+            <div class="win__ctrl">—</div>
+            <div class="win__ctrl">□</div>
+            <div class="win__ctrl" id="wclose" role="button" aria-label="Cerrar" title="Cerrar">✕</div>
+          </div>
         </div>
+
         <div class="daisy-main">
           <div class="daisy-canvas-wrap">
             <div class="daisy-canvas" id="daisyCanvas">
@@ -100,162 +606,897 @@
             </div>
           </div>
         </div>
+
       </div>
+
+      <!-- Sidebar: el panel de estado pasa a ser su propia ventana, al
+           lado del viewport, como en canicas-3d. Antes vivia DENTRO de la
+           ventana del viewport, y por eso el viewport no se veia como el
+           de canicas. -->
       <div id="sidebar">
         <div class="win">
-          <div class="win__bar"><span class="slz">///</span><div class="win__bar-dot"></div><span class="win__bar-title">ESTADO</span></div>
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">ESTADO</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">—</div>
+              <div class="win__ctrl">□</div>
+            </div>
+          </div>
+
           <div class="daisy-panel">
             <div class="daisy-status" id="daisyStatus">mueve el mouse sobre el lienzo, o haz scroll con la ruedita.</div>
-            <div><div class="daisy-meter-label"><span>MOUSE</span><span id="movePct">0%</span></div><div class="daisy-meter-bar"><div class="daisy-meter-fill" id="moveFill"></div></div></div>
-            <div><div class="daisy-meter-label"><span>SCROLL</span><span id="scrollPct">0%</span></div><div class="daisy-meter-bar"><div class="daisy-meter-fill" id="scrollFill"></div></div></div>
+
+            <div>
+              <div class="daisy-meter-label"><span>MOUSE</span><span id="movePct">0%</span></div>
+              <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="moveFill"></div></div>
+            </div>
+            <div>
+              <div class="daisy-meter-label"><span>SCROLL</span><span id="scrollPct">0%</span></div>
+              <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="scrollFill"></div></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- El panel de instrucciones vive AFUERA de .win por completo
+         (canvas + panel de propiedades incluidos): es hijo de #stage,
+         flotando en el margen que pertenece al marco "STUDIO GLAM". -->
     <div class="ip" id="infoPanel">
       <div class="ip__bar" id="infoPanelBar">
-        <span class="ip__slz">///</span><span class="ip__dot"></span><span class="ip__title">cómo usar — daisy</span>
-        <div class="ip__ctrls"><span class="ip__ctrl" id="infoMin">—</span><span class="ip__ctrl" id="infoClose">✕</span></div>
+        <span class="ip__slz">///</span>
+        <span class="ip__dot"></span>
+        <span class="ip__title">cómo usar — daisy</span>
+        <div class="ip__ctrls">
+          <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
+          <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
+        </div>
       </div>
       <div class="ip__body" id="infoBody">
         <p class="ip__desc">composición de flores controlada con el mouse y el scroll.</p>
         <ol class="ip__steps">
-          <li>mueve el mouse para animar el fondo</li>
-          <li>haz scroll para revelar flores</li>
+          <li>mueve el mouse sobre el lienzo para animar el fondo base</li>
+          <li>haz scroll con la ruedita para revelar el fondo alterno y las flores</li>
+          <li>mientras más scrolleas, más flores aparecen encima</li>
+          <li>al dejar de scrollear, vuelve solo al fondo base</li>
+          <li>si no hay movimiento, la escena queda quieta</li>
         </ol>
       </div>
     </div>
-    <div class="ip-bubble" id="infoBubble" style="display:none;">?</div>
+    <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
   </div>
 
   <script type="module">
+    // ═══════════════════════════════════════════════════════════
+    //  DAISY — composición de 3 capas controlada por gesto de mano
+    //  (MediaPipe Hands, mismo patrón que Canicas 3D):
+    //
+    //  #bg1 (video, z=1)        → base; se anima cuando hay MOVIMIENTO
+    //  #bg2 (video, z=2)        → variante de color; opacidad + avance
+    //                              de tiempo según qué tan cerrado
+    //                              está el PINCH (0 abierto → 1 cerrado)
+    //  #floresCanvas (z=3)      → secuencia PNG/WebP con alfa real;
+    //                              siempre visible, el frame mostrado
+    //                              también depende del valor del PINCH
+    // ═══════════════════════════════════════════════════════════
+
     const $ = (id) => document.getElementById(id);
-    function goHome() { window.location.href = '/'; }
+
+    // El ícono de casita y el botón de cerrar vuelven siempre al inicio
+    // del sitio (fuera del iframe), sea cual sea el modo en que esta
+    // página se esté sirviendo (directa o embebida).
+    function goHome() {
+      try {
+        if (window.top && window.top !== window) {
+          window.top.location.href = '/';
+        } else {
+          window.location.href = '/';
+        }
+      } catch (e) {
+        window.location.href = '/';
+      }
+    }
     $('mhouse').addEventListener('click', goHome);
     $('mclose').addEventListener('click', goHome);
     $('wclose').addEventListener('click', goHome);
 
-    const SRC_W = 810, SRC_H = 1012, ART_CROP_TOP = 17;
-    const CANVAS_W = SRC_W, CANVAS_H = SRC_H - ART_CROP_TOP;
-    const frameEl = $('frame'), viewportEl = $('viewport'), sidebarEl = $('sidebar');
+    // ─────────── AJUSTE DEL CONTENEDOR (frame + canvas se ajustan
+    //             exactamente al formato 1080×1350, sin espacio vacío
+    //             sobrante alrededor) ───────────
+    // El backing store del canvas baja junto con los frames. Si se dejara
+    // en 1080x1350, drawImage volveria a escalar hacia arriba los frames
+    // de 810 y se perderia la nitidez que se acaba de pagar.
+    // Tamaño real de los frames en disco.
+    const SRC_W = 810, SRC_H = 1012;
+
+    // El arte trae una banda azul solida en su borde superior: el papel
+    // rasgado no llega arriba del todo y se ve el fondo del poster. En
+    // pantalla se lee como un hueco entre el poster y la ventana.
+    // Medido sobre los frames ya decodificados: bg1 la tiene en TODOS
+    // (17-18 px), bg2 alterna entre 0 y 15-17. Como bg1 es la capa
+    // visible en reposo, la banda se ve siempre.
+    // Se recorta por arriba al dibujar, sin tocar los archivos. Coste: en
+    // los frames de bg2 que no traen banda se pierden 17 px del borde
+    // superior (1.7% del alto). Poner a 0 para desactivarlo.
+    // 17 = justo la banda de fondo. A partir de 18 el recorte empieza a
+    // comerse el borde rasgado (las gotas azules), no solo el fondo.
+    const ART_CROP_TOP = 17;
+
+    const CANVAS_W = SRC_W;
+    const CANVAS_H = SRC_H - ART_CROP_TOP;
+    const frameEl = $('frame');
+    const viewportEl = $('viewport');
+    const sidebarEl = $('sidebar');
+    const winBarEl = document.querySelector('.win__bar');
 
     function fitStage() {
       const isMobile = window.matchMedia('(max-width: 768px)').matches;
-      if (isMobile) return;
+
+      if (isMobile) {
+        // en mobile el CSS ya maneja el layout apilado (ancho 100%,
+        // alto automático) — soltamos cualquier tamaño inline previo.
+        frameEl.style.width = '';
+        frameEl.style.height = '';
+        viewportEl.style.width = '';
+        return;
+      }
+
+      // Paso 1: soltamos los tamaños inline para volver a la caja máxima
+      // del CSS y medir cuánto espacio hay realmente disponible.
+      frameEl.style.width = '';
+      frameEl.style.height = '';
+      viewportEl.style.width = '';
+
       const stageBox = $('stage').getBoundingClientRect();
+      const framePad = 20;  // padding de #frame por lado
+      const winBorder = 2;  // border de .win por lado
+      const gap = 5;        // gap entre viewport y sidebar
       const sidebarW = sidebarEl.offsetWidth;
-      const ratio = CANVAS_W / CANVAS_H;
-      let canvasH = stageBox.height - 100;
+
+      // Espacio para el CANVAS: lo que queda del stage tras descontar el
+      // padding del frame, el sidebar, el gap y el cromo de la ventana.
+      const chromeW = winBorder * 2;
+      const chromeH = winBarEl.offsetHeight + winBorder * 2;
+
+      const maxCanvasW = stageBox.width  - 8 - framePad * 2 - gap - sidebarW - chromeW;
+      const maxCanvasH = stageBox.height - 8 - framePad * 2 - chromeH;
+
+      const ratio = CANVAS_W / CANVAS_H; // 0.8
+
+      // El canvas más grande que respeta la proporción dentro de ese
+      // hueco; manda el eje que se agote primero.
+      let canvasH = maxCanvasH;
       let canvasW = canvasH * ratio;
-      viewportEl.style.width = (canvasW + 4) + 'px';
+      if (canvasW > maxCanvasW) {
+        canvasW = maxCanvasW;
+        canvasH = canvasW / ratio;
+      }
+      canvasW = Math.max(120, Math.floor(canvasW));
+      canvasH = Math.max(150, Math.floor(canvasH));
+
+      // Paso 2: se dimensiona la VENTANA, no el canvas. El canvas es
+      // width/height 100% de su hueco, asi que queda exacto sin que
+      // sobre nada que repartir arriba y abajo. La ventana calza justo
+      // al canvas para que no queden franjas negras a los lados (era lo
+      // que la diferenciaba del viewport de canicas-3d), y el frame
+      // envuelve viewport + sidebar.
+      viewportEl.style.width = (canvasW + chromeW) + 'px';
+      frameEl.style.width  = (canvasW + chromeW + gap + sidebarW + framePad * 2) + 'px';
+      frameEl.style.height = (canvasH + chromeH + framePad * 2) + 'px';
     }
     window.addEventListener('resize', fitStage);
     window.addEventListener('load', fitStage);
 
-    const BG1_COUNT = 171, BG2_COUNT = 171, UNO_COUNT = 91, VARIAS_COUNT = 91;
-    ['bg1Canvas', 'bg2Canvas', 'stemCanvas', 'unoCanvas', 'variasCanvas'].forEach(id => {
-      const c = $(id); c.width = CANVAS_W; c.height = CANVAS_H;
+    // ─────────── LAS 4 CAPAS: secuencias WebP ───────────
+    // BG1 y BG2: 171 frames, sin alfa, fondo completo (810×1012).
+    // UNO: 91 frames, con alfa, cuadrada (530×530), centrada al 62%.
+    // VARIAS: 91 frames, con alfa, a pantalla completa. Misma longitud
+    // que UNO, asi que comparten indice y van sincronizadas.
+    //
+    // Se mantiene el numero original de frames: se probo con la mitad
+    // (1 de cada 2) y la animacion se veia a saltos. El ahorro de peso
+    // viene solo de bajar la resolucion. VARIAS ya no arranca en el
+    // indice 109: se renumero desde 0 como el resto.
+    // BG1 y BG2 van por tiempo; UNO y VARIAS por scroll. Ya no hace
+    // falta que compartan longitud: son 91 frente a 171.
+    const BG1_COUNT = 171, BG2_COUNT = 171;
+    const UNO_COUNT = 91, VARIAS_COUNT = 91;
+
+    // El backing store se fija desde CANVAS_W/H y no solo en el HTML.
+    // Tenerlo en dos sitios fue justo lo que hizo que, al bajar la
+    // resolucion, los frames se dibujaran en el 75% superior izquierdo
+    // del canvas y quedara el resto en negro.
+    ['bg1Canvas', 'bg2Canvas', 'stemCanvas', 'unoCanvas', 'variasCanvas'].forEach((id) => {
+      const c = $(id);
+      c.width = CANVAS_W;
+      c.height = CANVAS_H;
     });
 
-    const bg1Ctx = $('bg1Canvas').getContext('2d'), bg2Ctx = $('bg2Canvas').getContext('2d'), 
-          unoCtx = $('unoCanvas').getContext('2d'), variasCtx = $('variasCanvas').getContext('2d'), 
-          stemCtx = $('stemCanvas').getContext('2d');
+    const bg1Ctx = $('bg1Canvas').getContext('2d');
+    const bg2Ctx = $('bg2Canvas').getContext('2d');
+    const unoCtx = $('unoCanvas').getContext('2d');
+    const variasCtx = $('variasCanvas').getContext('2d');
+    const stemCtx = $('stemCanvas').getContext('2d');
 
-    const bg1Frames = [], bg2Frames = [], unoFrames = [], variasFrames = [];
+    function pad5(n) { return String(n).padStart(5, '0'); }
+
+    const bg1Frames = [];
+    const bg2Frames = [];
+    const unoFrames = [];
+    const variasFrames = [];
+
     const SEQS = [
-      { prefix: 'BG1', folder: 'bg1', count: BG1_COUNT, arr: bg1Frames },
-      { prefix: 'BG2', folder: 'bg2', count: BG2_COUNT, arr: bg2Frames },
-      { prefix: 'UNO', folder: 'uno', count: UNO_COUNT, arr: unoFrames },
+      { prefix: 'BG1',    folder: 'bg1',    count: BG1_COUNT,    arr: bg1Frames },
+      { prefix: 'BG2',    folder: 'bg2',    count: BG2_COUNT,    arr: bg2Frames },
+      { prefix: 'UNO',    folder: 'uno',    count: UNO_COUNT,    arr: unoFrames },
       { prefix: 'FLORES', folder: 'varias', count: VARIAS_COUNT, arr: variasFrames },
     ];
 
+    const TOTAL_ASSETS = SEQS.reduce((n, s) => n + s.count, 0);
+    let loadedCount = 0;
+
+    function bump() {
+      loadedCount++;
+      const st = $('daisyStatus');
+      if (st && loadedCount < TOTAL_ASSETS) {
+        st.textContent = `cargando ${Math.round(loadedCount / TOTAL_ASSETS * 100)}%… ya puedes mover el mouse y hacer scroll.`;
+      } else if (st) {
+        st.textContent = 'mueve el mouse sobre el lienzo, o haz scroll con la ruedita.';
+      }
+    }
+
+    function frameUrl(s, i) {
+      return `/tools/daisy-media/${s.folder}/${s.prefix}_${pad5(i)}.webp`;
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.decoding = 'async';
+        img.onload = img.onerror = () => resolve(img);
+        img.src = src;
+      });
+    }
+
+    // Antes esto era un `await Promise.all` sobre los 575 frames: no se
+    // pintaba nada hasta que llegaba el ultimo byte de 143 MB. Ahora se
+    // espera solo al primer frame de cada capa —con eso ya hay algo que
+    // dibujar— y el resto entra en segundo plano.
+    function loadFirstFrames() {
+      return Promise.all(SEQS.map(async (s) => {
+        s.arr[0] = await loadImage(frameUrl(s, 0));
+        bump();
+      }));
+    }
+
+    // El resto se trae por lotes. Lanzar las 575 peticiones de golpe satura
+    // la conexion y retrasa justo los frames que hacen falta primero.
+    const LOTE = 4;
+    function loadRest() {
+      return Promise.all(SEQS.map(async (s) => {
+        for (let i = 1; i < s.count; i += LOTE) {
+          await Promise.all(
+            Array.from({ length: Math.min(LOTE, s.count - i) }, (_, k) =>
+              loadImage(frameUrl(s, i + k)).then((img) => { s.arr[i + k] = img; bump(); })
+            )
+          );
+        }
+      }));
+    }
+
+    // Devuelven si llegaron a pintar. Con la carga progresiva puede pedirse
+    // un frame que todavia no ha bajado: en ese caso se deja en pantalla el
+    // ultimo bueno en vez de dejar la capa en blanco.
+    // Se dibuja saltandose la banda superior del arte: se toma el frame
+    // desde y=ART_CROP_TOP y se vuelca 1:1, sin escalar.
     function drawFull(ctx, img) {
-      if (!img || !img.complete) return false;
+      if (!img || !img.complete || !img.naturalWidth) return false;
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
       ctx.drawImage(img, 0, ART_CROP_TOP, SRC_W, CANVAS_H, 0, 0, CANVAS_W, CANVAS_H);
       return true;
     }
 
+    // ─────────── TALLO ARRASTRABLE ───────────
+    // Portado de floralis: el tallo crece como un trazo siguiendo el
+    // puntero, con suavizado e inercia, y al soltar se recoge. Aqui solo
+    // hay uno, anclado al centro del encuadre.
+    // Degradado a lo largo del tallo. En reposo va de verde abajo a azul
+    // arriba; con el scroll vira a purpuras oscuros, usando el mismo
+    // progreso que UNO/VARIAS para que vaya sincronizado.
+    const TALLO_ABAJO_0 = '#bafd3a';
+    const TALLO_ARRIBA_0 = '#46ebf0';
+    const TALLO_ABAJO_1 = '#6a1b9a';
+    const TALLO_ARRIBA_1 = '#2a1163';
+    const TALLO_STROKE  = '#000000';
+    const TALLO_MAX_LEN = 1400;  // longitud antes de que empiece a tensar
+    const TALLO_STREAM  = 0.16;  // cuanto persigue la punta al puntero
+    const TALLO_VENTANA = 9;     // media movil que suaviza el trazo
+    const TALLO_RUBBER  = 45;    // estiron maximo al pasarse de largo
+    const TALLO_AGARRE  = 120;   // radio (px de canvas) para agarrar la punta
+    // Tamano de la flor como fraccion del ancho del canvas.
+    const UNO_ESCALA = 0.34;
+
+    function distPt(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+    function largoRuta(p) { let l = 0; for (let i = 1; i < p.length; i++) l += distPt(p[i - 1], p[i]); return l; }
+    function cubica(p0, p1, p2, p3, t) {
+      const u = 1 - t;
+      return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+    }
+    function tensar(ov, lim) { return ov <= 0 ? 0 : ov * lim / (ov + lim * 0.7); }
+
+    function trazarRuta(ctx, pts, lw, color) {
+      if (!pts || pts.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      if (pts.length === 2) {
+        ctx.lineTo(pts[1].x, pts[1].y);
+      } else {
+        // Catmull-Rom: pasa por todos los puntos, sin los picos que
+        // dejaria unirlos con rectas.
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[Math.max(0, i - 1)], p1 = pts[i];
+          const p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+          for (let t = 0; t <= 1; t += 0.06) {
+            const x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t +
+              (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t * t +
+              (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t * t * t);
+            const y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t +
+              (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t * t +
+              (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t * t * t);
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+      }
+      ctx.strokeStyle = color; ctx.lineWidth = lw;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+
+    // Mezcla dos colores hex. Se usa para virar el degradado del tallo
+    // con el progreso del scroll.
+    function mezclarHex(c0, c1, t) {
+      const h = (c) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+      const a = h(c0), b = h(c1);
+      const m = a.map((v, i) => Math.round(v + (b[i] - v) * Math.min(1, Math.max(0, t))));
+      return 'rgb(' + m[0] + ',' + m[1] + ',' + m[2] + ')';
+    }
+
+    // Punto a lo largo de la ruta, con t de 0 a 1 medido por longitud
+    // real (no por indice): asi las hojas no se amontonan donde hay mas
+    // puntos juntos.
+    function muestrearRuta(pts, t) {
+      if (!pts || !pts.length) return { x: 0, y: 0 };
+      if (pts.length === 1) return { x: pts[0].x, y: pts[0].y };
+      t = Math.min(1, Math.max(0, t));
+      const total = largoRuta(pts), objetivo = total * t;
+      let acc = 0;
+      for (let i = 1; i < pts.length; i++) {
+        const d = distPt(pts[i - 1], pts[i]);
+        if (acc + d >= objetivo) {
+          const k = d ? (objetivo - acc) / d : 0;
+          return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * k,
+                   y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * k };
+        }
+        acc += d;
+      }
+      return { x: pts[pts.length - 1].x, y: pts[pts.length - 1].y };
+    }
+
+    function dibujarHoja(x, y, tam, ang, relleno, borde, grosorBorde) {
+      stemCtx.save();
+      stemCtx.translate(x, y);
+      stemCtx.rotate(ang);
+      stemCtx.beginPath();
+      stemCtx.moveTo(0, 0);
+      stemCtx.bezierCurveTo(tam * 0.5, -tam * 0.28, tam * 1.05, -tam * 0.08, tam * 1.18, tam * 0.1);
+      stemCtx.bezierCurveTo(tam * 1.05, tam * 0.28, tam * 0.4, tam * 0.38, 0, 0);
+      stemCtx.closePath();
+      stemCtx.strokeStyle = borde; stemCtx.lineWidth = grosorBorde;
+      stemCtx.lineJoin = 'round'; stemCtx.stroke();
+      stemCtx.fillStyle = relleno; stemCtx.fill();
+      stemCtx.restore();
+    }
+
     const tallo = {
       base: { x: CANVAS_W / 2, y: CANVAS_H },
+      // En reposo la punta cae en el centro del encuadre, que es donde la
+      // flor ya estaba dibujada antes de existir el tallo.
       reposoPunta: { x: CANVAS_W / 2, y: CANVAS_H / 2 },
-      ruta: null, arrastrando: false, volviendo: false, cabeza: 0,
-      estiron: 0, muelle: 0, _crudo: null, _ventana: [],
+      rutaReposo: null,
+      ruta: null,
+      arrastrando: false,
+      volviendo: false, rutaVuelta: null, cabeza: 0,
+      estiron: 0, muelle: 0, tensando: false,
+      _fantasma: null, _crudo: null, _ventana: [],
 
-      init() { this.rutaReposo = [{x: CANVAS_W/2, y: CANVAS_H}, {x: CANVAS_W/2, y: CANVAS_H/2}]; },
-      
-      get punta() { return this.arrastrando ? (this.ruta ? this.ruta[this.ruta.length-1] : this.reposoPunta) : this.reposoPunta; },
+      init() {
+        const n = 16, alto = this.base.y - this.reposoPunta.y;
+        const cx1 = this.base.x - 30, cy1 = this.base.y - alto * 0.45;
+        const cx2 = this.reposoPunta.x + 22, cy2 = this.reposoPunta.y + alto * 0.25;
+        const pts = [];
+        for (let i = 0; i <= n; i++) {
+          const t = i / n;
+          pts.push({
+            x: cubica(this.base.x, cx1, cx2, this.reposoPunta.x, t),
+            y: cubica(this.base.y, cy1, cy2, this.reposoPunta.y, t),
+          });
+        }
+        this.rutaReposo = pts;
+      },
+
+      get rutaActiva() {
+        if (this.arrastrando && this.ruta) return this.ruta;
+        if (this.volviendo && this.rutaVuelta) return this.rutaVuelta.slice(0, this.cabeza);
+        return this.rutaReposo;
+      },
+      get punta() {
+        const r = this.rutaActiva;
+        return (r && r.length) ? r[r.length - 1] : this.reposoPunta;
+      },
 
       empezar() {
-        this.arrastrando = true; this.volviendo = false; this.estiron = 0; this.muelle = 0;
-        const p = this.punta;
-        this.ruta = [{ x: p.x, y: p.y }];
-        this._crudo = { x: p.x, y: p.y };
+        this.arrastrando = true; this.volviendo = false; this.rutaVuelta = null;
+        this.estiron = 0; this.muelle = 0; this.tensando = false;
+        // Se CONTINUA desde la ruta que hay ahora, no desde la base. Si
+        // se reiniciaba a [base], la punta saltaba al pie del encuadre y
+        // el tallo volvia a crecer desde abajo en cada arrastre.
+        const actual = this.rutaActiva;
+        this.ruta = actual.map((p) => ({ x: p.x, y: p.y }));
+        const punta = this.ruta[this.ruta.length - 1];
+        this._fantasma = { x: punta.x, y: punta.y };
+        this._crudo = { x: punta.x, y: punta.y };
         this._ventana = [];
       },
 
       mover(x, y) {
         if (!this.arrastrando) return;
         this._crudo = { x, y };
-        this._ventana.push({ x, y });
-        if (this._ventana.length > 5) this._ventana.shift();
+        const ov = largoRuta(this.ruta) - TALLO_MAX_LEN;
+        // Pasado el largo maximo la punta responde cada vez menos: da la
+        // sensacion de que el tallo se tensa, en vez de estirarse sin fin.
+        let factor = TALLO_STREAM;
+        if (ov > 0) { this.tensando = true; factor = TALLO_STREAM * Math.max(0.05, 1 - ov / 300); }
+        else { this.tensando = false; }
+        this._fantasma.x += (x - this._fantasma.x) * factor;
+        this._fantasma.y += (y - this._fantasma.y) * factor;
+        this._ventana.push({ x: this._fantasma.x, y: this._fantasma.y });
+        if (this._ventana.length > TALLO_VENTANA) this._ventana.shift();
         let sx = 0, sy = 0;
         for (const p of this._ventana) { sx += p.x; sy += p.y; }
-        this.ruta.push({ x: sx / this._ventana.length, y: sy / this._ventana.length });
-        if (this.ruta.length > 20) this.ruta.shift();
+        const suave = { x: sx / this._ventana.length, y: sy / this._ventana.length };
+        const ult = this.ruta[this.ruta.length - 1];
+        if (distPt(ult, suave) > 2) this.ruta.push(suave);
       },
 
-      soltar() { this.arrastrando = false; this.volviendo = true; this.cabeza = this.ruta.length - 1; },
+      soltar() {
+        if (!this.arrastrando) return;
+        this.arrastrando = false;
+        this.rutaVuelta = this.ruta.slice();
+        this.cabeza = this.rutaVuelta.length;
+        this.volviendo = true;
+        this.ruta = null;
+        if (this.tensando) this.muelle = 14;
+        this.tensando = false;
+      },
 
       update(dt) {
-        if (this.volviendo) {
-          this.cabeza = Math.max(0, this.cabeza - 2);
-          if (this.cabeza <= 0) this.volviendo = false;
+        // Mientras se arrastra se sigue persiguiendo el ultimo punto
+        // aunque el puntero este quieto: asi el tallo termina de alcanzar
+        // en vez de congelarse a medio camino.
+        if (this.arrastrando) this.mover(this._crudo.x, this._crudo.y);
+        if (this.muelle !== 0) {
+          this.estiron += this.muelle * dt * 60;
+          this.muelle *= -0.45;
+          if (Math.abs(this.muelle) < 0.1) this.muelle = 0;
+          this.estiron *= 0.78;
+        }
+        if (this.volviendo && this.rutaVuelta) {
+          this.cabeza = Math.max(1, this.cabeza - 6);
+          if (this.cabeza <= 1) {
+            this.volviendo = false; this.rutaVuelta = null;
+            this.estiron = 0; this.muelle = 0;
+          }
         }
       },
 
+      // Pinta el tallo y devuelve la punta ya con el estiron aplicado:
+      // ese punto es el ancla de UNO. `t` es el progreso del scroll, que
+      // vira el degradado de verde/azul a purpuras.
       dibujar(t) {
         stemCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-        const ruta = this.volviendo ? this.ruta.slice(0, this.cabeza) : this.ruta;
-        const puntaActual = (ruta && ruta.length > 0) ? ruta[ruta.length-1] : this.reposoPunta;
-        
-        // Grosor FIJO para evitar glitch visual
-        const grosor = 8; 
-        
-        if (ruta && ruta.length > 1) {
-          stemCtx.beginPath();
-          stemCtx.moveTo(this.base.x, this.base.y);
-          for(let p of ruta) stemCtx.lineTo(p.x, p.y);
-          stemCtx.strokeStyle = '#46ebf0'; stemCtx.lineWidth = grosor;
-          stemCtx.stroke();
+        const ruta = this.rutaActiva;
+        if (!ruta || ruta.length < 2) return this.reposoPunta;
+
+        const largo = largoRuta(ruta), ov = largo - TALLO_MAX_LEN;
+        let d = (this.arrastrando && ov > 0) ? tensar(ov, TALLO_RUBBER) : 0;
+        d += this.estiron;
+        const a = ruta[ruta.length - 2], b = ruta[ruta.length - 1];
+        const dd = distPt(a, b);
+        let dx = 0, dy = -1;
+        if (dd > 0) { dx = (b.x - a.x) / dd; dy = (b.y - a.y) / dd; }
+        const punta = { x: b.x + dx * d, y: b.y + dy * d };
+
+        const grosor = Math.max(4, Math.min(13, largo / 55));
+
+        // Degradado a lo largo del tallo, de la base a la punta.
+        const grad = stemCtx.createLinearGradient(this.base.x, this.base.y, b.x, b.y);
+        grad.addColorStop(0, mezclarHex(TALLO_ABAJO_0, TALLO_ABAJO_1, t));
+        grad.addColorStop(1, mezclarHex(TALLO_ARRIBA_0, TALLO_ARRIBA_1, t));
+
+        // Hojitas: van DEBAJO del tallo para que el contorno negro del
+        // tallo las recorte limpio en vez de pisarlas a medias.
+        if (ruta.length > 6) {
+          for (let i = 0; i < 2; i++) {
+            const pos = 0.3 + i * 0.28;
+            const p1 = muestrearRuta(ruta, pos), p2 = muestrearRuta(ruta, pos + 0.05);
+            const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2;
+            const lado = (i % 2 === 0 ? 1 : -1) * 0.55;
+            const tam = 9 + grosor * 2.6;
+            dibujarHoja(p1.x, p1.y, tam, ang + lado, grad, TALLO_STROKE, Math.max(1.5, grosor * 0.3));
+          }
         }
-        return puntaActual;
-      }
+
+        // Contorno negro primero, degradado encima: el trazo oscuro
+        // asoma justo lo necesario para leerse como stroke.
+        trazarRuta(stemCtx, ruta, grosor + Math.max(3, grosor * 0.55), TALLO_STROKE);
+        trazarRuta(stemCtx, ruta, grosor, grad);
+
+        stemCtx.beginPath();
+        stemCtx.arc(this.base.x, this.base.y, grosor * 0.9, 0, Math.PI * 2);
+        stemCtx.fillStyle = grad;
+        stemCtx.fill();
+        return punta;
+      },
     };
     tallo.init();
 
-    function loop() {
-      tallo.update(0.016);
-      const punta = tallo.dibujar(0);
-      drawUno(unoCtx, unoFrames[0] || new Image(), punta);
-      requestAnimationFrame(loop);
-    }
-    
+    // UNO es cuadrada y va anclada por su CENTRO a la punta del tallo,
+    // asi que se mueve con el. Ya no se centra en el canvas.
     function drawUno(ctx, img, punta) {
-      if (!img.complete) return;
+      if (!img || !img.complete || !img.naturalWidth) return false;
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-      const size = 150;
-      ctx.drawImage(img, punta.x - size/2, punta.y - size/2, size, size);
+      const size = CANVAS_W * UNO_ESCALA;
+      ctx.drawImage(img, punta.x - size / 2, punta.y - size / 2, size, size);
+      return true;
     }
 
-    daisyCanvas.addEventListener('mousedown', (e) => tallo.empezar());
-    daisyCanvas.addEventListener('mousemove', (e) => {
-      const r = daisyCanvas.getBoundingClientRect();
-      tallo.mover((e.clientX - r.left) * (CANVAS_W/r.width), (e.clientY - r.top) * (CANVAS_H/r.height));
-    });
-    window.addEventListener('mouseup', () => tallo.soltar());
-    
-    requestAnimationFrame(loop);
+    let lastBg1Idx = -1, lastBg2Idx = -1, lastUnoIdx = -1, lastVariasIdx = -1;
+
+    // El indice solo se da por pintado si drawX lo consiguio. Si el frame
+    // aun no ha bajado, se reintenta en el siguiente tick en vez de quedar
+    // marcado como hecho y no volver a dibujarse nunca.
+    function renderBg1(idx) {
+      if (idx === lastBg1Idx) return;
+      if (drawFull(bg1Ctx, bg1Frames[idx])) lastBg1Idx = idx;
+    }
+
+    // Solo UNO y VARIAS siguen al scroll. Comparten indice directamente
+    // (ambas tienen el mismo numero de frames), asi que van sincronizadas
+    // sin nada que mapear entre ellas.
+    //
+    // VARIAS se memoriza por indice, pero UNO no puede: aunque el frame
+    // no cambie, su POSICION si lo hace al moverse la punta del tallo,
+    // asi que hay que repintarla siempre. Es un solo drawImage.
+    function renderScrollLayers(idx, punta) {
+      drawUno(unoCtx, unoFrames[idx], punta);
+      if (idx !== lastVariasIdx && drawFull(variasCtx, variasFrames[idx])) lastVariasIdx = idx;
+    }
+
+    // BG2 corre por tiempo, no con el scroll: el scroll solo gobierna su
+    // opacidad.
+    function renderBg2(idx) {
+      if (idx === lastBg2Idx) return;
+      if (drawFull(bg2Ctx, bg2Frames[idx])) lastBg2Idx = idx;
+    }
+
+    // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
+    const PLAYBACK_FPS = 24;           // solo BG1, que va con el mouse
+    const STILL_MS = 380;              // quietud sostenida antes de congelar
+
+    // ── Scroll animation ──────────────────────────────────────────────
+    // UNO y VARIAS: el avance del scroll ES su animacion. Progreso
+    // 0..1 -> frame, sin reloj. Solo se mueven MIENTRAS se scrollea.
+    // NO es un loop: al llegar al final se quedan en el ultimo frame por
+    // mucho que se siga bajando, y al subir vuelven al primero y se
+    // quedan ahi.
+    const SCROLL_RECORRIDO_PX = 1200;  // px de rueda para la animacion entera
+
+    // La rueda llega a saltos: un click son ~14 frames de golpe y se ve
+    // a tirones. El gesto fija un OBJETIVO y el frame dibujado lo
+    // persigue, asi que cada click se reparte en un barrido suave en vez
+    // de un salto. Mas alto = mas pegado al gesto y mas brusco.
+    const SUAVIZADO = 0.14;
+
+
+    // BG2 si se reproduce, siempre hacia adelante (inicio -> fin ->
+    // inicio), nunca en reversa. Lo que el scroll controla es su
+    // OPACIDAD, atada al progreso de UNO/VARIAS: 0 al inicio de esa
+    // animacion y 1 al final. Bajando aparece, subiendo desaparece.
+
+    let lastMouseMoveAt = 0;
+    let lastScrollAt = 0;
+    let bg1FrameFloat = 0;
+    let scrollTarget = 0;      // 0..1, lo que fija el gesto
+    let scrollProgress = 0;    // 0..1, lo que se dibuja, persigue al objetivo
+    let bg2FrameFloat = 0;     // BG2 corre por tiempo, no por scroll
+
+    function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
+    function isScrolling() { return (performance.now() - lastScrollAt) < STILL_MS; }
+
+    // deltaY no siempre viene en pixeles: segun navegador y dispositivo
+    // puede venir en lineas (valores de ~3) o en paginas. Tratarlo como
+    // pixeles hacia que apenas avanzara y se viera a tirones.
+    function deltaEnPx(e) {
+      if (e.deltaMode === 1) return e.deltaY * 16;   // lineas
+      if (e.deltaMode === 2) return e.deltaY * 400;  // paginas
+      return e.deltaY;                               // pixeles
+    }
+
+    // Acotado a 0..1: al llegar a cualquiera de los dos extremos se
+    // queda ahi aunque se siga scrolleando en esa direccion.
+    function moverScroll(deltaY) {
+      lastScrollAt = performance.now();
+      const t = scrollTarget + deltaY / SCROLL_RECORRIDO_PX;
+      scrollTarget = Math.min(1, Math.max(0, t));
+    }
+
+    const daisyCanvasEl = $('daisyCanvas');
+    daisyCanvasEl.addEventListener('mousemove', () => { lastMouseMoveAt = performance.now(); });
+
+    let lastTouchY = null;
+    daisyCanvasEl.addEventListener('touchstart', (e) => {
+      lastTouchY = e.touches.length ? e.touches[0].clientY : null;
+    }, { passive: true });
+    daisyCanvasEl.addEventListener('touchmove', (e) => {
+      lastMouseMoveAt = performance.now();
+      if (!e.touches.length) return;
+      const y = e.touches[0].clientY;
+      if (lastTouchY !== null) moverScroll(lastTouchY - y); // arrastrar = scrollear
+      lastTouchY = y;
+    }, { passive: true });
+    daisyCanvasEl.addEventListener('touchend', () => { lastTouchY = null; }, { passive: true });
+
+
+    // ── Arrastre del tallo ──
+    // El canvas se muestra escalado, asi que hay que pasar las
+    // coordenadas de pantalla al espacio del canvas (CANVAS_W x CANVAS_H)
+    // antes de usarlas; si no, el tallo no seguiria al puntero.
+    function aCanvas(clientX, clientY) {
+      const r = daisyCanvasEl.getBoundingClientRect();
+      return {
+        x: (clientX - r.left) * (CANVAS_W / r.width),
+        y: (clientY - r.top) * (CANVAS_H / r.height),
+      };
+    }
+
+    let arrastrandoTallo = false;
+
+    function pulsar(clientX, clientY) {
+      const p = aCanvas(clientX, clientY);
+      // Se agarra por la punta, como en el ejemplo: pulsar en cualquier
+      // otro sitio no hace nada.
+      if (distPt(p, tallo.punta) > TALLO_AGARRE) return false;
+      arrastrandoTallo = true;
+      tallo.empezar();
+      tallo.mover(p.x, p.y);
+      return true;
+    }
+    function desplazar(clientX, clientY) {
+      if (!arrastrandoTallo) return;
+      const p = aCanvas(clientX, clientY);
+      tallo.mover(p.x, p.y);
+    }
+    function levantar() {
+      if (!arrastrandoTallo) return;
+      arrastrandoTallo = false;
+      tallo.soltar();
+    }
+
+    daisyCanvasEl.addEventListener('mousedown', (e) => { if (pulsar(e.clientX, e.clientY)) e.preventDefault(); });
+    daisyCanvasEl.addEventListener('mousemove', (e) => desplazar(e.clientX, e.clientY));
+    window.addEventListener('mouseup', levantar);
+    daisyCanvasEl.addEventListener('mouseleave', levantar);
+
+    daisyCanvasEl.addEventListener('touchstart', (e) => {
+      if (!e.touches.length) return;
+      if (pulsar(e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault();
+    }, { passive: false });
+    daisyCanvasEl.addEventListener('touchmove', (e) => {
+      if (!arrastrandoTallo || !e.touches.length) return;
+      desplazar(e.touches[0].clientX, e.touches[0].clientY);
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+    window.addEventListener('touchend', levantar);
+    window.addEventListener('touchcancel', levantar);
+
+    daisyCanvasEl.addEventListener('wheel', (e) => {
+      moverScroll(deltaEnPx(e));
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    let lastTick = performance.now();
+
+    function updateScene() {
+      const now = performance.now();
+      const dt = Math.min(0.1, (now - lastTick) / 1000);
+      lastTick = now;
+
+      const moving = isMouseMoving();
+      const scrolling = isScrolling();
+
+      // BG1: siempre en loop y siempre hacia adelante (inicio → fin →
+      // inicio), nunca en reversa. Ya no depende de que el mouse se mueva.
+      bg1FrameFloat = (bg1FrameFloat + dt * PLAYBACK_FPS) % BG1_COUNT;
+      renderBg1(Math.floor(bg1FrameFloat));
+
+      // UNO y VARIAS: el frame sale SOLO del scroll. El progreso persigue
+      // al objetivo que fija el gesto; sin scroll el objetivo no cambia y
+      // el progreso lo alcanza y se para, así que no se reproduce sola.
+      // Ambas leen el mismo progreso, por eso van sincronizadas.
+      // El factor se corrige por dt para que la suavidad no dependa de
+      // los fps de la pantalla.
+      const k = 1 - Math.pow(1 - SUAVIZADO, dt * 60);
+      scrollProgress += (scrollTarget - scrollProgress) * k;
+
+      tallo.update(dt);
+      const punta = tallo.dibujar(scrollProgress);
+      renderScrollLayers(Math.round(scrollProgress * (UNO_COUNT - 1)), punta);
+
+      // BG2: su OPACIDAD es el progreso de UNO/VARIAS — 0 al inicio de
+      // esa animación y 1 al final. Bajando aparece progresivamente;
+      // subiendo se va por el mismo camino a la inversa. Si se sigue
+      // bajando al llegar al final, el progreso ya está en 1 y se queda
+      // corriendo a opacidad plena.
+      $('bg2Canvas').style.opacity = String(scrollProgress);
+
+      // Su secuencia sí corre, por tiempo y SIEMPRE hacia adelante
+      // (inicio → fin → inicio), nunca en reversa. Solo avanza cuando se
+      // la ve, para no gastar dibujados con la capa invisible.
+      if (scrollProgress > 0.001) {
+        bg2FrameFloat = (bg2FrameFloat + dt * PLAYBACK_FPS) % BG2_COUNT;
+        renderBg2(Math.floor(bg2FrameFloat));
+      }
+
+      // Medidores del panel lateral (solo informativos)
+      $('moveFill').style.width = (moving ? 100 : 0) + '%';
+      $('movePct').textContent = (moving ? 100 : 0) + '%';
+      $('scrollFill').style.width = Math.round(scrollProgress * 100) + '%';
+      $('scrollPct').textContent = Math.round(scrollProgress * 100) + '%';
+    }
+
+    // ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ───────────
+    // Vive fuera de #daisyCanvas (es hijo de .win). Su área de arrastre
+    // está acotada a .win pero NUNCA puede entrar al rectángulo del
+    // canvas del poster: si el usuario lo suelta encima, se empuja
+    // automáticamente al borde más cercano por fuera.
+    (function setupInfoPanel() {
+      const panel = $('infoPanel');
+      const bar = $('infoPanelBar');
+      const minBtn = $('infoMin');
+      const closeBtn = $('infoClose');
+      const bubble = $('infoBubble');
+      const bounds = $('stage');
+      const exclusionEl = $('frame');
+
+      // Posición inicial razonable (a la derecha de la ventana si hay
+      // espacio, si no debajo) — pero el arrastre en sí es 100% libre,
+      // sin límites ni exclusión: se puede soltar donde sea.
+      function defaultPos() {
+        const b = bounds.getBoundingClientRect();
+        const c = exclusionEl.getBoundingClientRect();
+        const ex = { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height };
+        const pw = panel.offsetWidth, ph = panel.offsetHeight;
+        const roomRight = b.width - (ex.x + ex.w);
+        const roomBelow = b.height - (ex.y + ex.h);
+        if (roomRight >= pw + 14) return { x: ex.x + ex.w + 8, y: ex.y + 8 };
+        if (roomBelow >= ph + 14) return { x: 8, y: ex.y + ex.h + 8 };
+        return { x: 8, y: 8 };
+      }
+
+      function placeAt(pos) {
+        panel.style.left = pos.x + 'px';
+        panel.style.top = pos.y + 'px';
+      }
+
+      function placeBubbleAt(pos) {
+        bubble.style.left = pos.x + 'px';
+        bubble.style.top = pos.y + 'px';
+      }
+
+      let userMoved = false;
+
+      function resetToDefault() {
+        if (userMoved) return; // respeta si el usuario ya lo movió a mano
+        placeAt(defaultPos());
+      }
+
+      // ── Drag libre, sin restricciones ──
+      let dragging = false, offsetX = 0, offsetY = 0;
+      function getPoint(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
+
+      function onDown(e) {
+        if (e.target === minBtn || e.target === closeBtn) return;
+        const p = getPoint(e);
+        const rect = panel.getBoundingClientRect();
+        dragging = true;
+        userMoved = true;
+        offsetX = p.clientX - rect.left;
+        offsetY = p.clientY - rect.top;
+      }
+
+      function onMove(e) {
+        if (!dragging) return;
+        const p = getPoint(e);
+        const b = bounds.getBoundingClientRect();
+        const rawX = p.clientX - b.left - offsetX;
+        const rawY = p.clientY - b.top - offsetY;
+        placeAt({ x: rawX, y: rawY }); // libre, sin clamp ni exclusion
+        if (e.cancelable) e.preventDefault();
+      }
+
+      function onUp() { dragging = false; }
+
+      bar.addEventListener('mousedown', onDown);
+      bar.addEventListener('touchstart', onDown, { passive: true });
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchend', onUp);
+
+      // ── Minimizar y Cerrar hacen lo mismo: colapsan a una burbuja "?"
+      //    en el mismo lugar donde estaba el panel. Un click la reabre. ──
+      function collapseToBubble() {
+        const rect = panel.getBoundingClientRect();
+        const b = bounds.getBoundingClientRect();
+        placeBubbleAt({ x: rect.left - b.left, y: rect.top - b.top });
+        panel.style.display = 'none';
+        bubble.style.display = 'flex';
+      }
+
+      minBtn.addEventListener('click', collapseToBubble);
+      closeBtn.addEventListener('click', collapseToBubble);
+
+      bubble.addEventListener('click', () => {
+        const bRect = bubble.getBoundingClientRect();
+        const bnd = bounds.getBoundingClientRect();
+        placeAt({ x: bRect.left - bnd.left, y: bRect.top - bnd.top });
+        bubble.style.display = 'none';
+        panel.style.display = '';
+      });
+
+      window.addEventListener('resize', resetToDefault);
+      // posición inicial, una vez que el canvas ya tiene su tamaño final
+      requestAnimationFrame(() => requestAnimationFrame(resetToDefault));
+    })();
+
+    // ─────────── LOOP PRINCIPAL ───────────
+    function loop() {
+      updateScene();
+      requestAnimationFrame(loop);
+    }
+
+    // ─────────── INIT ───────────
+    (async function init() {
+      fitStage();
+
+      // Solo se espera al primer frame de cada capa. En cuanto hay algo
+      // que dibujar, se quita la pantalla de carga y arranca el loop; los
+      // frames restantes siguen entrando por detras.
+      await loadFirstFrames();
+      fitStage();
+      renderBg1(0);
+      renderScrollLayers(0, tallo.punta);
+      $('daisyLoading').style.opacity = '0';
+      setTimeout(() => { $('daisyLoading').style.display = 'none'; }, 400);
+      requestAnimationFrame(loop);
+
+      loadRest(); // sin await: no debe bloquear el arranque
+    })();
   </script>
+
 </body>
+
 </html>
