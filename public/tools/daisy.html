@@ -933,24 +933,26 @@
     const STILL_MS = 380;              // quietud sostenida antes de congelar
 
     // ── Scroll animation ──────────────────────────────────────────────
-    // El avance del scroll ES la animacion: progreso 0..1 -> frame. No
-    // hay reloj, no se reproduce sola y no da la vuelta al llegar al
-    // final; se queda en el ultimo frame, como cualquier scroll
-    // animation. Volver a scrollear hacia arriba la rebobina.
+    // El avance del scroll ES la animacion: progreso 0..1 -> frame, sin
+    // reloj. La secuencia es un LOOP: al pasar del final se repite desde
+    // el inicio, no se frena ahi.
     const SCROLL_RECORRIDO_PX = 1200;  // px de rueda para el ciclo entero
-    const RETORNO_LERP = 0.06;         // suavidad al volver al inicio
+    const OPACITY_LERP = 0.08;         // suavizado del fundido de BG2
 
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
     let scrollProgress = 0;    // 0..1, unica fuente de verdad del grupo
+    let settling = false;      // cerrando el ciclo tras soltar el scroll
+    let bg2Opacity = 0;
 
     function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
     function isScrolling() { return (performance.now() - lastScrollAt) < STILL_MS; }
 
     function moverScroll(deltaY) {
       lastScrollAt = performance.now();
-      scrollProgress = Math.min(1, Math.max(0, scrollProgress + deltaY / SCROLL_RECORRIDO_PX));
+      const p = scrollProgress + deltaY / SCROLL_RECORRIDO_PX;
+      scrollProgress = (p % 1 + 1) % 1;   // envuelve: el final enlaza con el inicio
     }
 
     const daisyCanvasEl = $('daisyCanvas');
@@ -994,17 +996,25 @@
       // de un reloj. Nada se reproduce solo: si no scrolleas, no avanza.
       // Las tres capas leen el mismo progreso, por eso van sincronizadas
       // por construcción.
-      // Al dejar de scrollear el progreso vuelve al inicio suavemente,
-      // así que la escena regresa a su imagen estática de partida.
-      if (!scrolling && scrollProgress > 0) {
-        scrollProgress -= scrollProgress * RETORNO_LERP;
-        if (scrollProgress < 0.001) scrollProgress = 0;
+      // Al dejar de scrollear termina el ciclo HACIA ADELANTE y se para
+      // al llegar al inicio. Volver bajando el progreso reproduciría las
+      // capas en reversa, que es justo lo que no debe pasar.
+      if (scrolling) {
+        settling = false;
+      } else if (scrollProgress > 0) {
+        settling = true;
+        scrollProgress += dt * PLAYBACK_FPS / (BG2_COUNT - 1);
+        if (scrollProgress >= 1) { scrollProgress = 0; settling = false; }
       }
       renderScrollLayers(Math.round(scrollProgress * (BG2_COUNT - 1)));
 
-      // BG2 se funde con el propio progreso (rápido al arrancar) para que
-      // en reposo se vea BG1 debajo. UNO y VARIAS quedan siempre visibles.
-      const bg2Opacity = Math.min(1, scrollProgress * 6);
+      // BG2 se funde por tiempo, no con el progreso: al envolver el loop
+      // el progreso salta de 1 a 0 y un fundido atado a él daría un
+      // parpadeo. Espera a que el ciclo cierre para desvanecerse, y así
+      // en reposo se ve BG1 debajo. UNO y VARIAS quedan siempre visibles.
+      const bg2Target = (scrolling || settling) ? 1 : 0;
+      bg2Opacity += (bg2Target - bg2Opacity) * OPACITY_LERP;
+      if (Math.abs(bg2Target - bg2Opacity) < 0.004) bg2Opacity = bg2Target;
       $('bg2Canvas').style.opacity = String(bg2Opacity);
 
       // Medidores del panel lateral (solo informativos)
