@@ -917,15 +917,19 @@
       if (drawFull(bg1Ctx, bg1Frames[idx])) lastBg1Idx = idx;
     }
 
+    // Solo UNO y VARIAS siguen al scroll. Comparten indice directamente
+    // (ambas tienen el mismo numero de frames), asi que van sincronizadas
+    // sin nada que mapear entre ellas.
     function renderScrollLayers(idx) {
-      if (idx !== lastBg2Idx && drawFull(bg2Ctx, bg2Frames[idx])) lastBg2Idx = idx;
       if (idx !== lastUnoIdx && drawUno(unoCtx, unoFrames[idx])) lastUnoIdx = idx;
-      // VARIAS tiene menos frames que el resto: se estiran a lo largo de
-      // todo el ciclo para que avance en sincro con BG2/UNO.
-      const variasLocal = Math.round((idx / (BG2_COUNT - 1)) * (VARIAS_COUNT - 1));
-      if (variasLocal !== lastVariasIdx && drawFull(variasCtx, variasFrames[variasLocal])) {
-        lastVariasIdx = variasLocal;
-      }
+      if (idx !== lastVariasIdx && drawFull(variasCtx, variasFrames[idx])) lastVariasIdx = idx;
+    }
+
+    // BG2 se queda congelada en su primer frame: el scroll no la anima,
+    // solo la hace entrar y salir de opacidad.
+    function renderBg2Estatico() {
+      if (lastBg2Idx === 0) return;
+      if (drawFull(bg2Ctx, bg2Frames[0])) lastBg2Idx = 0;
     }
 
     // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
@@ -933,21 +937,34 @@
     const STILL_MS = 380;              // quietud sostenida antes de congelar
 
     // ── Scroll animation ──────────────────────────────────────────────
-    // El avance del scroll ES la animacion: progreso 0..1 -> frame, sin
-    // reloj. La secuencia es un LOOP: al pasar del final se repite desde
-    // el inicio, no se frena ahi.
+    // UNO y VARIAS: el avance del scroll ES su animacion. Progreso
+    // 0..1 -> frame, sin reloj. Solo se mueven MIENTRAS se scrollea; al
+    // parar se quedan donde esten, no siguen solas. Es un loop: pasar del
+    // final enlaza con el inicio.
     const SCROLL_RECORRIDO_PX = 1200;  // px de rueda para el ciclo entero
-    const OPACITY_LERP = 0.08;         // suavizado del fundido de BG2
+
+    // BG2 no lo controla el scroll: se queda en su frame inicial y lo
+    // unico que hace es entrar de opacidad 0 a 1 en 3 s mientras hay
+    // interaccion, y salir igual a la inversa cuando termina.
+    const BG2_FADE_MS = 3000;
 
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
-    let scrollProgress = 0;    // 0..1, unica fuente de verdad del grupo
-    let settling = false;      // cerrando el ciclo tras soltar el scroll
+    let scrollProgress = 0;    // 0..1, fuente de verdad de UNO y VARIAS
     let bg2Opacity = 0;
 
     function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
     function isScrolling() { return (performance.now() - lastScrollAt) < STILL_MS; }
+
+    // deltaY no siempre viene en pixeles: segun navegador y dispositivo
+    // puede venir en lineas (valores de ~3) o en paginas. Tratarlo como
+    // pixeles hacia que apenas avanzara y se viera a tirones.
+    function deltaEnPx(e) {
+      if (e.deltaMode === 1) return e.deltaY * 16;   // lineas
+      if (e.deltaMode === 2) return e.deltaY * 400;  // paginas
+      return e.deltaY;                               // pixeles
+    }
 
     function moverScroll(deltaY) {
       lastScrollAt = performance.now();
@@ -972,7 +989,7 @@
     daisyCanvasEl.addEventListener('touchend', () => { lastTouchY = null; }, { passive: true });
 
     daisyCanvasEl.addEventListener('wheel', (e) => {
-      moverScroll(e.deltaY);
+      moverScroll(deltaEnPx(e));
       if (e.cancelable) e.preventDefault();
     }, { passive: false });
 
@@ -992,29 +1009,20 @@
       }
       renderBg1(Math.floor(bg1FrameFloat));
 
-      // Grupo BG2+UNO+VARIAS: el frame sale del PROGRESO del scroll, no
-      // de un reloj. Nada se reproduce solo: si no scrolleas, no avanza.
-      // Las tres capas leen el mismo progreso, por eso van sincronizadas
-      // por construcción.
-      // Al dejar de scrollear termina el ciclo HACIA ADELANTE y se para
-      // al llegar al inicio. Volver bajando el progreso reproduciría las
-      // capas en reversa, que es justo lo que no debe pasar.
-      if (scrolling) {
-        settling = false;
-      } else if (scrollProgress > 0) {
-        settling = true;
-        scrollProgress += dt * PLAYBACK_FPS / (BG2_COUNT - 1);
-        if (scrollProgress >= 1) { scrollProgress = 0; settling = false; }
-      }
-      renderScrollLayers(Math.round(scrollProgress * (BG2_COUNT - 1)));
+      // UNO y VARIAS: el frame sale SOLO del progreso del scroll. Aquí no
+      // se toca el progreso, así que si no scrolleas no avanza nada — la
+      // animación no se reproduce sola en ningún momento. Ambas leen el
+      // mismo progreso, por eso van sincronizadas por construcción.
+      renderBg2Estatico();
+      renderScrollLayers(Math.round(scrollProgress * (UNO_COUNT - 1)));
 
-      // BG2 se funde por tiempo, no con el progreso: al envolver el loop
-      // el progreso salta de 1 a 0 y un fundido atado a él daría un
-      // parpadeo. Espera a que el ciclo cierre para desvanecerse, y así
-      // en reposo se ve BG1 debajo. UNO y VARIAS quedan siempre visibles.
-      const bg2Target = (scrolling || settling) ? 1 : 0;
-      bg2Opacity += (bg2Target - bg2Opacity) * OPACITY_LERP;
-      if (Math.abs(bg2Target - bg2Opacity) < 0.004) bg2Opacity = bg2Target;
+      // BG2 no lo mueve el scroll: se queda en su frame inicial y lo
+      // único que hace es entrar de opacidad 0 a 1 mientras hay
+      // interacción y salir a la inversa cuando termina, con el mismo
+      // recorrido de 3 s en ambos sentidos.
+      const paso = (dt * 1000) / BG2_FADE_MS;
+      bg2Opacity += scrolling ? paso : -paso;
+      bg2Opacity = Math.min(1, Math.max(0, bg2Opacity));
       $('bg2Canvas').style.opacity = String(bg2Opacity);
 
       // Medidores del panel lateral (solo informativos)
