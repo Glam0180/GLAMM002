@@ -929,14 +929,9 @@
     }
 
     // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
-    const PLAYBACK_FPS = 24;           // solo para BG1 (mouse) y el cierre
+    const PLAYBACK_FPS = 24;           // velocidad de reproduccion en loop
     const STILL_MS = 380;              // quietud sostenida antes de congelar
     const OPACITY_LERP = 0.08;         // suavizado del fundido de opacidad
-
-    // Cuantos frames avanza el grupo de scroll por pixel de rueda. Un
-    // "click" de rueda son ~100 px, asi que con 0.25 el ciclo entero
-    // (171 frames) se recorre en unos 7 clicks.
-    const FRAMES_POR_PX = 0.25;
 
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
@@ -948,36 +943,14 @@
     function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
     function isScrolling() { return (performance.now() - lastScrollAt) < STILL_MS; }
 
-    // El grupo BG2+UNO+VARIAS se mueve CON el scroll, no con un reloj: el
-    // delta de la rueda se traduce directamente a frames, asi que el
-    // avance sigue el gesto y al scrollear hacia atras la animacion
-    // retrocede. Las tres capas comparten el mismo indice, por eso van
-    // sincronizadas por construccion.
-    function avanzarScroll(deltaY) {
-      lastScrollAt = performance.now();
-      settling = false;
-      const n = BG2_COUNT;
-      scrollFrameFloat = ((scrollFrameFloat + deltaY * FRAMES_POR_PX) % n + n) % n;
-    }
-
     const daisyCanvasEl = $('daisyCanvas');
     daisyCanvasEl.addEventListener('mousemove', () => { lastMouseMoveAt = performance.now(); });
-
-    let lastTouchY = null;
-    daisyCanvasEl.addEventListener('touchstart', (e) => {
-      lastTouchY = e.touches.length ? e.touches[0].clientY : null;
-    }, { passive: true });
-    daisyCanvasEl.addEventListener('touchmove', (e) => {
+    daisyCanvasEl.addEventListener('touchmove', () => {
       lastMouseMoveAt = performance.now();
-      if (!e.touches.length) return;
-      const y = e.touches[0].clientY;
-      if (lastTouchY !== null) avanzarScroll(lastTouchY - y); // arrastrar = scrollear
-      lastTouchY = y;
+      lastScrollAt = performance.now(); // en touch, arrastrar cuenta como ambos
     }, { passive: true });
-    daisyCanvasEl.addEventListener('touchend', () => { lastTouchY = null; }, { passive: true });
-
     daisyCanvasEl.addEventListener('wheel', (e) => {
-      avanzarScroll(e.deltaY);
+      lastScrollAt = performance.now();
       if (e.cancelable) e.preventDefault();
     }, { passive: false });
 
@@ -997,11 +970,14 @@
       }
       renderBg1(Math.floor(bg1FrameFloat));
 
-      // Grupo BG2+UNO+VARIAS: mientras se scrollea el índice lo fija el
-      // gesto (ver avanzarScroll), aquí no se toca. Al soltar no se corta
-      // en seco: sigue hacia adelante hasta cerrar el ciclo y se queda
+      // Grupo BG2+UNO+VARIAS: avanza mientras hay scroll activo, siempre
+      // hacia adelante (inicio → fin → inicio), sin ping-pong. Al soltar
+      // no se corta en seco: sigue hasta cerrar el ciclo y se queda
       // quieto en el frame 0, la imagen estática de partida.
-      if (!scrolling && scrollFrameFloat > 0) {
+      if (scrolling) {
+        settling = false;
+        scrollFrameFloat = (scrollFrameFloat + dt * PLAYBACK_FPS) % BG2_COUNT;
+      } else if (scrollFrameFloat > 0) {
         settling = true;
         scrollFrameFloat += dt * PLAYBACK_FPS;
         if (scrollFrameFloat >= BG2_COUNT) {
