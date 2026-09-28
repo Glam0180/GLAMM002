@@ -943,15 +943,25 @@
     // final enlaza con el inicio.
     const SCROLL_RECORRIDO_PX = 1200;  // px de rueda para el ciclo entero
 
+    // La rueda llega a saltos: un click son ~14 frames de golpe y se ve
+    // a tirones. El gesto fija un OBJETIVO y el frame dibujado lo
+    // persigue, asi que cada click se reparte en un barrido suave en vez
+    // de un salto. Mas alto = mas pegado al gesto y mas brusco.
+    const SUAVIZADO = 0.14;
+
     // BG2 no lo controla el scroll: se queda en su frame inicial y lo
-    // unico que hace es entrar de opacidad 0 a 1 en 3 s mientras hay
+    // unico que hace es entrar de opacidad 0 a 1 mientras hay
     // interaccion, y salir igual a la inversa cuando termina.
-    const BG2_FADE_MS = 3000;
+    const BG2_FADE_MS = 1000;
 
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
-    let scrollProgress = 0;    // 0..1, fuente de verdad de UNO y VARIAS
+    // Sin acotar a propósito: el envolvimiento del loop se resuelve al
+    // calcular el frame, no aqui. Si se acotaran a 0..1, al pasar de
+    // 0.99 a 0.02 el suavizado recorreria el ciclo entero hacia atras.
+    let scrollTarget = 0;      // lo que fija el gesto
+    let scrollProgress = 0;    // lo que se dibuja, persigue al objetivo
     let bg2Opacity = 0;
 
     function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
@@ -968,8 +978,7 @@
 
     function moverScroll(deltaY) {
       lastScrollAt = performance.now();
-      const p = scrollProgress + deltaY / SCROLL_RECORRIDO_PX;
-      scrollProgress = (p % 1 + 1) % 1;   // envuelve: el final enlaza con el inicio
+      scrollTarget += deltaY / SCROLL_RECORRIDO_PX;
     }
 
     const daisyCanvasEl = $('daisyCanvas');
@@ -1009,12 +1018,18 @@
       }
       renderBg1(Math.floor(bg1FrameFloat));
 
-      // UNO y VARIAS: el frame sale SOLO del progreso del scroll. Aquí no
-      // se toca el progreso, así que si no scrolleas no avanza nada — la
-      // animación no se reproduce sola en ningún momento. Ambas leen el
-      // mismo progreso, por eso van sincronizadas por construcción.
+      // UNO y VARIAS: el frame sale SOLO del scroll. El progreso persigue
+      // al objetivo que fija el gesto; sin scroll el objetivo no cambia y
+      // el progreso lo alcanza y se para, así que no se reproduce sola.
+      // Ambas leen el mismo progreso, por eso van sincronizadas.
+      // El factor se corrige por dt para que la suavidad no dependa de
+      // los fps de la pantalla.
+      const k = 1 - Math.pow(1 - SUAVIZADO, dt * 60);
+      scrollProgress += (scrollTarget - scrollProgress) * k;
+
       renderBg2Estatico();
-      renderScrollLayers(Math.round(scrollProgress * (UNO_COUNT - 1)));
+      const vuelta = ((scrollProgress % 1) + 1) % 1;   // envuelve el loop
+      renderScrollLayers(Math.round(vuelta * (UNO_COUNT - 1)));
 
       // BG2 no lo mueve el scroll: se queda en su frame inicial y lo
       // único que hace es entrar de opacidad 0 a 1 mientras hay
@@ -1028,8 +1043,8 @@
       // Medidores del panel lateral (solo informativos)
       $('moveFill').style.width = (moving ? 100 : 0) + '%';
       $('movePct').textContent = (moving ? 100 : 0) + '%';
-      $('scrollFill').style.width = Math.round(scrollProgress * 100) + '%';
-      $('scrollPct').textContent = Math.round(scrollProgress * 100) + '%';
+      $('scrollFill').style.width = Math.round(vuelta * 100) + '%';
+      $('scrollPct').textContent = Math.round(vuelta * 100) + '%';
     }
 
     // ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ───────────
