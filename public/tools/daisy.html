@@ -787,17 +787,18 @@
 
     // ─────────── LAS 4 CAPAS: secuencias WebP ───────────
     // BG1 y BG2: 171 frames, sin alfa, fondo completo (810×1012).
-    // UNO: 171 frames, con alfa, cuadrada (530×530), centrada al 62%.
-    // VARIAS: 171 frames, con alfa, a pantalla completa. Al tener la
-    // MISMA longitud que UNO, el estirado de indices de
-    // renderScrollLayers sale 1:1 y las dos capas van sincronizadas.
+    // UNO: 108 frames, con alfa, cuadrada (530×530), centrada al 62%.
+    // VARIAS: 108 frames, con alfa, a pantalla completa. Misma longitud
+    // que UNO, asi que comparten indice y van sincronizadas.
     //
     // Se mantiene el numero original de frames: se probo con la mitad
     // (1 de cada 2) y la animacion se veia a saltos. El ahorro de peso
     // viene solo de bajar la resolucion. VARIAS ya no arranca en el
     // indice 109: se renumero desde 0 como el resto.
-    const BG1_COUNT = 171, BG2_COUNT = 171, UNO_COUNT = 171;
-    const VARIAS_COUNT = 171;
+    // BG1 y BG2 van por tiempo; UNO y VARIAS por scroll. Ya no hace
+    // falta que compartan longitud: son 108 frente a 171.
+    const BG1_COUNT = 171, BG2_COUNT = 171;
+    const UNO_COUNT = 108, VARIAS_COUNT = 108;
 
     // El backing store se fija desde CANVAS_W/H y no solo en el HTML.
     // Tenerlo en dos sitios fue justo lo que hizo que, al bajar la
@@ -925,11 +926,11 @@
       if (idx !== lastVariasIdx && drawFull(variasCtx, variasFrames[idx])) lastVariasIdx = idx;
     }
 
-    // BG2 se queda congelada en su primer frame: el scroll no la anima,
-    // solo la hace entrar y salir de opacidad.
-    function renderBg2Estatico() {
-      if (lastBg2Idx === 0) return;
-      if (drawFull(bg2Ctx, bg2Frames[0])) lastBg2Idx = 0;
+    // BG2 corre por tiempo, no con el scroll: el scroll solo gobierna su
+    // opacidad.
+    function renderBg2(idx) {
+      if (idx === lastBg2Idx) return;
+      if (drawFull(bg2Ctx, bg2Frames[idx])) lastBg2Idx = idx;
     }
 
     // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
@@ -938,10 +939,11 @@
 
     // ── Scroll animation ──────────────────────────────────────────────
     // UNO y VARIAS: el avance del scroll ES su animacion. Progreso
-    // 0..1 -> frame, sin reloj. Solo se mueven MIENTRAS se scrollea; al
-    // parar se quedan donde esten, no siguen solas. Es un loop: pasar del
-    // final enlaza con el inicio.
-    const SCROLL_RECORRIDO_PX = 1200;  // px de rueda para el ciclo entero
+    // 0..1 -> frame, sin reloj. Solo se mueven MIENTRAS se scrollea.
+    // NO es un loop: al llegar al final se quedan en el ultimo frame por
+    // mucho que se siga bajando, y al subir vuelven al primero y se
+    // quedan ahi.
+    const SCROLL_RECORRIDO_PX = 1200;  // px de rueda para la animacion entera
 
     // La rueda llega a saltos: un click son ~14 frames de golpe y se ve
     // a tirones. El gesto fija un OBJETIVO y el frame dibujado lo
@@ -949,20 +951,17 @@
     // de un salto. Mas alto = mas pegado al gesto y mas brusco.
     const SUAVIZADO = 0.14;
 
-    // BG2 no lo controla el scroll: se queda en su frame inicial y lo
-    // unico que hace es entrar de opacidad 0 a 1 mientras hay
-    // interaccion, y salir igual a la inversa cuando termina.
-    const BG2_FADE_MS = 1000;
+    // BG2 si se reproduce, siempre hacia adelante (inicio -> fin ->
+    // inicio), nunca en reversa. Lo que el scroll controla es su
+    // OPACIDAD, atada al progreso de UNO/VARIAS: 0 al inicio de esa
+    // animacion y 1 al final. Bajando aparece, subiendo desaparece.
 
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
-    // Sin acotar a propósito: el envolvimiento del loop se resuelve al
-    // calcular el frame, no aqui. Si se acotaran a 0..1, al pasar de
-    // 0.99 a 0.02 el suavizado recorreria el ciclo entero hacia atras.
-    let scrollTarget = 0;      // lo que fija el gesto
-    let scrollProgress = 0;    // lo que se dibuja, persigue al objetivo
-    let bg2Opacity = 0;
+    let scrollTarget = 0;      // 0..1, lo que fija el gesto
+    let scrollProgress = 0;    // 0..1, lo que se dibuja, persigue al objetivo
+    let bg2FrameFloat = 0;     // BG2 corre por tiempo, no por scroll
 
     function isMouseMoving() { return (performance.now() - lastMouseMoveAt) < STILL_MS; }
     function isScrolling() { return (performance.now() - lastScrollAt) < STILL_MS; }
@@ -976,9 +975,12 @@
       return e.deltaY;                               // pixeles
     }
 
+    // Acotado a 0..1: al llegar a cualquiera de los dos extremos se
+    // queda ahi aunque se siga scrolleando en esa direccion.
     function moverScroll(deltaY) {
       lastScrollAt = performance.now();
-      scrollTarget += deltaY / SCROLL_RECORRIDO_PX;
+      const t = scrollTarget + deltaY / SCROLL_RECORRIDO_PX;
+      scrollTarget = Math.min(1, Math.max(0, t));
     }
 
     const daisyCanvasEl = $('daisyCanvas');
@@ -1027,24 +1029,28 @@
       const k = 1 - Math.pow(1 - SUAVIZADO, dt * 60);
       scrollProgress += (scrollTarget - scrollProgress) * k;
 
-      renderBg2Estatico();
-      const vuelta = ((scrollProgress % 1) + 1) % 1;   // envuelve el loop
-      renderScrollLayers(Math.round(vuelta * (UNO_COUNT - 1)));
+      renderScrollLayers(Math.round(scrollProgress * (UNO_COUNT - 1)));
 
-      // BG2 no lo mueve el scroll: se queda en su frame inicial y lo
-      // único que hace es entrar de opacidad 0 a 1 mientras hay
-      // interacción y salir a la inversa cuando termina, con el mismo
-      // recorrido de 3 s en ambos sentidos.
-      const paso = (dt * 1000) / BG2_FADE_MS;
-      bg2Opacity += scrolling ? paso : -paso;
-      bg2Opacity = Math.min(1, Math.max(0, bg2Opacity));
-      $('bg2Canvas').style.opacity = String(bg2Opacity);
+      // BG2: su OPACIDAD es el progreso de UNO/VARIAS — 0 al inicio de
+      // esa animación y 1 al final. Bajando aparece progresivamente;
+      // subiendo se va por el mismo camino a la inversa. Si se sigue
+      // bajando al llegar al final, el progreso ya está en 1 y se queda
+      // corriendo a opacidad plena.
+      $('bg2Canvas').style.opacity = String(scrollProgress);
+
+      // Su secuencia sí corre, por tiempo y SIEMPRE hacia adelante
+      // (inicio → fin → inicio), nunca en reversa. Solo avanza cuando se
+      // la ve, para no gastar dibujados con la capa invisible.
+      if (scrollProgress > 0.001) {
+        bg2FrameFloat = (bg2FrameFloat + dt * PLAYBACK_FPS) % BG2_COUNT;
+        renderBg2(Math.floor(bg2FrameFloat));
+      }
 
       // Medidores del panel lateral (solo informativos)
       $('moveFill').style.width = (moving ? 100 : 0) + '%';
       $('movePct').textContent = (moving ? 100 : 0) + '%';
-      $('scrollFill').style.width = Math.round(vuelta * 100) + '%';
-      $('scrollPct').textContent = Math.round(vuelta * 100) + '%';
+      $('scrollFill').style.width = Math.round(scrollProgress * 100) + '%';
+      $('scrollPct').textContent = Math.round(scrollProgress * 100) + '%';
     }
 
     // ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ───────────
