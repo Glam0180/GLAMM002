@@ -327,16 +327,19 @@
     /* Orden de capas (de abajo hacia arriba):
        1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
        2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
-       3) #unoCanvas    → una flor grande, SIEMPRE visible
-       4) #variasCanvas → varias flores con alfa, SIEMPRE visible
+       3) #stemCanvas   → el tallo, se dibuja y se arrastra
+       4) #unoCanvas    → la flor grande, anclada por su CENTRO a la
+                          punta del tallo, asi que se mueve con el
+       5) #variasCanvas → varias flores con alfa, SIEMPRE visible
 
        UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
        secuencia termina su ciclo parando en el frame 0, que es la imagen
        estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
     #bg1Canvas    { z-index: 1; }
     #bg2Canvas    { z-index: 2; opacity: 0; }
-    #unoCanvas    { z-index: 3; }
-    #variasCanvas { z-index: 4; }
+    #stemCanvas   { z-index: 3; }
+    #unoCanvas    { z-index: 4; }
+    #variasCanvas { z-index: 5; }
 
     .daisy-loading {
       position: absolute;
@@ -596,6 +599,7 @@
             <div class="daisy-canvas" id="daisyCanvas">
               <canvas id="bg1Canvas" width="810" height="995"></canvas>
               <canvas id="bg2Canvas" width="810" height="995"></canvas>
+              <canvas id="stemCanvas" width="810" height="995"></canvas>
               <canvas id="unoCanvas" width="810" height="995"></canvas>
               <canvas id="variasCanvas" width="810" height="995"></canvas>
               <div class="daisy-loading" id="daisyLoading">CARGANDO ASSETS…</div>
@@ -804,7 +808,7 @@
     // Tenerlo en dos sitios fue justo lo que hizo que, al bajar la
     // resolucion, los frames se dibujaran en el 75% superior izquierdo
     // del canvas y quedara el resto en negro.
-    ['bg1Canvas', 'bg2Canvas', 'unoCanvas', 'variasCanvas'].forEach((id) => {
+    ['bg1Canvas', 'bg2Canvas', 'stemCanvas', 'unoCanvas', 'variasCanvas'].forEach((id) => {
       const c = $(id);
       c.width = CANVAS_W;
       c.height = CANVAS_H;
@@ -814,6 +818,7 @@
     const bg2Ctx = $('bg2Canvas').getContext('2d');
     const unoCtx = $('unoCanvas').getContext('2d');
     const variasCtx = $('variasCanvas').getContext('2d');
+    const stemCtx = $('stemCanvas').getContext('2d');
 
     function pad5(n) { return String(n).padStart(5, '0'); }
 
@@ -893,18 +898,188 @@
       return true;
     }
 
-    // UNO vuelve a ser cuadrada: se dibuja centrada al 62% del ancho, sin
-    // deformarse. Como el resto de capas se pintan recortando la banda
-    // superior del arte, se centra respecto al frame COMPLETO y luego se
-    // resta el recorte; centrarla en el canvas ya recortado la dejaria
-    // medio recorte mas abajo de donde va en la composicion.
-    function drawUno(ctx, img) {
+    // ─────────── TALLO ARRASTRABLE ───────────
+    // Portado de floralis: el tallo crece como un trazo siguiendo el
+    // puntero, con suavizado e inercia, y al soltar se recoge. Aqui solo
+    // hay uno, anclado al centro del encuadre.
+    const TALLO_COLOR   = '#57b947';
+    const TALLO_MAX_LEN = 620;   // longitud antes de que empiece a tensar
+    const TALLO_STREAM  = 0.08;  // cuanto persigue la punta al puntero
+    const TALLO_VENTANA = 12;    // media movil que suaviza el trazo
+    const TALLO_RUBBER  = 60;    // estiron maximo al pasarse de largo
+    const TALLO_AGARRE  = 120;   // radio (px de canvas) para agarrar la punta
+    // La flor se reduce un 20% respecto al tamano que tenia centrada.
+    const UNO_ESCALA = 0.62 * 0.8;
+
+    function distPt(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+    function largoRuta(p) { let l = 0; for (let i = 1; i < p.length; i++) l += distPt(p[i - 1], p[i]); return l; }
+    function cubica(p0, p1, p2, p3, t) {
+      const u = 1 - t;
+      return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+    }
+    function tensar(ov, lim) { return ov <= 0 ? 0 : ov * lim / (ov + lim * 0.7); }
+
+    function trazarRuta(ctx, pts, lw, color) {
+      if (!pts || pts.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      if (pts.length === 2) {
+        ctx.lineTo(pts[1].x, pts[1].y);
+      } else {
+        // Catmull-Rom: pasa por todos los puntos, sin los picos que
+        // dejaria unirlos con rectas.
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[Math.max(0, i - 1)], p1 = pts[i];
+          const p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+          for (let t = 0; t <= 1; t += 0.06) {
+            const x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t +
+              (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t * t +
+              (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t * t * t);
+            const y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t +
+              (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t * t +
+              (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t * t * t);
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+      }
+      ctx.strokeStyle = color; ctx.lineWidth = lw;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+
+    const tallo = {
+      base: { x: CANVAS_W / 2, y: CANVAS_H },
+      // En reposo la punta cae en el centro del encuadre, que es donde la
+      // flor ya estaba dibujada antes de existir el tallo.
+      reposoPunta: { x: CANVAS_W / 2, y: CANVAS_H / 2 },
+      rutaReposo: null,
+      ruta: null,
+      arrastrando: false,
+      volviendo: false, rutaVuelta: null, cabeza: 0,
+      estiron: 0, muelle: 0, tensando: false,
+      _fantasma: null, _crudo: null, _ventana: [],
+
+      init() {
+        const n = 16, alto = this.base.y - this.reposoPunta.y;
+        const cx1 = this.base.x - 30, cy1 = this.base.y - alto * 0.45;
+        const cx2 = this.reposoPunta.x + 22, cy2 = this.reposoPunta.y + alto * 0.25;
+        const pts = [];
+        for (let i = 0; i <= n; i++) {
+          const t = i / n;
+          pts.push({
+            x: cubica(this.base.x, cx1, cx2, this.reposoPunta.x, t),
+            y: cubica(this.base.y, cy1, cy2, this.reposoPunta.y, t),
+          });
+        }
+        this.rutaReposo = pts;
+      },
+
+      get rutaActiva() {
+        if (this.arrastrando && this.ruta) return this.ruta;
+        if (this.volviendo && this.rutaVuelta) return this.rutaVuelta.slice(0, this.cabeza);
+        return this.rutaReposo;
+      },
+      get punta() {
+        const r = this.rutaActiva;
+        return (r && r.length) ? r[r.length - 1] : this.reposoPunta;
+      },
+
+      empezar() {
+        this.arrastrando = true; this.volviendo = false; this.rutaVuelta = null;
+        this.estiron = 0; this.muelle = 0; this.tensando = false;
+        this.ruta = [{ x: this.base.x, y: this.base.y }];
+        this._fantasma = { x: this.base.x, y: this.base.y };
+        this._crudo = { x: this.base.x, y: this.base.y };
+        this._ventana = [];
+      },
+
+      mover(x, y) {
+        if (!this.arrastrando) return;
+        this._crudo = { x, y };
+        const ov = largoRuta(this.ruta) - TALLO_MAX_LEN;
+        // Pasado el largo maximo la punta responde cada vez menos: da la
+        // sensacion de que el tallo se tensa, en vez de estirarse sin fin.
+        let factor = TALLO_STREAM;
+        if (ov > 0) { this.tensando = true; factor = TALLO_STREAM * Math.max(0.05, 1 - ov / 300); }
+        else { this.tensando = false; }
+        this._fantasma.x += (x - this._fantasma.x) * factor;
+        this._fantasma.y += (y - this._fantasma.y) * factor;
+        this._ventana.push({ x: this._fantasma.x, y: this._fantasma.y });
+        if (this._ventana.length > TALLO_VENTANA) this._ventana.shift();
+        let sx = 0, sy = 0;
+        for (const p of this._ventana) { sx += p.x; sy += p.y; }
+        const suave = { x: sx / this._ventana.length, y: sy / this._ventana.length };
+        const ult = this.ruta[this.ruta.length - 1];
+        if (distPt(ult, suave) > 2) this.ruta.push(suave);
+      },
+
+      soltar() {
+        if (!this.arrastrando) return;
+        this.arrastrando = false;
+        this.rutaVuelta = this.ruta.slice();
+        this.cabeza = this.rutaVuelta.length;
+        this.volviendo = true;
+        this.ruta = null;
+        if (this.tensando) this.muelle = 14;
+        this.tensando = false;
+      },
+
+      update(dt) {
+        // Mientras se arrastra se sigue persiguiendo el ultimo punto
+        // aunque el puntero este quieto: asi el tallo termina de alcanzar
+        // en vez de congelarse a medio camino.
+        if (this.arrastrando) this.mover(this._crudo.x, this._crudo.y);
+        if (this.muelle !== 0) {
+          this.estiron += this.muelle * dt * 60;
+          this.muelle *= -0.45;
+          if (Math.abs(this.muelle) < 0.1) this.muelle = 0;
+          this.estiron *= 0.78;
+        }
+        if (this.volviendo && this.rutaVuelta) {
+          this.cabeza = Math.max(1, this.cabeza - 6);
+          if (this.cabeza <= 1) {
+            this.volviendo = false; this.rutaVuelta = null;
+            this.estiron = 0; this.muelle = 0;
+          }
+        }
+      },
+
+      // Pinta el tallo y devuelve la punta ya con el estiron aplicado:
+      // ese punto es el ancla de UNO.
+      dibujar() {
+        stemCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        const ruta = this.rutaActiva;
+        if (!ruta || ruta.length < 2) return this.reposoPunta;
+
+        const largo = largoRuta(ruta), ov = largo - TALLO_MAX_LEN;
+        let d = (this.arrastrando && ov > 0) ? tensar(ov, TALLO_RUBBER) : 0;
+        d += this.estiron;
+        const a = ruta[ruta.length - 2], b = ruta[ruta.length - 1];
+        const dd = distPt(a, b);
+        let dx = 0, dy = -1;
+        if (dd > 0) { dx = (b.x - a.x) / dd; dy = (b.y - a.y) / dd; }
+        const punta = { x: b.x + dx * d, y: b.y + dy * d };
+
+        const grosor = Math.max(3, Math.min(11, largo / 60));
+        trazarRuta(stemCtx, ruta, grosor + 2.5, 'rgba(0,0,0,0.18)');
+        trazarRuta(stemCtx, ruta, grosor, TALLO_COLOR);
+        stemCtx.beginPath();
+        stemCtx.arc(this.base.x, this.base.y, grosor * 0.85, 0, Math.PI * 2);
+        stemCtx.fillStyle = TALLO_COLOR;
+        stemCtx.fill();
+        return punta;
+      },
+    };
+    tallo.init();
+
+    // UNO es cuadrada y va anclada por su CENTRO a la punta del tallo,
+    // asi que se mueve con el. Ya no se centra en el canvas.
+    function drawUno(ctx, img, punta) {
       if (!img || !img.complete || !img.naturalWidth) return false;
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-      const size = CANVAS_W * 0.62;
-      const x = (CANVAS_W - size) / 2;
-      const y = (SRC_H - size) / 2 - ART_CROP_TOP;
-      ctx.drawImage(img, x, y, size, size);
+      const size = CANVAS_W * UNO_ESCALA;
+      ctx.drawImage(img, punta.x - size / 2, punta.y - size / 2, size, size);
       return true;
     }
 
@@ -921,8 +1096,12 @@
     // Solo UNO y VARIAS siguen al scroll. Comparten indice directamente
     // (ambas tienen el mismo numero de frames), asi que van sincronizadas
     // sin nada que mapear entre ellas.
-    function renderScrollLayers(idx) {
-      if (idx !== lastUnoIdx && drawUno(unoCtx, unoFrames[idx])) lastUnoIdx = idx;
+    //
+    // VARIAS se memoriza por indice, pero UNO no puede: aunque el frame
+    // no cambie, su POSICION si lo hace al moverse la punta del tallo,
+    // asi que hay que repintarla siempre. Es un solo drawImage.
+    function renderScrollLayers(idx, punta) {
+      drawUno(unoCtx, unoFrames[idx], punta);
       if (idx !== lastVariasIdx && drawFull(variasCtx, variasFrames[idx])) lastVariasIdx = idx;
     }
 
@@ -1007,6 +1186,59 @@
     }, { passive: true });
     daisyCanvasEl.addEventListener('touchend', () => { lastTouchY = null; }, { passive: true });
 
+
+    // ── Arrastre del tallo ──
+    // El canvas se muestra escalado, asi que hay que pasar las
+    // coordenadas de pantalla al espacio del canvas (CANVAS_W x CANVAS_H)
+    // antes de usarlas; si no, el tallo no seguiria al puntero.
+    function aCanvas(clientX, clientY) {
+      const r = daisyCanvasEl.getBoundingClientRect();
+      return {
+        x: (clientX - r.left) * (CANVAS_W / r.width),
+        y: (clientY - r.top) * (CANVAS_H / r.height),
+      };
+    }
+
+    let arrastrandoTallo = false;
+
+    function pulsar(clientX, clientY) {
+      const p = aCanvas(clientX, clientY);
+      // Se agarra por la punta, como en el ejemplo: pulsar en cualquier
+      // otro sitio no hace nada.
+      if (distPt(p, tallo.punta) > TALLO_AGARRE) return false;
+      arrastrandoTallo = true;
+      tallo.empezar();
+      tallo.mover(p.x, p.y);
+      return true;
+    }
+    function desplazar(clientX, clientY) {
+      if (!arrastrandoTallo) return;
+      const p = aCanvas(clientX, clientY);
+      tallo.mover(p.x, p.y);
+    }
+    function levantar() {
+      if (!arrastrandoTallo) return;
+      arrastrandoTallo = false;
+      tallo.soltar();
+    }
+
+    daisyCanvasEl.addEventListener('mousedown', (e) => { if (pulsar(e.clientX, e.clientY)) e.preventDefault(); });
+    daisyCanvasEl.addEventListener('mousemove', (e) => desplazar(e.clientX, e.clientY));
+    window.addEventListener('mouseup', levantar);
+    daisyCanvasEl.addEventListener('mouseleave', levantar);
+
+    daisyCanvasEl.addEventListener('touchstart', (e) => {
+      if (!e.touches.length) return;
+      if (pulsar(e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault();
+    }, { passive: false });
+    daisyCanvasEl.addEventListener('touchmove', (e) => {
+      if (!arrastrandoTallo || !e.touches.length) return;
+      desplazar(e.touches[0].clientX, e.touches[0].clientY);
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+    window.addEventListener('touchend', levantar);
+    window.addEventListener('touchcancel', levantar);
+
     daisyCanvasEl.addEventListener('wheel', (e) => {
       moverScroll(deltaEnPx(e));
       if (e.cancelable) e.preventDefault();
@@ -1058,7 +1290,9 @@
         }
       }
 
-      renderScrollLayers(Math.round(scrollProgress * (UNO_COUNT - 1)));
+      tallo.update(dt);
+      const punta = tallo.dibujar();
+      renderScrollLayers(Math.round(scrollProgress * (UNO_COUNT - 1)), punta);
       $('unoCanvas').style.opacity = String(retorno);
       $('variasCanvas').style.opacity = String(retorno);
 
@@ -1206,7 +1440,7 @@
       await loadFirstFrames();
       fitStage();
       renderBg1(0);
-      renderScrollLayers(0);
+      renderScrollLayers(0, tallo.punta);
       $('daisyLoading').style.opacity = '0';
       setTimeout(() => { $('daisyLoading').style.display = 'none'; }, 400);
       requestAnimationFrame(loop);
