@@ -924,6 +924,11 @@
 
     // Tamano de la flor como fraccion del ancho del canvas.
     const UNO_ESCALA = 0.34;
+    // La flor sigue la inclinacion de la punta del tallo, pero atenuada
+    // y acotada: girar tanto como el tallo la dejaria tumbada.
+    const FLOR_GIRO      = 0.55;
+    const FLOR_GIRO_MAX  = 0.6;   // ~34 grados
+    const FLOR_GIRO_LERP = 0.12;
 
     function distPt(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
     function largoRuta(p) { let l = 0; for (let i = 1; i < p.length; i++) l += distPt(p[i - 1], p[i]); return l; }
@@ -1021,14 +1026,15 @@
 
     const tallo = {
       base: { x: CANVAS_W / 2, y: CANVAS_H },
-      // En reposo la punta cae en el centro del encuadre, que es donde la
-      // flor ya se dibujaba antes de existir el tallo.
-      reposoPunta: { x: CANVAS_W / 2, y: CANVAS_H / 2 },
+      // Altura de reposo de la punta, medida desde arriba. 0.5 la dejaba
+      // en el centro exacto del encuadre.
+      reposoPunta: { x: CANVAS_W / 2, y: CANVAS_H * 0.34 },
       rutaReposo: null,
       ruta: null,            // ruta cruda mientras se arrastra
       arrastrando: false,
       volviendo: false, rutaSoltada: null, vuelta: 0,
       estiron: 0, muelle: 0, tensando: false,
+      angulo: 0,             // inclinacion suavizada de la punta
       _fantasma: null, _crudo: null, _ventana: [],
 
       init() {
@@ -1135,7 +1141,7 @@
       dibujar(t) {
         stemCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
         const ruta = this.rutaActiva;
-        if (!ruta || ruta.length < 2) return this.reposoPunta;
+        if (!ruta || ruta.length < 2) return { punta: this.reposoPunta, angulo: this.angulo };
 
         const ov = largoRuta(ruta) - TALLO_MAX_LEN;
         let d = (this.arrastrando && ov > 0) ? tensar(ov, TALLO_RUBBER) : 0;
@@ -1145,6 +1151,15 @@
         let dx = 0, dy = -1;
         if (dd > 0) { dx = (b.x - a.x) / dd; dy = (b.y - a.y) / dd; }
         const punta = { x: b.x + dx * d, y: b.y + dy * d };
+
+        // Inclinacion de la punta respecto a la vertical. Se mide sobre
+        // el ULTIMO TRAMO del tallo, no entre los dos ultimos puntos:
+        // ahi quedan casi pegados y la direccion sale ruidosa y diminuta.
+        const cuello = muestrearRuta(ruta, 0.8);
+        const objetivo = Math.max(-FLOR_GIRO_MAX,
+          Math.min(FLOR_GIRO_MAX,
+            Math.atan2(punta.x - cuello.x, cuello.y - punta.y) * FLOR_GIRO));
+        this.angulo += (objetivo - this.angulo) * FLOR_GIRO_LERP;
 
         // Grosor constante: antes salia de la longitud y el tallo
         // engordaba segun se arrastraba.
@@ -1167,18 +1182,23 @@
         // ancho debajo del degradado.
         trazarRuta(stemCtx, ruta, grosor + TALLO_STROKE_PX * 2, TALLO_STROKE);
         trazarRuta(stemCtx, ruta, grosor, grad);
-        return punta;
+        return { punta, angulo: this.angulo };
       },
     };
     tallo.init();
 
     // UNO es cuadrada y va anclada por su CENTRO a la punta del tallo,
-    // asi que se mueve con el. Ya no se centra en el canvas.
-    function drawUno(ctx, img, punta) {
+    // asi que se mueve con el. Ademas gira sobre ese mismo centro segun
+    // la inclinacion de la punta: su eje deja de ser vertical fijo.
+    function drawUno(ctx, img, punta, angulo) {
       if (!img || !img.complete || !img.naturalWidth) return false;
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
       const size = CANVAS_W * UNO_ESCALA;
-      ctx.drawImage(img, punta.x - size / 2, punta.y - size / 2, size, size);
+      ctx.save();
+      ctx.translate(punta.x, punta.y);
+      ctx.rotate(angulo);
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.restore();
       return true;
     }
 
@@ -1199,8 +1219,8 @@
     // VARIAS se memoriza por indice, pero UNO no puede: aunque el frame
     // no cambie, su POSICION si lo hace al moverse la punta del tallo,
     // asi que hay que repintarla siempre. Es un solo drawImage.
-    function renderScrollLayers(idx, punta) {
-      drawUno(unoCtx, unoFrames[idx], punta);
+    function renderScrollLayers(idx, punta, angulo) {
+      drawUno(unoCtx, unoFrames[idx], punta, angulo);
       if (idx !== lastVariasIdx && drawFull(variasCtx, variasFrames[idx])) lastVariasIdx = idx;
     }
 
@@ -1238,6 +1258,7 @@
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
+    let bg1Listos = 1;         // frames de BG1 descargados de forma seguida
     let scrollTarget = 0;      // 0..1, lo que fija el gesto
     let scrollProgress = 0;    // 0..1, lo que se dibuja, persigue al objetivo
     let bg2FrameFloat = 0;     // BG2 corre por tiempo, no por scroll
@@ -1346,9 +1367,16 @@
       const moving = isMouseMoving();
       const scrolling = isScrolling();
 
-      // BG1: siempre en loop y siempre hacia adelante (inicio → fin →
-      // inicio), nunca en reversa. Ya no depende de que el mouse se mueva.
-      bg1FrameFloat = (bg1FrameFloat + dt * PLAYBACK_FPS) % BG1_COUNT;
+      // BG1: siempre en loop y siempre hacia adelante, nunca en reversa.
+      // El ciclo se limita a los frames YA descargados: al arrancar solo
+      // esta el 0, y pedir frames que aun no han llegado dejaba el fondo
+      // congelado hasta que entraban. Asi arranca en cuanto hay dos y el
+      // loop se va alargando segun cargan.
+      while (bg1Listos < BG1_COUNT) {
+        const im = bg1Frames[bg1Listos];
+        if (im && im.complete && im.naturalWidth) bg1Listos++; else break;
+      }
+      bg1FrameFloat = (bg1FrameFloat + dt * PLAYBACK_FPS) % Math.max(2, bg1Listos);
       renderBg1(Math.floor(bg1FrameFloat));
 
       // UNO y VARIAS: el frame sale SOLO del scroll. El progreso persigue
@@ -1361,8 +1389,8 @@
       scrollProgress += (scrollTarget - scrollProgress) * k;
 
       tallo.update(dt);
-      const punta = tallo.dibujar(scrollProgress);
-      renderScrollLayers(Math.round(scrollProgress * (UNO_COUNT - 1)), punta);
+      const tp = tallo.dibujar(scrollProgress);
+      renderScrollLayers(Math.round(scrollProgress * (UNO_COUNT - 1)), tp.punta, tp.angulo);
 
       // BG2: su OPACIDAD es el progreso de UNO/VARIAS — 0 al inicio de
       // esa animación y 1 al final. Bajando aparece progresivamente;
@@ -1507,7 +1535,7 @@
       await loadFirstFrames();
       fitStage();
       renderBg1(0);
-      renderScrollLayers(0, tallo.punta);
+      renderScrollLayers(0, tallo.punta, 0);
       $('daisyLoading').style.opacity = '0';
       setTimeout(() => { $('daisyLoading').style.display = 'none'; }, 400);
       requestAnimationFrame(loop);
