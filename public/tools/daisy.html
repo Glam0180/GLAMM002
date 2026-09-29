@@ -1291,19 +1291,6 @@
     const daisyCanvasEl = $('daisyCanvas');
     daisyCanvasEl.addEventListener('mousemove', () => { lastMouseMoveAt = performance.now(); });
 
-    let lastTouchY = null;
-    daisyCanvasEl.addEventListener('touchstart', (e) => {
-      lastTouchY = e.touches.length ? e.touches[0].clientY : null;
-    }, { passive: true });
-    daisyCanvasEl.addEventListener('touchmove', (e) => {
-      lastMouseMoveAt = performance.now();
-      if (!e.touches.length) return;
-      const y = e.touches[0].clientY;
-      if (lastTouchY !== null) moverScroll(lastTouchY - y); // arrastrar = scrollear
-      lastTouchY = y;
-    }, { passive: true });
-    daisyCanvasEl.addEventListener('touchend', () => { lastTouchY = null; }, { passive: true });
-
 
     // ── Arrastre del tallo ──
     // El canvas se muestra escalado, asi que hay que pasar las
@@ -1348,19 +1335,45 @@
     window.addEventListener('mouseup', levantar);
     daisyCanvasEl.addEventListener('mouseleave', () => { puntero = null; levantar(); });
 
+    // ── Tactil ──
+    // Un solo bloque para los dos gestos. Antes habia DOS manejadores de
+    // touchmove independientes —uno para el scroll y otro para el tallo—
+    // asi que un mismo dedo hacia las dos cosas a la vez. Ahora el
+    // touchstart decide: si se toca cerca de la flor se arrastra el
+    // tallo, y si no, el gesto mueve la animacion como el scroll.
+    let tocandoY = null;
+
     daisyCanvasEl.addEventListener('touchstart', (e) => {
       if (!e.touches.length) return;
-      if (pulsar(e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault();
-    }, { passive: false });
-    daisyCanvasEl.addEventListener('touchmove', (e) => {
-      if (!e.touches.length) return;
-      puntero = aCanvas(e.touches[0].clientX, e.touches[0].clientY);
-      if (!arrastrandoTallo) return;
-      desplazar(e.touches[0].clientX, e.touches[0].clientY);
+      const t = e.touches[0];
+      puntero = aCanvas(t.clientX, t.clientY);
+      lastMouseMoveAt = performance.now();
+      if (pulsar(t.clientX, t.clientY)) {
+        tocandoY = null;               // gesto de tallo
+      } else {
+        tocandoY = t.clientY;          // gesto de scroll
+      }
       if (e.cancelable) e.preventDefault();
     }, { passive: false });
-    window.addEventListener('touchend', levantar);
-    window.addEventListener('touchcancel', levantar);
+
+    daisyCanvasEl.addEventListener('touchmove', (e) => {
+      if (!e.touches.length) return;
+      const t = e.touches[0];
+      puntero = aCanvas(t.clientX, t.clientY);
+      lastMouseMoveAt = performance.now();
+      if (arrastrandoTallo) {
+        desplazar(t.clientX, t.clientY);
+      } else if (tocandoY !== null) {
+        moverScroll(tocandoY - t.clientY);   // arrastrar = scrollear
+        tocandoY = t.clientY;
+      }
+      // Se corta el scroll de la pagina: el gesto es para el lienzo.
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    function finTocar() { tocandoY = null; levantar(); }
+    window.addEventListener('touchend', finTocar);
+    window.addEventListener('touchcancel', finTocar);
 
     daisyCanvasEl.addEventListener('wheel', (e) => {
       moverScroll(deltaEnPx(e));
