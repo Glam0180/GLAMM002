@@ -899,9 +899,20 @@
     }
 
     // ─────────── TALLO ARRASTRABLE ───────────
-    // Portado de floralis: el tallo crece como un trazo siguiendo el
-    // puntero, con suavizado e inercia, y al soltar se recoge. Aqui solo
-    // hay uno, anclado al centro del encuadre.
+    // El tallo crece como un trazo siguiendo al puntero. Internamente la
+    // ruta SIEMPRE tiene el mismo numero de puntos, repartidos por
+    // longitud real: eso mantiene el trazo parejo y, sobre todo, permite
+    // volver al reposo interpolando punto a punto en vez de encogiendo.
+    const RUTA_PUNTOS   = 28;
+    const TALLO_MAX_LEN = 1400;  // longitud antes de que empiece a tensar
+    const TALLO_STREAM  = 0.16;  // cuanto persigue la punta al puntero
+    const TALLO_VENTANA = 9;     // media movil que suaviza el trazo
+    const TALLO_RUBBER  = 45;    // estiron maximo al pasarse de largo
+    const TALLO_AGARRE  = 140;   // radio (px de canvas) para agarrar la punta
+    const TALLO_GROSOR  = 7;     // constante: no engorda al alargarse
+    const TALLO_STROKE_PX = 1;   // contorno negro, 1 px por lado
+    const VUELTA_S      = 0.55;  // segundos en volver al reposo
+
     // Degradado a lo largo del tallo. En reposo va de verde abajo a azul
     // arriba; con el scroll vira a purpuras oscuros, usando el mismo
     // progreso que UNO/VARIAS para que vaya sincronizado.
@@ -910,11 +921,7 @@
     const TALLO_ABAJO_1 = '#6a1b9a';
     const TALLO_ARRIBA_1 = '#2a1163';
     const TALLO_STROKE  = '#000000';
-    const TALLO_MAX_LEN = 1400;  // longitud antes de que empiece a tensar
-    const TALLO_STREAM  = 0.16;  // cuanto persigue la punta al puntero
-    const TALLO_VENTANA = 9;     // media movil que suaviza el trazo
-    const TALLO_RUBBER  = 45;    // estiron maximo al pasarse de largo
-    const TALLO_AGARRE  = 120;   // radio (px de canvas) para agarrar la punta
+
     // Tamano de la flor como fraccion del ancho del canvas.
     const UNO_ESCALA = 0.34;
 
@@ -925,38 +932,9 @@
       return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
     }
     function tensar(ov, lim) { return ov <= 0 ? 0 : ov * lim / (ov + lim * 0.7); }
+    function suavePaso(t) { return t * t * (3 - 2 * t); }   // arranca y acaba suave
 
-    function trazarRuta(ctx, pts, lw, color) {
-      if (!pts || pts.length < 2) return;
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      if (pts.length === 2) {
-        ctx.lineTo(pts[1].x, pts[1].y);
-      } else {
-        // Catmull-Rom: pasa por todos los puntos, sin los picos que
-        // dejaria unirlos con rectas.
-        for (let i = 0; i < pts.length - 1; i++) {
-          const p0 = pts[Math.max(0, i - 1)], p1 = pts[i];
-          const p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-          for (let t = 0; t <= 1; t += 0.06) {
-            const x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t +
-              (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t * t +
-              (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t * t * t);
-            const y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t +
-              (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t * t +
-              (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t * t * t);
-            ctx.lineTo(x, y);
-          }
-        }
-        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-      }
-      ctx.strokeStyle = color; ctx.lineWidth = lw;
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.stroke();
-    }
-
-    // Mezcla dos colores hex. Se usa para virar el degradado del tallo
-    // con el progreso del scroll.
+    // Mezcla dos colores hex. Vira el degradado del tallo con el scroll.
     function mezclarHex(c0, c1, t) {
       const h = (c) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
       const a = h(c0), b = h(c1);
@@ -965,8 +943,8 @@
     }
 
     // Punto a lo largo de la ruta, con t de 0 a 1 medido por longitud
-    // real (no por indice): asi las hojas no se amontonan donde hay mas
-    // puntos juntos.
+    // real (no por indice): asi el reparto no se amontona donde hay
+    // muchos puntos juntos.
     function muestrearRuta(pts, t) {
       if (!pts || !pts.length) return { x: 0, y: 0 };
       if (pts.length === 1) return { x: pts[0].x, y: pts[0].y };
@@ -985,7 +963,48 @@
       return { x: pts[pts.length - 1].x, y: pts[pts.length - 1].y };
     }
 
-    function dibujarHoja(x, y, tam, ang, relleno, borde, grosorBorde) {
+    // Reparte n puntos equidistantes a lo largo de la ruta.
+    function repartir(pts, n) {
+      const out = [];
+      for (let i = 0; i < n; i++) out.push(muestrearRuta(pts, i / (n - 1)));
+      return out;
+    }
+
+    // Interpola dos rutas del MISMO numero de puntos.
+    function mezclarRutas(a, b, t) {
+      const out = [];
+      for (let i = 0; i < a.length; i++) {
+        out.push({ x: a[i].x + (b[i].x - a[i].x) * t, y: a[i].y + (b[i].y - a[i].y) * t });
+      }
+      return out;
+    }
+
+    function trazarRuta(ctx, pts, lw, color) {
+      if (!pts || pts.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      // Catmull-Rom: pasa por todos los puntos, sin los picos que
+      // dejaria unirlos con rectas.
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[Math.max(0, i - 1)], p1 = pts[i];
+        const p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+        for (let t = 0; t <= 1; t += 0.1) {
+          const x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t +
+            (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t * t +
+            (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t * t * t);
+          const y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t +
+            (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t * t +
+            (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t * t * t);
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+      ctx.strokeStyle = color; ctx.lineWidth = lw;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+
+    function dibujarHoja(x, y, tam, ang, relleno, borde) {
       stemCtx.save();
       stemCtx.translate(x, y);
       stemCtx.rotate(ang);
@@ -994,31 +1013,31 @@
       stemCtx.bezierCurveTo(tam * 0.5, -tam * 0.28, tam * 1.05, -tam * 0.08, tam * 1.18, tam * 0.1);
       stemCtx.bezierCurveTo(tam * 1.05, tam * 0.28, tam * 0.4, tam * 0.38, 0, 0);
       stemCtx.closePath();
-      stemCtx.strokeStyle = borde; stemCtx.lineWidth = grosorBorde;
-      stemCtx.lineJoin = 'round'; stemCtx.stroke();
       stemCtx.fillStyle = relleno; stemCtx.fill();
+      stemCtx.strokeStyle = borde; stemCtx.lineWidth = TALLO_STROKE_PX;
+      stemCtx.lineJoin = 'round'; stemCtx.stroke();
       stemCtx.restore();
     }
 
     const tallo = {
       base: { x: CANVAS_W / 2, y: CANVAS_H },
       // En reposo la punta cae en el centro del encuadre, que es donde la
-      // flor ya estaba dibujada antes de existir el tallo.
+      // flor ya se dibujaba antes de existir el tallo.
       reposoPunta: { x: CANVAS_W / 2, y: CANVAS_H / 2 },
       rutaReposo: null,
-      ruta: null,
+      ruta: null,            // ruta cruda mientras se arrastra
       arrastrando: false,
-      volviendo: false, rutaVuelta: null, cabeza: 0,
+      volviendo: false, rutaSoltada: null, vuelta: 0,
       estiron: 0, muelle: 0, tensando: false,
       _fantasma: null, _crudo: null, _ventana: [],
 
       init() {
-        const n = 16, alto = this.base.y - this.reposoPunta.y;
+        const alto = this.base.y - this.reposoPunta.y;
         const cx1 = this.base.x - 30, cy1 = this.base.y - alto * 0.45;
         const cx2 = this.reposoPunta.x + 22, cy2 = this.reposoPunta.y + alto * 0.25;
         const pts = [];
-        for (let i = 0; i <= n; i++) {
-          const t = i / n;
+        for (let i = 0; i < RUTA_PUNTOS; i++) {
+          const t = i / (RUTA_PUNTOS - 1);
           pts.push({
             x: cubica(this.base.x, cx1, cx2, this.reposoPunta.x, t),
             y: cubica(this.base.y, cy1, cy2, this.reposoPunta.y, t),
@@ -1028,8 +1047,13 @@
       },
 
       get rutaActiva() {
-        if (this.arrastrando && this.ruta) return this.ruta;
-        if (this.volviendo && this.rutaVuelta) return this.rutaVuelta.slice(0, this.cabeza);
+        if (this.arrastrando && this.ruta) return repartir(this.ruta, RUTA_PUNTOS);
+        if (this.volviendo && this.rutaSoltada) {
+          // Se vuelve al reposo interpolando punto a punto. Antes la ruta
+          // se encogia hasta la base y luego saltaba de golpe a la de
+          // reposo: eso era el teletransporte de la flor al soltar.
+          return mezclarRutas(this.rutaSoltada, this.rutaReposo, suavePaso(this.vuelta));
+        }
         return this.rutaReposo;
       },
       get punta() {
@@ -1038,17 +1062,20 @@
       },
 
       empezar() {
-        this.arrastrando = true; this.volviendo = false; this.rutaVuelta = null;
-        this.estiron = 0; this.muelle = 0; this.tensando = false;
-        // Se CONTINUA desde la ruta que hay ahora, no desde la base. Si
-        // se reiniciaba a [base], la punta saltaba al pie del encuadre y
-        // el tallo volvia a crecer desde abajo en cada arrastre.
+        // Se CONTINUA desde donde esta ahora mismo, sin reiniciar a la
+        // base: asi el trazo arranca en el mismo punto, sin salto.
         const actual = this.rutaActiva;
+        this.arrastrando = true; this.volviendo = false; this.rutaSoltada = null;
+        this.estiron = 0; this.muelle = 0; this.tensando = false;
         this.ruta = actual.map((p) => ({ x: p.x, y: p.y }));
         const punta = this.ruta[this.ruta.length - 1];
         this._fantasma = { x: punta.x, y: punta.y };
         this._crudo = { x: punta.x, y: punta.y };
         this._ventana = [];
+        // La ventana arranca llena con la punta actual: si empezara
+        // vacia, la media movil tiraria de la punta hacia el primer
+        // punto nuevo y daria un tiron al iniciar el arrastre.
+        for (let i = 0; i < TALLO_VENTANA; i++) this._ventana.push({ x: punta.x, y: punta.y });
       },
 
       mover(x, y) {
@@ -1074,11 +1101,11 @@
       soltar() {
         if (!this.arrastrando) return;
         this.arrastrando = false;
-        this.rutaVuelta = this.ruta.slice();
-        this.cabeza = this.rutaVuelta.length;
+        this.rutaSoltada = repartir(this.ruta, RUTA_PUNTOS);
+        this.vuelta = 0;
         this.volviendo = true;
         this.ruta = null;
-        if (this.tensando) this.muelle = 14;
+        if (this.tensando) this.muelle = 10;
         this.tensando = false;
       },
 
@@ -1093,10 +1120,10 @@
           if (Math.abs(this.muelle) < 0.1) this.muelle = 0;
           this.estiron *= 0.78;
         }
-        if (this.volviendo && this.rutaVuelta) {
-          this.cabeza = Math.max(1, this.cabeza - 6);
-          if (this.cabeza <= 1) {
-            this.volviendo = false; this.rutaVuelta = null;
+        if (this.volviendo) {
+          this.vuelta += dt / VUELTA_S;
+          if (this.vuelta >= 1) {
+            this.vuelta = 1; this.volviendo = false; this.rutaSoltada = null;
             this.estiron = 0; this.muelle = 0;
           }
         }
@@ -1110,7 +1137,7 @@
         const ruta = this.rutaActiva;
         if (!ruta || ruta.length < 2) return this.reposoPunta;
 
-        const largo = largoRuta(ruta), ov = largo - TALLO_MAX_LEN;
+        const ov = largoRuta(ruta) - TALLO_MAX_LEN;
         let d = (this.arrastrando && ov > 0) ? tensar(ov, TALLO_RUBBER) : 0;
         d += this.estiron;
         const a = ruta[ruta.length - 2], b = ruta[ruta.length - 1];
@@ -1119,35 +1146,27 @@
         if (dd > 0) { dx = (b.x - a.x) / dd; dy = (b.y - a.y) / dd; }
         const punta = { x: b.x + dx * d, y: b.y + dy * d };
 
-        const grosor = Math.max(4, Math.min(13, largo / 55));
+        // Grosor constante: antes salia de la longitud y el tallo
+        // engordaba segun se arrastraba.
+        const grosor = TALLO_GROSOR;
 
-        // Degradado a lo largo del tallo, de la base a la punta.
         const grad = stemCtx.createLinearGradient(this.base.x, this.base.y, b.x, b.y);
         grad.addColorStop(0, mezclarHex(TALLO_ABAJO_0, TALLO_ABAJO_1, t));
         grad.addColorStop(1, mezclarHex(TALLO_ARRIBA_0, TALLO_ARRIBA_1, t));
 
-        // Hojitas: van DEBAJO del tallo para que el contorno negro del
-        // tallo las recorte limpio en vez de pisarlas a medias.
-        if (ruta.length > 6) {
-          for (let i = 0; i < 2; i++) {
-            const pos = 0.3 + i * 0.28;
-            const p1 = muestrearRuta(ruta, pos), p2 = muestrearRuta(ruta, pos + 0.05);
-            const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2;
-            const lado = (i % 2 === 0 ? 1 : -1) * 0.55;
-            const tam = 9 + grosor * 2.6;
-            dibujarHoja(p1.x, p1.y, tam, ang + lado, grad, TALLO_STROKE, Math.max(1.5, grosor * 0.3));
-          }
+        // Hojas debajo del trazo, para que el contorno del tallo las
+        // recorte limpio en vez de pisarlas a medias.
+        for (let i = 0; i < 2; i++) {
+          const pos = 0.32 + i * 0.26;
+          const p1 = muestrearRuta(ruta, pos), p2 = muestrearRuta(ruta, pos + 0.05);
+          const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2;
+          dibujarHoja(p1.x, p1.y, 17, ang + (i % 2 === 0 ? 1 : -1) * 0.6, grad, TALLO_STROKE);
         }
 
-        // Contorno negro primero, degradado encima: el trazo oscuro
-        // asoma justo lo necesario para leerse como stroke.
-        trazarRuta(stemCtx, ruta, grosor + Math.max(3, grosor * 0.55), TALLO_STROKE);
+        // Contorno negro de 1 px por lado: se pinta un trazo 2 px mas
+        // ancho debajo del degradado.
+        trazarRuta(stemCtx, ruta, grosor + TALLO_STROKE_PX * 2, TALLO_STROKE);
         trazarRuta(stemCtx, ruta, grosor, grad);
-
-        stemCtx.beginPath();
-        stemCtx.arc(this.base.x, this.base.y, grosor * 0.9, 0, Math.PI * 2);
-        stemCtx.fillStyle = grad;
-        stemCtx.fill();
         return punta;
       },
     };
