@@ -926,8 +926,8 @@
     const UNO_ESCALA = 0.34;
     // La flor sigue la inclinacion de la punta del tallo, pero atenuada
     // y acotada: girar tanto como el tallo la dejaria tumbada.
-    const FLOR_GIRO      = 0.55;
-    const FLOR_GIRO_MAX  = 0.6;   // ~34 grados
+    const FLOR_GIRO      = 0.95;
+    const FLOR_GIRO_MAX  = 1.05;  // ~60 grados
     const FLOR_GIRO_LERP = 0.12;
 
     function distPt(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -1258,7 +1258,6 @@
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
-    let bg1Listos = 1;         // frames de BG1 descargados de forma seguida
     let scrollTarget = 0;      // 0..1, lo que fija el gesto
     let scrollProgress = 0;    // 0..1, lo que se dibuja, persigue al objetivo
     let bg2FrameFloat = 0;     // BG2 corre por tiempo, no por scroll
@@ -1367,16 +1366,15 @@
       const moving = isMouseMoving();
       const scrolling = isScrolling();
 
-      // BG1: siempre en loop y siempre hacia adelante, nunca en reversa.
-      // El ciclo se limita a los frames YA descargados: al arrancar solo
-      // esta el 0, y pedir frames que aun no han llegado dejaba el fondo
-      // congelado hasta que entraban. Asi arranca en cuanto hay dos y el
-      // loop se va alargando segun cargan.
-      while (bg1Listos < BG1_COUNT) {
-        const im = bg1Frames[bg1Listos];
-        if (im && im.complete && im.naturalWidth) bg1Listos++; else break;
-      }
-      bg1FrameFloat = (bg1FrameFloat + dt * PLAYBACK_FPS) % Math.max(2, bg1Listos);
+      // BG1: siempre en loop, siempre hacia adelante y sobre el ciclo
+      // COMPLETO. Solo avanza si el frame siguiente ya esta descargado;
+      // si aun no ha llegado, se queda en el actual y sigue cuando entre.
+      // Acortar el ciclo a los frames cargados (lo anterior) hacia que el
+      // loop fuera diminuto al arrancar y se reiniciara sin parar, que es
+      // lo que se veia como saltos hacia atras.
+      const avance = (bg1FrameFloat + dt * PLAYBACK_FPS) % BG1_COUNT;
+      const sig = bg1Frames[Math.floor(avance)];
+      if (sig && sig.complete && sig.naturalWidth) bg1FrameFloat = avance;
       renderBg1(Math.floor(bg1FrameFloat));
 
       // UNO y VARIAS: el frame sale SOLO del scroll. El progreso persigue
