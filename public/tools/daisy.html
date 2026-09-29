@@ -924,11 +924,13 @@
 
     // Tamano de la flor como fraccion del ancho del canvas.
     const UNO_ESCALA = 0.34;
-    // La flor sigue la inclinacion de la punta del tallo, pero atenuada
-    // y acotada: girar tanto como el tallo la dejaria tumbada.
-    const FLOR_GIRO      = 0.95;
+    // La flor SIGUE AL PUNTERO: se inclina segun donde este el raton
+    // respecto a ella. Se usa el desfase horizontal y no el angulo
+    // directo porque el angulo da un vuelco de +60 a -60 al cruzar por
+    // detras; el desfase varia de forma continua y nunca voltea.
     const FLOR_GIRO_MAX  = 1.05;  // ~60 grados
-    const FLOR_GIRO_LERP = 0.12;
+    const FLOR_ALCANCE   = 320;   // px de canvas para llegar al tope
+    const FLOR_GIRO_LERP = 0.10;
 
     function distPt(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
     function largoRuta(p) { let l = 0; for (let i = 1; i < p.length; i++) l += distPt(p[i - 1], p[i]); return l; }
@@ -1023,6 +1025,10 @@
       stemCtx.lineJoin = 'round'; stemCtx.stroke();
       stemCtx.restore();
     }
+
+    // Posicion del puntero en coordenadas de canvas, o null si esta
+    // fuera del lienzo. La flor se orienta hacia el.
+    let puntero = null;
 
     const tallo = {
       base: { x: CANVAS_W / 2, y: CANVAS_H },
@@ -1152,13 +1158,13 @@
         if (dd > 0) { dx = (b.x - a.x) / dd; dy = (b.y - a.y) / dd; }
         const punta = { x: b.x + dx * d, y: b.y + dy * d };
 
-        // Inclinacion de la punta respecto a la vertical. Se mide sobre
-        // el ULTIMO TRAMO del tallo, no entre los dos ultimos puntos:
-        // ahi quedan casi pegados y la direccion sale ruidosa y diminuta.
-        const cuello = muestrearRuta(ruta, 0.8);
-        const objetivo = Math.max(-FLOR_GIRO_MAX,
-          Math.min(FLOR_GIRO_MAX,
-            Math.atan2(punta.x - cuello.x, cuello.y - punta.y) * FLOR_GIRO));
+        // La flor se inclina hacia donde esta el puntero. Sin puntero
+        // (raton fuera del lienzo) vuelve a recta.
+        let objetivo = 0;
+        if (puntero) {
+          const k = Math.max(-1, Math.min(1, (puntero.x - punta.x) / FLOR_ALCANCE));
+          objetivo = k * FLOR_GIRO_MAX;
+        }
         this.angulo += (objetivo - this.angulo) * FLOR_GIRO_LERP;
 
         // Grosor constante: antes salia de la longitud y el tallo
@@ -1335,16 +1341,21 @@
     }
 
     daisyCanvasEl.addEventListener('mousedown', (e) => { if (pulsar(e.clientX, e.clientY)) e.preventDefault(); });
-    daisyCanvasEl.addEventListener('mousemove', (e) => desplazar(e.clientX, e.clientY));
+    daisyCanvasEl.addEventListener('mousemove', (e) => {
+      puntero = aCanvas(e.clientX, e.clientY);
+      desplazar(e.clientX, e.clientY);
+    });
     window.addEventListener('mouseup', levantar);
-    daisyCanvasEl.addEventListener('mouseleave', levantar);
+    daisyCanvasEl.addEventListener('mouseleave', () => { puntero = null; levantar(); });
 
     daisyCanvasEl.addEventListener('touchstart', (e) => {
       if (!e.touches.length) return;
       if (pulsar(e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault();
     }, { passive: false });
     daisyCanvasEl.addEventListener('touchmove', (e) => {
-      if (!arrastrandoTallo || !e.touches.length) return;
+      if (!e.touches.length) return;
+      puntero = aCanvas(e.touches[0].clientX, e.touches[0].clientY);
+      if (!arrastrandoTallo) return;
       desplazar(e.touches[0].clientX, e.touches[0].clientY);
       if (e.cancelable) e.preventDefault();
     }, { passive: false });
