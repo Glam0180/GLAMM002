@@ -327,10 +327,11 @@
     /* Orden de capas (de abajo hacia arriba):
        1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
        2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
-       3) #stemCanvas   → el tallo, se dibuja y se arrastra
-       4) #unoCanvas    → la flor grande, anclada por su CENTRO a la
-                          punta del tallo, asi que se mueve con el
-       5) #variasCanvas → varias flores con alfa, SIEMPRE visible
+       3) #variasCanvas → varias flores con alfa, SIEMPRE visible
+       4) #stemCanvas   → el tallo, se dibuja y se arrastra
+       5) #unoCanvas    → la flor grande, anclada por su CENTRO a la
+                          punta del tallo, asi que se mueve con el.
+                          Tallo y flor van por ENCIMA del resto del arte
        6) #handsCanvas  → esqueleto de las manos y medidor del pinch
 
        UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
@@ -338,9 +339,9 @@
        estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
     #bg1Canvas    { z-index: 1; }
     #bg2Canvas    { z-index: 2; opacity: 0; }
-    #stemCanvas   { z-index: 3; }
-    #unoCanvas    { z-index: 4; }
-    #variasCanvas { z-index: 5; }
+    #variasCanvas { z-index: 3; }
+    #stemCanvas   { z-index: 4; }
+    #unoCanvas    { z-index: 5; }
     /* UI de las manos: va encima de todo y no intercepta el raton */
     #handsCanvas  { z-index: 6; pointer-events: none; }
 
@@ -869,6 +870,8 @@
     const unoFrames = [];
     const variasFrames = [];
 
+    // BG1 va primero a proposito: es la capa visible al entrar, asi que
+    // su colchon debe llenarse antes que el de las demas.
     const SEQS = [
       { prefix: 'BG1',    folder: 'bg1',    count: BG1_COUNT,    arr: bg1Frames },
       { prefix: 'BG2',    folder: 'bg2',    count: BG2_COUNT,    arr: bg2Frames },
@@ -946,7 +949,10 @@
     // longitud real: eso mantiene el trazo parejo y, sobre todo, permite
     // volver al reposo interpolando punto a punto en vez de encogiendo.
     const RUTA_PUNTOS   = 28;
-    const TALLO_MAX_LEN = 1400;  // longitud antes de que empiece a tensar
+    // Longitud a la que el tallo empieza a notar el tiron. Por debajo de
+    // esto da cuerda libremente: se alarga lo que haga falta, como si se
+    // tirara de una flor y en vez de romperse fuera soltando tallo.
+    const TALLO_MAX_LEN = 3000;
     const TALLO_STREAM  = 0.11;  // cuanto persigue la punta al puntero
     const TALLO_ARRANQUE = 0.28; // s en los que la punta coge velocidad
     const TALLO_VENTANA = 9;     // media movil que suaviza el trazo
@@ -1160,7 +1166,10 @@
         // Pasado el largo maximo la punta responde cada vez menos: da la
         // sensacion de que el tallo se tensa, en vez de estirarse sin fin.
         let factor = TALLO_STREAM;
-        if (ov > 0) { this.tensando = true; factor = TALLO_STREAM * Math.max(0.05, 1 - ov / 300); }
+        // Al pasarse cede cada vez menos, pero con una caida suave (800
+        // en vez de 300) para que se sienta como cuerda que se acaba y no
+        // como un tope duro.
+        if (ov > 0) { this.tensando = true; factor = TALLO_STREAM * Math.max(0.12, 1 - ov / 800); }
         else { this.tensando = false; }
         // Rampa de entrada: sin ella, agarrar y tirar lejos de golpe
         // movia la punta ~115 px en el primer frame. Ahora coge velocidad
@@ -1316,7 +1325,11 @@
     }
 
     // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
-    const PLAYBACK_FPS = 24;           // solo BG1, que va con el mouse
+    const PLAYBACK_FPS = 24;           // velocidad de BG1 y BG2
+    // Frames de BG1 que deben estar listos antes de arrancar el loop. Un
+    // segundo de animacion: suficiente para que no tartamudee y poco
+    // para que arranque enseguida.
+    const BG1_COLCHON = 24;
     const STILL_MS = 380;              // quietud sostenida antes de congelar
 
     // ── Scroll animation ──────────────────────────────────────────────
@@ -1342,6 +1355,7 @@
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
+    let bg1Listos = 1;          // frames de BG1 descargados de forma seguida
     let scrollTarget = 0;      // 0..1, lo que fija el gesto
     let scrollProgress = 0;    // 0..1, lo que se dibuja, persigue al objetivo
     let bg2FrameFloat = 0;     // BG2 corre por tiempo, no por scroll
@@ -1468,15 +1482,20 @@
       const moving = isMouseMoving();
       const scrolling = isScrolling();
 
-      // BG1: siempre en loop, siempre hacia adelante y sobre el ciclo
-      // COMPLETO. Solo avanza si el frame siguiente ya esta descargado;
-      // si aun no ha llegado, se queda en el actual y sigue cuando entre.
-      // Acortar el ciclo a los frames cargados (lo anterior) hacia que el
-      // loop fuera diminuto al arrancar y se reiniciara sin parar, que es
-      // lo que se veia como saltos hacia atras.
-      const avance = (bg1FrameFloat + dt * PLAYBACK_FPS) % BG1_COUNT;
-      const sig = bg1Frames[Math.floor(avance)];
-      if (sig && sig.complete && sig.naturalWidth) bg1FrameFloat = avance;
+      // BG1: siempre hacia adelante, nunca en reversa.
+      // Esperar frame a frame (lo anterior) hacia que al arrancar fuera a
+      // tirones, porque el fondo pide 24 frames por segundo y la descarga
+      // no da para tanto. Ahora se espera a tener un COLCHON y luego se
+      // cicla sobre lo ya descargado. El ciclo solo crece, asi que el
+      // indice nunca retrocede: empieza siendo un loop corto pero fluido
+      // y se va alargando segun entran frames.
+      while (bg1Listos < BG1_COUNT) {
+        const im = bg1Frames[bg1Listos];
+        if (im && im.complete && im.naturalWidth) bg1Listos++; else break;
+      }
+      if (bg1Listos >= BG1_COLCHON) {
+        bg1FrameFloat = (bg1FrameFloat + dt * PLAYBACK_FPS) % bg1Listos;
+      }
       renderBg1(Math.floor(bg1FrameFloat));
 
       // Mano izquierda: el valor del pinch ES la posicion de la
