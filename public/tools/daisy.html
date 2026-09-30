@@ -426,6 +426,28 @@
       transition: width .08s linear;
     }
 
+    /* ───────── CAMARA (control por manos) ───────── */
+    .cam-wrap { display: flex; flex-direction: column; gap: 7px; }
+    .cam-btn {
+      font-size: 8px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--red); background: #000; border: 1px solid var(--red);
+      padding: 5px 6px; cursor: pointer;
+    }
+    .cam-btn:hover, .cam-btn.on { background: var(--red); color: #000; }
+    .cam-box {
+      display: none; width: 100%; aspect-ratio: 4 / 3;
+      border: 1px solid var(--red-faint); overflow: hidden; background: #000;
+    }
+    .cam-box video {
+      width: 100%; height: 100%; object-fit: cover;
+      /* espejo: mover la mano a la derecha lleva la flor a la derecha */
+      transform: scaleX(-1); display: block;
+    }
+    .cam-ayuda {
+      font-size: 7px; line-height: 1.7; letter-spacing: .06em;
+      color: var(--red-dim); text-transform: uppercase;
+    }
+
 
 
     /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
@@ -635,6 +657,15 @@
             <div>
               <div class="daisy-meter-label"><span>SCROLL</span><span id="scrollPct">0%</span></div>
               <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="scrollFill"></div></div>
+            </div>
+
+            <div class="cam-wrap">
+              <button type="button" class="cam-btn" id="camBtn">MANOS</button>
+              <div class="cam-box" id="camBox"><video id="camVid" autoplay playsinline muted></video></div>
+              <div class="cam-ayuda">
+                derecha: pellizca para agarrar la flor<br>
+                izquierda: cierra para avanzar, abre para retroceder
+              </div>
             </div>
           </div>
         </div>
@@ -905,11 +936,14 @@
     // volver al reposo interpolando punto a punto en vez de encogiendo.
     const RUTA_PUNTOS   = 28;
     const TALLO_MAX_LEN = 1400;  // longitud antes de que empiece a tensar
-    const TALLO_STREAM  = 0.16;  // cuanto persigue la punta al puntero
+    const TALLO_STREAM  = 0.11;  // cuanto persigue la punta al puntero
+    const TALLO_ARRANQUE = 0.28; // s en los que la punta coge velocidad
     const TALLO_VENTANA = 9;     // media movil que suaviza el trazo
     const TALLO_RUBBER  = 45;    // estiron maximo al pasarse de largo
     const TALLO_AGARRE  = 140;   // radio (px de canvas) para agarrar la punta
     const TALLO_GROSOR  = 7;     // constante: no engorda al alargarse
+    const TALLO_FLEX    = 0.34;  // cuanto cede el tallo entero al tirar
+    const TALLO_FLEX_IT = 3;     // pasadas de relajacion por frame
     const TALLO_STROKE_PX = 1;   // contorno negro, 1 px por lado
     const VUELTA_S      = 0.55;  // segundos en volver al reposo
 
@@ -977,6 +1011,22 @@
       return out;
     }
 
+    // Relaja la curva: cada punto interior tiende al punto medio de sus
+    // vecinos. Es lo que hace que el tallo ENTERO ceda al tirar, hasta el
+    // origen, en vez de quedarse rigido en el tramo ya trazado. La base y
+    // la punta quedan clavadas: la base porque es el anclaje y la punta
+    // porque la manda el puntero.
+    function relajar(pts, iteraciones, k) {
+      for (let it = 0; it < iteraciones; it++) {
+        for (let i = 1; i < pts.length - 1; i++) {
+          const mx = (pts[i - 1].x + pts[i + 1].x) * 0.5;
+          const my = (pts[i - 1].y + pts[i + 1].y) * 0.5;
+          pts[i].x += (mx - pts[i].x) * k;
+          pts[i].y += (my - pts[i].y) * k;
+        }
+      }
+    }
+
     // Interpola dos rutas del MISMO numero de puntos.
     function mezclarRutas(a, b, t) {
       const out = [];
@@ -1040,6 +1090,7 @@
       arrastrando: false,
       volviendo: false, rutaSoltada: null, vuelta: 0,
       estiron: 0, muelle: 0, tensando: false,
+      arranque: 0,           // rampa de entrada al empezar a arrastrar
       angulo: 0,             // inclinacion suavizada de la punta
       _fantasma: null, _crudo: null, _ventana: [],
 
@@ -1059,7 +1110,7 @@
       },
 
       get rutaActiva() {
-        if (this.arrastrando && this.ruta) return repartir(this.ruta, RUTA_PUNTOS);
+        if (this.arrastrando && this.ruta) return this.ruta;
         if (this.volviendo && this.rutaSoltada) {
           // Se vuelve al reposo interpolando punto a punto. Antes la ruta
           // se encogia hasta la base y luego saltaba de golpe a la de
@@ -1079,6 +1130,7 @@
         const actual = this.rutaActiva;
         this.arrastrando = true; this.volviendo = false; this.rutaSoltada = null;
         this.estiron = 0; this.muelle = 0; this.tensando = false;
+        this.arranque = 0;
         this.ruta = actual.map((p) => ({ x: p.x, y: p.y }));
         const punta = this.ruta[this.ruta.length - 1];
         this._fantasma = { x: punta.x, y: punta.y };
@@ -1099,6 +1151,10 @@
         let factor = TALLO_STREAM;
         if (ov > 0) { this.tensando = true; factor = TALLO_STREAM * Math.max(0.05, 1 - ov / 300); }
         else { this.tensando = false; }
+        // Rampa de entrada: sin ella, agarrar y tirar lejos de golpe
+        // movia la punta ~115 px en el primer frame. Ahora coge velocidad
+        // en TALLO_ARRANQUE segundos y el gesto entra sin tiron.
+        factor *= suavePaso(Math.min(1, this.arranque / TALLO_ARRANQUE));
         this._fantasma.x += (x - this._fantasma.x) * factor;
         this._fantasma.y += (y - this._fantasma.y) * factor;
         this._ventana.push({ x: this._fantasma.x, y: this._fantasma.y });
@@ -1106,8 +1162,16 @@
         let sx = 0, sy = 0;
         for (const p of this._ventana) { sx += p.x; sy += p.y; }
         const suave = { x: sx / this._ventana.length, y: sy / this._ventana.length };
-        const ult = this.ruta[this.ruta.length - 1];
-        if (distPt(ult, suave) > 2) this.ruta.push(suave);
+
+        // La ruta es una cuerda de tamano fijo: la punta va al puntero
+        // suavizado, la base sigue clavada y el resto se relaja hacia sus
+        // vecinos. Asi el tallo entero cede, no solo la punta.
+        this.ruta[this.ruta.length - 1] = suave;
+        this.ruta[0] = { x: this.base.x, y: this.base.y };
+        relajar(this.ruta, TALLO_FLEX_IT, TALLO_FLEX);
+        // Reparto por longitud para que no se amontonen los puntos.
+        this.ruta = repartir(this.ruta, RUTA_PUNTOS);
+        this.ruta[this.ruta.length - 1] = suave;
       },
 
       soltar() {
@@ -1125,7 +1189,10 @@
         // Mientras se arrastra se sigue persiguiendo el ultimo punto
         // aunque el puntero este quieto: asi el tallo termina de alcanzar
         // en vez de congelarse a medio camino.
-        if (this.arrastrando) this.mover(this._crudo.x, this._crudo.y);
+        if (this.arrastrando) {
+          this.arranque += dt;
+          this.mover(this._crudo.x, this._crudo.y);
+        }
         if (this.muelle !== 0) {
           this.estiron += this.muelle * dt * 60;
           this.muelle *= -0.45;
@@ -1401,6 +1468,18 @@
       if (sig && sig.complete && sig.naturalWidth) bg1FrameFloat = avance;
       renderBg1(Math.floor(bg1FrameFloat));
 
+      // Mano izquierda: su pinch mueve la reproduccion igual que el
+      // scroll. Cerrado (1) adelanta, abierto (0) retrocede; en medio se
+      // queda quieta, para que no haya deriva con la mano relajada.
+      if (pinchIzq !== null) {
+        const sentido = pinchIzq * 2 - 1;
+        if (Math.abs(sentido) > 0.15) {
+          lastScrollAt = performance.now();
+          scrollTarget += sentido * VEL_MANO * dt;
+          scrollTarget = Math.min(1, Math.max(0, scrollTarget));
+        }
+      }
+
       // UNO y VARIAS: el frame sale SOLO del scroll. El progreso persigue
       // al objetivo que fija el gesto; sin scroll el objetivo no cambia y
       // el progreso lo alcanza y se para, así que no se reproduce sola.
@@ -1540,6 +1619,139 @@
       // posición inicial, una vez que el canvas ya tiene su tamaño final
       requestAnimationFrame(() => requestAnimationFrame(resetToDefault));
     })();
+
+
+    // ─────────── MANOS (MediaPipe) ───────────
+    // Mano DERECHA: el pinch agarra y arrastra la flor, igual que el raton.
+    // Mano IZQUIERDA: el pinch gobierna la reproduccion de BG2/UNO/VARIAS
+    // como el scroll — cerrado adelanta, abierto retrocede.
+    const PINCH_CERRADO = 0.05;   // distancia pulgar-indice (normalizada)
+    const PINCH_ABIERTO = 0.13;
+    const VEL_MANO      = 0.55;   // vueltas por segundo a pinch pleno
+    const AGARRE_MANO   = 260;    // radio de agarre, mas generoso que el raton
+    // MediaPipe etiqueta la mano asumiendo imagen en espejo. Si sale
+    // cambiada, poner a false.
+    const MANOS_EN_ESPEJO = true;
+
+    const vid = $('camVid');
+    const camBtn = $('camBtn');
+    const camBox = $('camBox');
+    let manosActivas = false, hands = null, camStream = null, camara = null;
+    let pinchIzq = null;        // 0 abierto .. 1 cerrado, o null si no hay mano
+    let pinchDerCerrado = false;
+
+    function cargarScript(src) {
+      return new Promise((ok, err) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = ok; s.onerror = err;
+        document.head.appendChild(s);
+      });
+    }
+
+    // Normalizado de la camara -> coordenadas del canvas. La vista va en
+    // espejo, por eso la x se invierte: si no, mover la mano a la derecha
+    // llevaria la flor a la izquierda.
+    function manoACanvas(lm) {
+      return { x: (1 - lm.x) * CANVAS_W, y: lm.y * CANVAS_H };
+    }
+
+    function pinchDe(lm) {
+      const a = lm[4], b = lm[8];
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function cerrazonDe(d) {
+      const t = (d - PINCH_CERRADO) / (PINCH_ABIERTO - PINCH_CERRADO);
+      return 1 - Math.min(1, Math.max(0, t));   // 1 cerrado, 0 abierto
+    }
+
+    function onManos(res) {
+      pinchIzq = null;
+      let der = null, izq = null;
+      const listas = res.multiHandLandmarks || [];
+      for (let i = 0; i < listas.length; i++) {
+        const etiqueta = res.multiHandedness?.[i]?.label || 'Right';
+        const esDerecha = MANOS_EN_ESPEJO ? etiqueta === 'Right' : etiqueta === 'Left';
+        if (esDerecha) der = listas[i]; else izq = listas[i];
+      }
+
+      // Izquierda: su apertura marca el sentido y la velocidad.
+      if (izq) pinchIzq = cerrazonDe(pinchDe(izq));
+
+      // Derecha: pinch cerrado agarra, abierto suelta.
+      if (!der) {
+        if (pinchDerCerrado) { pinchDerCerrado = false; levantar(); }
+        return;
+      }
+      const d = pinchDe(der);
+      const p = manoACanvas({ x: (der[4].x + der[8].x) / 2, y: (der[4].y + der[8].y) / 2 });
+      puntero = p;
+      lastMouseMoveAt = performance.now();
+
+      if (!pinchDerCerrado && d < PINCH_CERRADO) {
+        pinchDerCerrado = true;
+        if (distPt(p, tallo.punta) <= AGARRE_MANO) {
+          arrastrandoTallo = true;
+          tallo.empezar();
+          tallo.mover(p.x, p.y);
+        }
+      } else if (pinchDerCerrado && d > PINCH_ABIERTO) {
+        pinchDerCerrado = false;
+        levantar();
+      }
+      if (pinchDerCerrado && arrastrandoTallo) tallo.mover(p.x, p.y);
+    }
+
+    async function arrancarManos() {
+      try {
+        camBtn.textContent = 'INICIANDO…';
+        if (!window.Hands) {
+          await cargarScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
+          await cargarScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+        }
+        camStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 480, height: 360, facingMode: 'user' },
+        });
+        vid.srcObject = camStream;
+        camBox.style.display = 'block';
+        hands = new window.Hands({
+          locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`,
+        });
+        hands.setOptions({
+          maxNumHands: 2, modelComplexity: 0,
+          minDetectionConfidence: 0.7, minTrackingConfidence: 0.6,
+        });
+        hands.onResults(onManos);
+        camara = new window.Camera(vid, {
+          onFrame: async () => { await hands.send({ image: vid }); },
+          width: 480, height: 360,
+        });
+        camara.start();
+        manosActivas = true;
+        camBtn.textContent = 'DETENER MANOS';
+        camBtn.classList.add('on');
+      } catch (e) {
+        camBtn.textContent = 'MANOS';
+        $('daisyStatus').textContent = 'no se pudo abrir la camara: ' + e.message;
+      }
+    }
+
+    function pararManos() {
+      if (camara && camara.stop) camara.stop();
+      if (camStream) camStream.getTracks().forEach((t) => t.stop());
+      camStream = null; camara = null;
+      vid.srcObject = null;
+      camBox.style.display = 'none';
+      manosActivas = false;
+      pinchIzq = null;
+      if (pinchDerCerrado) { pinchDerCerrado = false; levantar(); }
+      camBtn.textContent = 'MANOS';
+      camBtn.classList.remove('on');
+    }
+
+    camBtn.addEventListener('click', () => {
+      if (manosActivas) pararManos(); else arrancarManos();
+    });
 
     // ─────────── LOOP PRINCIPAL ───────────
     function loop() {
