@@ -438,12 +438,15 @@
     }
     .cam-btn:hover, .cam-btn.on { background: var(--red); color: #000; }
     .cam-box {
-      display: none; width: 100%; aspect-ratio: 4 / 3;
+      display: none; position: relative; width: 100%; aspect-ratio: 4 / 3;
       border: 1px solid var(--red-faint); overflow: hidden; background: #000;
     }
-    .cam-box video {
+    .cam-box video, .cam-box canvas {
+      position: absolute; inset: 0;
       width: 100%; height: 100%; object-fit: cover;
-      /* espejo: mover la mano a la derecha lleva la flor a la derecha */
+      /* espejo: mover la mano a la derecha lleva la flor a la derecha.
+         El overlay lleva el mismo espejo que el video, asi se dibuja con
+         las coordenadas del detector sin invertirlas a mano. */
       transform: scaleX(-1); display: block;
     }
     .cam-ayuda {
@@ -665,7 +668,10 @@
 
             <div class="cam-wrap">
               <button type="button" class="cam-btn" id="camBtn">MANOS</button>
-              <div class="cam-box" id="camBox"><video id="camVid" autoplay playsinline muted></video></div>
+              <div class="cam-box" id="camBox">
+                <video id="camVid" autoplay playsinline muted></video>
+                <canvas id="camOverlay"></canvas>
+              </div>
               <div class="cam-ayuda">
                 derecha: pellizca para agarrar la flor<br>
                 izquierda: cierra para avanzar, abre para retroceder
@@ -1632,18 +1638,30 @@
     // Se usa tasks-vision (HandLandmarker), la misma API que canicas-3d,
     // y no el paquete legacy @mediapipe/hands: ese esta deprecado y su
     // carga desde CDN es la que fallaba.
-    const PINCH_CERRADO = 0.05;   // distancia pulgar-indice (normalizada)
-    const PINCH_ABIERTO = 0.13;
+    // Rango del pinch. Antes iba de 0.05 a 0.13 y la animacion se comia
+    // el recorrido en un palmo; ahora reparte el 0..100% a lo largo de
+    // casi toda la apertura de la mano.
+    const PINCH_CERRADO = 0.025;  // distancia pulgar-indice (normalizada)
+    const PINCH_ABIERTO = 0.30;
     const AGARRE_MANO   = 260;    // radio de agarre, mas generoso que el raton
     // MediaPipe etiqueta la mano asumiendo imagen en espejo. Si sale
     // cambiada, poner a false.
     const MANOS_EN_ESPEJO = true;
     const MANO_DER_COLOR = '#46ebf0';
     const MANO_IZQ_COLOR = '#bafd3a';
+    const CAM_LINEA = '#ff1a1a';   // el esqueleto en la camara va en rojo
+    // Agarrar es una accion de si o no, asi que tiene sus propios
+    // umbrales con histeresis. Usar el rango ancho del valor continuo
+    // obligaria a cerrar del todo para agarrar y a abrir de par en par
+    // para soltar.
+    const AGARRE_CIERRA = 0.06;
+    const AGARRE_ABRE   = 0.11;
 
     const vid = $('camVid');
     const camBtn = $('camBtn');
     const camBox = $('camBox');
+    const camOverlay = $('camOverlay');
+    const camCtx = camOverlay.getContext('2d');
     let handLandmarker = null;
     let manosActivas = false, camStream = null, manosRaf = 0, ultimoTs = -1;
     let pinchIzq = null;        // 0 abierto .. 1 cerrado, o null si no hay mano
@@ -1673,62 +1691,69 @@
       [0,17],                           // palma
     ];
 
-    // Dibuja el esqueleto de una mano y su medidor de pinch. El aro entre
-    // pulgar e indice se cierra y se rellena con el propio valor del
-    // pinch, asi se ve el recorrido completo y no solo dos estados.
-    function dibujarMano(lm, color, cerrazon, etiqueta) {
-      const pt = (i) => manoACanvas(lm[i].x, lm[i].y);
-
-      handsCtx.lineWidth = 2;
-      handsCtx.strokeStyle = color;
-      handsCtx.globalAlpha = 0.75;
-      handsCtx.beginPath();
-      for (const [a, b] of HUESOS) {
-        const p = pt(a), q = pt(b);
-        handsCtx.moveTo(p.x, p.y);
-        handsCtx.lineTo(q.x, q.y);
+    // ── Esqueleto completo, sobre la CAMARA y en rojo ──
+    // El overlay lleva el mismo espejo CSS que el video, asi que se
+    // dibuja con las coordenadas crudas del detector.
+    function pintarCamara(manos) {
+      const cw = camOverlay.width, ch = camOverlay.height;
+      camCtx.clearRect(0, 0, cw, ch);
+      if (!manos.length) return;
+      camCtx.strokeStyle = CAM_LINEA;
+      camCtx.fillStyle = CAM_LINEA;
+      camCtx.lineWidth = 2;
+      for (const lm of manos) {
+        camCtx.beginPath();
+        for (const [a, b] of HUESOS) {
+          camCtx.moveTo(lm[a].x * cw, lm[a].y * ch);
+          camCtx.lineTo(lm[b].x * cw, lm[b].y * ch);
+        }
+        camCtx.stroke();
+        for (let i = 0; i < lm.length; i++) {
+          camCtx.beginPath();
+          camCtx.arc(lm[i].x * cw, lm[i].y * ch, i === 4 || i === 8 ? 4 : 2.2, 0, Math.PI * 2);
+          camCtx.fill();
+        }
       }
-      handsCtx.stroke();
+    }
 
-      handsCtx.globalAlpha = 1;
+    // ── En el lienzo, solo los circulitos indicadores ──
+    // Un aro entre pulgar e indice que se encoge y se rellena con el
+    // valor del pinch, y un punto en cada yema. Nada de esqueleto: ese
+    // vive en la camara.
+    function indicador(lm, color, cerrazon) {
+      const a = manoACanvas(lm[4].x, lm[4].y);
+      const b = manoACanvas(lm[8].x, lm[8].y);
+      const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const r = 12 + 30 * (1 - cerrazon);
+
+      handsCtx.strokeStyle = color;
       handsCtx.fillStyle = color;
-      for (let i = 0; i < lm.length; i++) {
-        const p = pt(i);
+
+      for (const p of [a, b]) {
         handsCtx.beginPath();
-        handsCtx.arc(p.x, p.y, i === 4 || i === 8 ? 6 : 3.5, 0, Math.PI * 2);
+        handsCtx.arc(p.x, p.y, 5, 0, Math.PI * 2);
         handsCtx.fill();
       }
 
-      // Medidor del pinch entre pulgar e indice.
-      const a = pt(4), b = pt(8);
-      const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      const r = 10 + 26 * (1 - cerrazon);   // se encoge al cerrar
-
       handsCtx.beginPath();
       handsCtx.arc(m.x, m.y, r, 0, Math.PI * 2);
-      handsCtx.strokeStyle = color;
       handsCtx.lineWidth = 2.5;
       handsCtx.stroke();
 
-      // Relleno proporcional: el arco recorre todo el intervalo.
       handsCtx.beginPath();
       handsCtx.moveTo(m.x, m.y);
       handsCtx.arc(m.x, m.y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * cerrazon);
       handsCtx.closePath();
-      handsCtx.globalAlpha = 0.35;
-      handsCtx.fillStyle = color;
+      handsCtx.globalAlpha = 0.3;
       handsCtx.fill();
       handsCtx.globalAlpha = 1;
-
-      handsCtx.font = '700 13px monospace';
-      handsCtx.fillStyle = color;
-      handsCtx.fillText(etiqueta + ' ' + Math.round(cerrazon * 100) + '%', m.x + r + 6, m.y + 4);
     }
 
     function pintarManos(der, izq, cerrDer, cerrIzq) {
       handsCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-      if (izq) dibujarMano(izq, MANO_IZQ_COLOR, cerrIzq, 'IZQ');
-      if (der) dibujarMano(der, MANO_DER_COLOR, cerrDer, 'DER');
+      if (izq) indicador(izq, MANO_IZQ_COLOR, cerrIzq);
+      if (der) indicador(der, MANO_DER_COLOR, cerrDer);
+      pintarCamara([izq, der].filter(Boolean));
     }
 
     function procesarManos(res) {
@@ -1759,14 +1784,14 @@
       puntero = p;
       lastMouseMoveAt = performance.now();
 
-      if (!pinchDerCerrado && d < PINCH_CERRADO) {
+      if (!pinchDerCerrado && d < AGARRE_CIERRA) {
         pinchDerCerrado = true;
         if (distPt(p, tallo.punta) <= AGARRE_MANO) {
           arrastrandoTallo = true;
           tallo.empezar();
           tallo.mover(p.x, p.y);
         }
-      } else if (pinchDerCerrado && d > PINCH_ABIERTO) {
+      } else if (pinchDerCerrado && d > AGARRE_ABRE) {
         pinchDerCerrado = false;
         levantar();
       }
@@ -1809,6 +1834,10 @@
         vid.srcObject = camStream;
         await vid.play();
         camBox.style.display = 'block';
+        // El backing del overlay se fija al tamano real de la caja, ya
+        // visible: hacerlo antes daria 0x0 y no se veria nada.
+        camOverlay.width = camOverlay.clientWidth || 240;
+        camOverlay.height = camOverlay.clientHeight || 180;
         manosActivas = true;
         ultimoTs = -1;
         if (!manosRaf) bucleManos();
@@ -1830,6 +1859,7 @@
       vid.srcObject = null;
       camBox.style.display = 'none';
       handsCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      camCtx.clearRect(0, 0, camOverlay.width, camOverlay.height);
       pinchIzq = null;
       if (pinchDerCerrado) { pinchDerCerrado = false; levantar(); }
       camBtn.textContent = 'MANOS';
