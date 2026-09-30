@@ -22,6 +22,10 @@ export default function DaisyExperience() {
         src="/tools/daisy.html"
         className="daisy-iframe"
         title="Daisy — esqueleto en desarrollo"
+        /* Sin esto, getUserMedia queda bloqueado por Permissions Policy
+           dentro del iframe y el control por manos no puede arrancar.
+           canicas-3d y floralis ya lo llevaban. */
+        allow="camera; microphone"
         allowFullScreen
       />
     </div>

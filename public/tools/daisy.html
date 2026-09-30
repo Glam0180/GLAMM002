@@ -1625,6 +1625,10 @@
     // Mano DERECHA: el pinch agarra y arrastra la flor, igual que el raton.
     // Mano IZQUIERDA: el pinch gobierna la reproduccion de BG2/UNO/VARIAS
     // como el scroll — cerrado adelanta, abierto retrocede.
+    //
+    // Se usa tasks-vision (HandLandmarker), la misma API que canicas-3d,
+    // y no el paquete legacy @mediapipe/hands: ese esta deprecado y su
+    // carga desde CDN es la que fallaba.
     const PINCH_CERRADO = 0.05;   // distancia pulgar-indice (normalizada)
     const PINCH_ABIERTO = 0.13;
     const VEL_MANO      = 0.55;   // vueltas por segundo a pinch pleno
@@ -1636,46 +1640,36 @@
     const vid = $('camVid');
     const camBtn = $('camBtn');
     const camBox = $('camBox');
-    let manosActivas = false, hands = null, camStream = null, camara = null;
+    let handLandmarker = null;
+    let manosActivas = false, camStream = null, manosRaf = 0, ultimoTs = -1;
     let pinchIzq = null;        // 0 abierto .. 1 cerrado, o null si no hay mano
     let pinchDerCerrado = false;
 
-    function cargarScript(src) {
-      return new Promise((ok, err) => {
-        const s = document.createElement('script');
-        s.src = src; s.onload = ok; s.onerror = err;
-        document.head.appendChild(s);
-      });
-    }
+    function avisoManos(txt) { $('daisyStatus').textContent = txt; }
 
     // Normalizado de la camara -> coordenadas del canvas. La vista va en
     // espejo, por eso la x se invierte: si no, mover la mano a la derecha
     // llevaria la flor a la izquierda.
-    function manoACanvas(lm) {
-      return { x: (1 - lm.x) * CANVAS_W, y: lm.y * CANVAS_H };
+    function manoACanvas(x, y) {
+      return { x: (1 - x) * CANVAS_W, y: y * CANVAS_H };
     }
-
-    function pinchDe(lm) {
-      const a = lm[4], b = lm[8];
-      return Math.hypot(a.x - b.x, a.y - b.y);
-    }
-
+    function pinchDe(lm) { return Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y); }
     function cerrazonDe(d) {
       const t = (d - PINCH_CERRADO) / (PINCH_ABIERTO - PINCH_CERRADO);
       return 1 - Math.min(1, Math.max(0, t));   // 1 cerrado, 0 abierto
     }
 
-    function onManos(res) {
+    function procesarManos(res) {
       pinchIzq = null;
       let der = null, izq = null;
-      const listas = res.multiHandLandmarks || [];
-      for (let i = 0; i < listas.length; i++) {
-        const etiqueta = res.multiHandedness?.[i]?.label || 'Right';
+      const manos = res.landmarks || [];
+      for (let i = 0; i < manos.length; i++) {
+        const etiqueta = res.handedness?.[i]?.[0]?.categoryName || 'Right';
         const esDerecha = MANOS_EN_ESPEJO ? etiqueta === 'Right' : etiqueta === 'Left';
-        if (esDerecha) der = listas[i]; else izq = listas[i];
+        if (esDerecha) der = manos[i]; else izq = manos[i];
       }
 
-      // Izquierda: su apertura marca el sentido y la velocidad.
+      // Izquierda: su apertura marca sentido y velocidad.
       if (izq) pinchIzq = cerrazonDe(pinchDe(izq));
 
       // Derecha: pinch cerrado agarra, abierto suelta.
@@ -1684,7 +1678,7 @@
         return;
       }
       const d = pinchDe(der);
-      const p = manoACanvas({ x: (der[4].x + der[8].x) / 2, y: (der[4].y + der[8].y) / 2 });
+      const p = manoACanvas((der[4].x + der[8].x) / 2, (der[4].y + der[8].y) / 2);
       puntero = p;
       lastMouseMoveAt = performance.now();
 
@@ -1702,51 +1696,67 @@
       if (pinchDerCerrado && arrastrandoTallo) tallo.mover(p.x, p.y);
     }
 
+    function bucleManos() {
+      manosRaf = requestAnimationFrame(bucleManos);
+      if (!manosActivas || !handLandmarker || vid.readyState < 2) return;
+      // El detector exige timestamps crecientes: repetir uno anterior
+      // lanza y corta el bucle.
+      const ts = performance.now();
+      if (ts <= ultimoTs) return;
+      ultimoTs = ts;
+      try { procesarManos(handLandmarker.detectForVideo(vid, ts)); } catch (e) { /* frame suelto */ }
+    }
+
     async function arrancarManos() {
+      camBtn.disabled = true;
+      camBtn.textContent = 'CARGANDO…';
       try {
-        camBtn.textContent = 'INICIANDO…';
-        if (!window.Hands) {
-          await cargarScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
-          await cargarScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+        if (!handLandmarker) {
+          const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+          const fileset = await vision.FilesetResolver.forVisionTasks(
+            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+          );
+          handLandmarker = await vision.HandLandmarker.createFromOptions(fileset, {
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+              delegate: 'GPU',
+            },
+            runningMode: 'VIDEO',
+            numHands: 2,
+          });
         }
+        camBtn.textContent = 'PIDIENDO CÁMARA…';
         camStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 480, height: 360, facingMode: 'user' },
+          video: { width: 480, height: 360, facingMode: 'user' }, audio: false,
         });
         vid.srcObject = camStream;
+        await vid.play();
         camBox.style.display = 'block';
-        hands = new window.Hands({
-          locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`,
-        });
-        hands.setOptions({
-          maxNumHands: 2, modelComplexity: 0,
-          minDetectionConfidence: 0.7, minTrackingConfidence: 0.6,
-        });
-        hands.onResults(onManos);
-        camara = new window.Camera(vid, {
-          onFrame: async () => { await hands.send({ image: vid }); },
-          width: 480, height: 360,
-        });
-        camara.start();
         manosActivas = true;
+        ultimoTs = -1;
+        if (!manosRaf) bucleManos();
         camBtn.textContent = 'DETENER MANOS';
         camBtn.classList.add('on');
+        avisoManos('derecha: pellizca para agarrar la flor. izquierda: cierra para avanzar, abre para retroceder.');
       } catch (e) {
         camBtn.textContent = 'MANOS';
-        $('daisyStatus').textContent = 'no se pudo abrir la camara: ' + e.message;
+        avisoManos('no se pudo activar la cámara o el modelo: ' + (e && e.message ? e.message : e));
+        console.error(e); // eslint-disable-line no-console
       }
+      camBtn.disabled = false;
     }
 
     function pararManos() {
-      if (camara && camara.stop) camara.stop();
-      if (camStream) camStream.getTracks().forEach((t) => t.stop());
-      camStream = null; camara = null;
+      manosActivas = false;
+      if (manosRaf) { cancelAnimationFrame(manosRaf); manosRaf = 0; }
+      if (camStream) { camStream.getTracks().forEach((t) => t.stop()); camStream = null; }
       vid.srcObject = null;
       camBox.style.display = 'none';
-      manosActivas = false;
       pinchIzq = null;
       if (pinchDerCerrado) { pinchDerCerrado = false; levantar(); }
       camBtn.textContent = 'MANOS';
       camBtn.classList.remove('on');
+      avisoManos('mueve el mouse sobre el lienzo, o haz scroll con la ruedita.');
     }
 
     camBtn.addEventListener('click', () => {
