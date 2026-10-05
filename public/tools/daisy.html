@@ -985,7 +985,8 @@
     const TALLO_RUBBER  = 45;    // estiron maximo al pasarse de largo
     const TALLO_AGARRE  = 140;   // radio (px de canvas) para agarrar la punta
     const TALLO_GROSOR  = 7;     // constante: no engorda al alargarse
-    const TALLO_FLEX    = 0.34;  // cuanto cede el tallo entero al tirar
+    const TALLO_CURVA   = 0.45;  // cuanto se abre la S del tallo en reposo
+    const TALLO_FLEX    = 0.26;  // cuanto cede el tallo entero al tirar
     const TALLO_FLEX_IT = 3;     // pasadas de relajacion por frame
     const TALLO_STROKE_PX = 1;   // contorno negro, 1 px por lado
     const VUELTA_S      = 0.55;  // segundos en volver al reposo
@@ -1139,8 +1140,13 @@
 
       init() {
         const alto = this.base.y - this.reposoPunta.y;
-        const cx1 = this.base.x - 30, cy1 = this.base.y - alto * 0.45;
-        const cx2 = this.reposoPunta.x + 22, cy2 = this.reposoPunta.y + alto * 0.25;
+        // Los dos controles se separan del eje en sentidos OPUESTOS: eso
+        // es lo que dibuja la S. Antes iban a -30 y +22 px fijos, una
+        // desviacion minuscula al lado de los ~560 px de alto, y por eso
+        // el tallo salia casi recto. Ahora es proporcional al alto.
+        const curva = alto * TALLO_CURVA;
+        const cx1 = this.base.x - curva, cy1 = this.base.y - alto * 0.40;
+        const cx2 = this.reposoPunta.x + curva, cy2 = this.reposoPunta.y + alto * 0.36;
         const pts = [];
         for (let i = 0; i < RUTA_PUNTOS; i++) {
           const t = i / (RUTA_PUNTOS - 1);
