@@ -1125,9 +1125,9 @@
 
     const tallo = {
       base: { x: CANVAS_W / 2, y: CANVAS_H },
-      // Altura de reposo de la punta, medida desde arriba. 0.5 la dejaba
-      // en el centro exacto del encuadre.
-      reposoPunta: { x: CANVAS_W / 2, y: CANVAS_H * 0.34 },
+      // Altura de reposo de la punta, medida desde arriba: 0.5 la deja en
+      // el centro exacto del encuadre y 0.34 quedaba demasiado arriba.
+      reposoPunta: { x: CANVAS_W / 2, y: CANVAS_H * 0.44 },
       rutaReposo: null,
       ruta: null,            // ruta cruda mientras se arrastra
       arrastrando: false,
