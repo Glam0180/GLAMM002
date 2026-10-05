@@ -916,19 +916,45 @@
       }));
     }
 
-    // El resto se trae por lotes. Lanzar las 575 peticiones de golpe satura
-    // la conexion y retrasa justo los frames que hacen falta primero.
-    const LOTE = 4;
+    // Descarga del resto. Antes iba por lotes con barrera: cada lote de 4
+    // esperaba a que terminaran LOS CUATRO antes de pedir el siguiente,
+    // asi que un solo frame lento paraba esa capa entera y la conexion se
+    // quedaba a medio gas. Ahora es una cola con obreros: cada uno coge
+    // el siguiente pendiente en cuanto acaba, sin esperar a nadie.
+    const OBREROS = 10;
+
+    // Orden de la cola, por lo pronto que hace falta cada capa:
+    // BG1 se ve desde el primer momento y ademas necesita frames
+    // seguidos para que su loop no tartamudee, asi que va entera
+    // primero. UNO y VARIAS hacen falta en cuanto se scrollea. BG2 solo
+    // se ve con el scroll ya empezado, asi que va al final.
+    function colaDeDescarga() {
+      const porNombre = (n) => SEQS.find((x) => x.prefix === n);
+      const cola = [];
+      const meter = (s) => { for (let i = 1; i < s.count; i++) cola.push({ s, i }); };
+      meter(porNombre('BG1'));
+      const uno = porNombre('UNO'), varias = porNombre('FLORES');
+      const maxUV = Math.max(uno.count, varias.count);
+      for (let i = 1; i < maxUV; i++) {           // intercaladas: van sincronizadas
+        if (i < uno.count) cola.push({ s: uno, i });
+        if (i < varias.count) cola.push({ s: varias, i });
+      }
+      meter(porNombre('BG2'));
+      return cola;
+    }
+
     function loadRest() {
-      return Promise.all(SEQS.map(async (s) => {
-        for (let i = 1; i < s.count; i += LOTE) {
-          await Promise.all(
-            Array.from({ length: Math.min(LOTE, s.count - i) }, (_, k) =>
-              loadImage(frameUrl(s, i + k)).then((img) => { s.arr[i + k] = img; bump(); })
-            )
-          );
+      const cola = colaDeDescarga();
+      let siguiente = 0;
+      async function obrero() {
+        while (siguiente < cola.length) {
+          const { s, i } = cola[siguiente++];
+          const img = await loadImage(frameUrl(s, i));
+          s.arr[i] = img;
+          bump();
         }
-      }));
+      }
+      return Promise.all(Array.from({ length: OBREROS }, obrero));
     }
 
     // Devuelven si llegaron a pintar. Con la carga progresiva puede pedirse
@@ -1295,14 +1321,33 @@
       return true;
     }
 
-    let lastBg1Idx = -1, lastBg2Idx = -1, lastUnoIdx = -1, lastVariasIdx = -1;
+    let lastBg1Idx = -1, lastBg2Idx = -1;
+    // VARIAS se memoriza por IMAGEN y no por indice: con el frame mas
+    // cercano, dos indices distintos pueden resolver a la misma imagen.
+    let lastVariasImg = null;
 
     // El indice solo se da por pintado si drawX lo consiguio. Si el frame
     // aun no ha bajado, se reintenta en el siguiente tick en vez de quedar
     // marcado como hecho y no volver a dibujarse nunca.
     function renderBg1(idx) {
       if (idx === lastBg1Idx) return;
-      if (drawFull(bg1Ctx, bg1Frames[idx])) lastBg1Idx = idx;
+      if (drawFull(bg1Ctx, frameCercano(bg1Frames, idx, BG1_COUNT))) lastBg1Idx = idx;
+    }
+
+    // Si el frame pedido aun no ha bajado, se usa el mas cercano que si
+    // este. Antes no se pintaba nada: la capa se quedaba congelada en su
+    // ultimo frame bueno y, en el caso de UNO, ni siquiera se recolocaba
+    // en la punta del tallo, asi que parecia que se habia roto. Ahora la
+    // animacion responde desde el primer momento, basta al principio y
+    // mas fina segun entran frames.
+    function frameCercano(arr, idx, total) {
+      const vale = (i) => { const im = arr[i]; return im && im.complete && im.naturalWidth; };
+      if (vale(idx)) return arr[idx];
+      for (let d = 1; d < total; d++) {
+        if (idx - d >= 0 && vale(idx - d)) return arr[idx - d];
+        if (idx + d < total && vale(idx + d)) return arr[idx + d];
+      }
+      return null;
     }
 
     // Solo UNO y VARIAS siguen al scroll. Comparten indice directamente
@@ -1313,8 +1358,9 @@
     // no cambie, su POSICION si lo hace al moverse la punta del tallo,
     // asi que hay que repintarla siempre. Es un solo drawImage.
     function renderScrollLayers(idx, punta, angulo) {
-      drawUno(unoCtx, unoFrames[idx], punta, angulo);
-      if (idx !== lastVariasIdx && drawFull(variasCtx, variasFrames[idx])) lastVariasIdx = idx;
+      drawUno(unoCtx, frameCercano(unoFrames, idx, UNO_COUNT), punta, angulo);
+      const v = frameCercano(variasFrames, idx, VARIAS_COUNT);
+      if (v !== lastVariasImg && drawFull(variasCtx, v)) lastVariasImg = v;
     }
 
     // BG2 corre por tiempo, no con el scroll: el scroll solo gobierna su
@@ -1326,10 +1372,6 @@
 
     // ─────────── ESTADO: mouse (BG1) y scroll (BG2+UNO+VARIAS) ───────────
     const PLAYBACK_FPS = 24;           // velocidad de BG1 y BG2
-    // Frames de BG1 que deben estar listos antes de arrancar el loop. Un
-    // segundo de animacion: suficiente para que no tartamudee y poco
-    // para que arranque enseguida.
-    const BG1_COLCHON = 24;
     const STILL_MS = 380;              // quietud sostenida antes de congelar
 
     // ── Scroll animation ──────────────────────────────────────────────
@@ -1355,7 +1397,6 @@
     let lastMouseMoveAt = 0;
     let lastScrollAt = 0;
     let bg1FrameFloat = 0;
-    let bg1Listos = 1;          // frames de BG1 descargados de forma seguida
     let scrollTarget = 0;      // 0..1, lo que fija el gesto
     let scrollProgress = 0;    // 0..1, lo que se dibuja, persigue al objetivo
     let bg2FrameFloat = 0;     // BG2 corre por tiempo, no por scroll
@@ -1482,20 +1523,14 @@
       const moving = isMouseMoving();
       const scrolling = isScrolling();
 
-      // BG1: siempre hacia adelante, nunca en reversa.
-      // Esperar frame a frame (lo anterior) hacia que al arrancar fuera a
-      // tirones, porque el fondo pide 24 frames por segundo y la descarga
-      // no da para tanto. Ahora se espera a tener un COLCHON y luego se
-      // cicla sobre lo ya descargado. El ciclo solo crece, asi que el
-      // indice nunca retrocede: empieza siendo un loop corto pero fluido
-      // y se va alargando segun entran frames.
-      while (bg1Listos < BG1_COUNT) {
-        const im = bg1Frames[bg1Listos];
-        if (im && im.complete && im.naturalWidth) bg1Listos++; else break;
-      }
-      if (bg1Listos >= BG1_COLCHON) {
-        bg1FrameFloat = (bg1FrameFloat + dt * PLAYBACK_FPS) % bg1Listos;
-      }
+      // BG1: recorre SIEMPRE el ciclo completo, a su velocidad y hacia
+      // adelante. Si un frame aun no ha bajado, renderBg1 usa el mas
+      // cercano que si este. Antes se ciclaba solo sobre los frames ya
+      // descargados y al arrancar eso era un loop cortisimo repitiendose:
+      // el bucle raro que se veia. Ahora el recorrido es el bueno desde
+      // el principio; lo que mejora con la descarga es el detalle, no el
+      // ritmo.
+      bg1FrameFloat = (bg1FrameFloat + dt * PLAYBACK_FPS) % BG1_COUNT;
       renderBg1(Math.floor(bg1FrameFloat));
 
       // Mano izquierda: el valor del pinch ES la posicion de la
