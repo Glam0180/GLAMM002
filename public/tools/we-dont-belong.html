@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <title>STUDIO GLAM — WE DON'T BELONG</title>
+  <script>
+    // ?grabar → modo grabación (se marca antes de pintar, sin parpadeo)
+    if (/[?&]grabar\b/.test(location.search)) document.documentElement.classList.add('grabar');
+  </script>
   <style>
     /* Space Mono — mismo design system que CANICAS.3D */
 
@@ -609,6 +613,23 @@
     #outCanvas { z-index: 2; pointer-events: none; }
     #handsCanvas { z-index: 5; pointer-events: none; }
     .daisy-loading { z-index: 6; }
+    /* ── MODO GRABACIÓN (?grabar) ──
+       Solo el póster, centrado y lo más grande posible en 4:5, sobre
+       negro. Sin barras, paneles ni fondo de puntos: pensado para OBS. */
+    html.grabar, html.grabar body { border: 0; background: #000; overflow: hidden; }
+    html.grabar body::before, html.grabar body::after { display: none; }
+    html.grabar #master-bar, html.grabar #sidebar, html.grabar .win__bar,
+    html.grabar #infoPanel, html.grabar #infoBubble { display: none !important; }
+    html.grabar #wdbCanvas {
+      position: fixed;
+      z-index: 100;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      height: min(100vh, 125vw);
+      width: min(80vh, 100vw);
+      aspect-ratio: auto;
+    }
     @media (max-width: 768px) {
       /* el arte es 1080×1350 (4:5), no la proporción de Daisy */
       .daisy-canvas { aspect-ratio: 1080 / 1350; }
