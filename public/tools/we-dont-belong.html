@@ -589,14 +589,7 @@
     /* We Don't Belong: video de fondo + nave + ovejas con física. */
     /* isolation: la exclusión de la estela solo mezcla con lo que hay
        dentro del lienzo (video + ovejas), no con el resto de la página */
-    #wdbCanvas {
-      isolation: isolate;
-      cursor: crosshair;
-      /* capa de ajuste de tono: afecta a todo el póster (video, ovejas,
-         estela y nave). El valor lo fija el JS según las abducidas. */
-      filter: hue-rotate(var(--wdb-hue, 0deg));
-      transition: filter .9s ease;
-    }
+    #wdbCanvas { cursor: crosshair; }
     .wdb-contador {
       display: flex;
       justify-content: space-between;
@@ -608,10 +601,12 @@
     .wdb-contador b { font-weight: 700; }
     #wdbCanvas.over { cursor: grab; }
     #wdbCanvas.grab { cursor: grabbing; }
-    #bgVideo { z-index: 1; }
-    #mainCanvas { z-index: 2; pointer-events: none; }
-    #beamCanvas { z-index: 3; pointer-events: none; mix-blend-mode: exclusion; }
-    #shipCanvas { z-index: 4; pointer-events: none; }
+    /* Las capas se componen en JS y salen ya mezcladas y con el tono
+       aplicado en #outCanvas. El video y las capas de trabajo no se ven:
+       el video sigue en el DOM (transparente) para que decodifique. */
+    #bgVideo { z-index: 0; opacity: 0; pointer-events: none; }
+    #mainCanvas, #beamCanvas, #shipCanvas, #compCanvas { display: none; }
+    #outCanvas { z-index: 2; pointer-events: none; }
     #handsCanvas { z-index: 5; pointer-events: none; }
     .daisy-loading { z-index: 6; }
     @media (max-width: 768px) {
@@ -672,6 +667,10 @@
               <canvas id="beamCanvas" width="1080" height="1350"></canvas>
               <!-- Nave: sigue al cursor, encima de todo. -->
               <canvas id="shipCanvas" width="1080" height="1350"></canvas>
+              <!-- Composición (video + ovejas + estela en exclusión + nave). -->
+              <canvas id="compCanvas" width="1080" height="1350"></canvas>
+              <!-- Salida visible: la composición con la capa de Tono (WebGL). -->
+              <canvas id="outCanvas" width="1080" height="1350"></canvas>
               <!-- Indicadores de las manos encima del lienzo. -->
               <canvas id="handsCanvas" width="1080" height="1350"></canvas>
               <div class="daisy-loading" id="wdbLoading">CARGANDO ASSETS…</div>
@@ -756,11 +755,14 @@
     //  WE DON'T BELONG — mismo sistema que DAISY (ventanas, sidebar,
     //  medidores, manos con MediaPipe, panel de ayuda).
     //
-    //  #bgVideo (z=1)     → video del póster en loop
-    //  #mainCanvas (z=2)  → 30 ovejas con física (Matter.js)
-    //  #beamCanvas (z=3)  → estela #FD030B, mix-blend-mode: exclusion
-    //  #shipCanvas (z=4)  → la nave, que sigue al cursor
-    //  #handsCanvas (z=5) → indicadores de las manos
+    //  Capas (de abajo a arriba), compuestas en #compCanvas:
+    //    video del póster en loop
+    //    ovejas con física (Matter.js)           → #mainCanvas
+    //    estela #FD030B en modo EXCLUSIÓN        → #beamCanvas
+    //    la nave, que sigue al cursor            → #shipCanvas
+    //  Capa de ajuste Tono (como Tono/Saturación de Photoshop), en WebGL
+    //  sobre toda la composición                 → #outCanvas
+    //  #handsCanvas → indicadores de las manos (sin tono)
     //
     //  Mover: la nave sigue al puntero y se inclina según la velocidad.
     //  Click sostenido: la estela se abre y succiona las ovejas que toca.
@@ -1079,8 +1081,8 @@
       return t;
     }
     function aplicarTono() {
-      const t = tonoPara(abducidas);
-      canvasEl.style.setProperty('--wdb-hue', t + 'deg');
+      const t = window.__tonoFijo ?? tonoPara(abducidas);
+      tono.objetivo = t;
       $('tonoActual').textContent = t + '°';
       $('abducidas').textContent = abducidas + ' / ' + REINICIO;
     }
@@ -1320,11 +1322,140 @@
       shipCtx.restore();
     }
 
-    function renderScene() {
-      if (!naveImg) return;
-      dibujarOvejas();
-      dibujarEstela();   // encima de video + ovejas, en exclusión
-      dibujarNave();     // la nave va sobre todo
+    // ─────────── COMPOSICIÓN + CAPA DE AJUSTE DE TONO ───────────
+    const compEl = $('compCanvas');
+    const compCtx = compEl.getContext('2d');
+    compEl.width = CANVAS_W;
+    compEl.height = CANVAS_H;
+    const videoEl = $('bgVideo');
+    let posterImg = null;
+    cargarImg('/tools/wdb-media/poster.webp').then((im) => { posterImg = im; }).catch(() => {});
+
+    function componer() {
+      compCtx.globalCompositeOperation = 'source-over';
+      if (videoEl.readyState >= 2) compCtx.drawImage(videoEl, 0, 0, CANVAS_W, CANVAS_H);
+      else if (posterImg) compCtx.drawImage(posterImg, 0, 0, CANVAS_W, CANVAS_H);
+      else { compCtx.fillStyle = '#000'; compCtx.fillRect(0, 0, CANVAS_W, CANVAS_H); }
+      compCtx.drawImage($('mainCanvas'), 0, 0);
+      // la estela afecta a todo lo que tiene debajo (video + ovejas)
+      compCtx.globalCompositeOperation = 'exclusion';
+      compCtx.drawImage($('beamCanvas'), 0, 0);
+      compCtx.globalCompositeOperation = 'source-over';
+      compCtx.drawImage($('shipCanvas'), 0, 0);
+    }
+
+    // Tono como en Photoshop: se pasa cada píxel a HSL, se gira el
+    // matiz los grados indicados y se vuelve a RGB, sin tocar saturación
+    // ni luminosidad. (El hue-rotate de CSS es una aproximación con
+    // matriz y por eso daba rosados/verdes en vez de rojo/azul.)
+    const tono = { actual: 0, objetivo: 0 };
+    // Para revisar un tono sin jugar: we-dont-belong.html?tono=-180
+    try {
+      const q = new URLSearchParams(location.search).get('tono');
+      if (q !== null && !isNaN(+q)) { tono.actual = tono.objetivo = +q; window.__tonoFijo = +q; }
+    } catch (e) { /* sin acceso a la URL */ }
+    const outEl = $('outCanvas');
+    outEl.width = CANVAS_W;
+    outEl.height = CANVAS_H;
+    const gl = outEl.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: false });
+    let glProg = null, glTex = null, uHue = null;
+
+    function crearGL() {
+      if (!gl) return false;
+      const vs = `attribute vec2 p; varying vec2 uv;
+        void main() { uv = vec2(p.x * .5 + .5, .5 - p.y * .5); gl_Position = vec4(p, 0., 1.); }`;
+      const fs = `precision mediump float; varying vec2 uv; uniform sampler2D t; uniform float hue;
+        vec3 rgb2hsl(vec3 c) {
+          float mx = max(max(c.r, c.g), c.b), mn = min(min(c.r, c.g), c.b);
+          float l = (mx + mn) * .5, h = 0., s = 0., d = mx - mn;
+          if (d > 1e-5) {
+            s = l > .5 ? d / (2. - mx - mn) : d / (mx + mn);
+            if (mx == c.r) h = (c.g - c.b) / d + (c.g < c.b ? 6. : 0.);
+            else if (mx == c.g) h = (c.b - c.r) / d + 2.;
+            else h = (c.r - c.g) / d + 4.;
+            h /= 6.;
+          }
+          return vec3(h, s, l);
+        }
+        float h2c(float p, float q, float t) {
+          t = fract(t);
+          if (t < 1. / 6.) return p + (q - p) * 6. * t;
+          if (t < .5) return q;
+          if (t < 2. / 3.) return p + (q - p) * (2. / 3. - t) * 6.;
+          return p;
+        }
+        vec3 hsl2rgb(vec3 c) {
+          if (c.y < 1e-5) return vec3(c.z);
+          float q = c.z < .5 ? c.z * (1. + c.y) : c.z + c.y - c.z * c.y;
+          float p = 2. * c.z - q;
+          return vec3(h2c(p, q, c.x + 1. / 3.), h2c(p, q, c.x), h2c(p, q, c.x - 1. / 3.));
+        }
+        void main() {
+          vec4 c = texture2D(t, uv);
+          vec3 h = rgb2hsl(c.rgb);
+          h.x = fract(h.x + hue / 360.);
+          gl_FragColor = vec4(hsl2rgb(h), 1.);
+        }`;
+      const mk = (tipo, src) => {
+        const sh = gl.createShader(tipo);
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+        return sh;
+      };
+      glProg = gl.createProgram();
+      gl.attachShader(glProg, mk(gl.VERTEX_SHADER, vs));
+      gl.attachShader(glProg, mk(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(glProg);
+      gl.useProgram(glProg);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(glProg, 'p');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      glTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, glTex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      uHue = gl.getUniformLocation(glProg, 'hue');
+      gl.viewport(0, 0, CANVAS_W, CANVAS_H);
+      return true;
+    }
+    let glOk = false;
+    try { glOk = crearGL(); } catch (e) { console.error(e); glOk = false; } // eslint-disable-line no-console
+    // Sin WebGL: se muestra la composición directa y el tono se aproxima
+    // con el filtro de CSS.
+    if (!glOk) {
+      outEl.style.display = 'none';
+      compEl.style.display = 'block';
+      compEl.style.zIndex = '2';
+    }
+
+    function pintarSalida(dt) {
+      // el tono cambia en ~0,9 s
+      tono.actual += (tono.objetivo - tono.actual) * Math.min(1, dt * 5);
+      if (Math.abs(tono.objetivo - tono.actual) < 0.05) tono.actual = tono.objetivo;
+      if (!glOk) {
+        compEl.style.filter = tono.actual ? `hue-rotate(${tono.actual}deg)` : '';
+        return;
+      }
+      gl.bindTexture(gl.TEXTURE_2D, glTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, compEl);
+      gl.uniform1f(uHue, tono.actual);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    function renderScene(dt) {
+      if (naveImg) {
+        dibujarOvejas();
+        dibujarEstela();   // encima de video + ovejas, en exclusión
+        dibujarNave();     // la nave va sobre todo
+      }
+      componer();
+      pintarSalida(dt);
     }
 
     // Paso de física fijo (60 Hz) para que no dependa de los fps.
@@ -1358,7 +1489,7 @@
       updateMeters(dt);
       moverNave(dt);
       if (naveImg) pasoFisica(dt);
-      renderScene();
+      renderScene(dt);
     }
 
     // ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ───────────
