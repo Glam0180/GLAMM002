@@ -89,6 +89,18 @@ export const TOOLS = [
     index: '007',
     // Sin thumbnail todavía a propósito: se muestra el placeholder del sistema.
   },
+  {
+    id: 'we-dont-belong',
+    slug: 'we-dont-belong',
+    name: "We Don't Belong",
+    description: 'Próximamente. Lienzo listo, esperando su contenido.',
+    category: 'experimental',
+    status: 'wip',
+    tech: ['TBD'],
+    path: '/tools/we-dont-belong',
+    index: '008',
+    // Sin thumbnail todavía: se muestra el placeholder del sistema.
+  },
 ]
 
 export const TOOL_STATUS = {

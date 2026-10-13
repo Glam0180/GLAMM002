@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <title>STUDIO GLAM — WE DON'T BELONG</title>
+  <style>
+    /* Space Mono — mismo design system que CANICAS.3D */
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+    }
+
+    :root {
+      --red: #FF0100;
+      --red-dark: #CC0000;
+      --red-dim: rgba(255, 1, 0, 0.55);
+      --red-faint: rgba(255, 1, 0, 0.18);
+      --red-ghost: rgba(255, 1, 0, 0.10);
+      --black: #000000;
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--black);
+      font-family: 'Space Mono', monospace;
+      border: 1px solid var(--red);
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255, 1, 0, 0.55) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 128px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .2;
+      mix-blend-mode: overlay;
+    }
+
+    ::selection {
+      background: var(--black);
+      color: var(--red);
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--red); }
+    ::-webkit-scrollbar-thumb { background: var(--black); }
+
+    /* ───────── MASTER BAR ───────── */
+    #master-bar {
+      position: fixed;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      height: 28px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    #master-bar .slz {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+    }
+
+    #master-bar .dot5 {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .mhouse {
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #master-bar .mtitle {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--black);
+      text-transform: uppercase;
+    }
+
+    #master-bar .msep {
+      color: rgba(0, 0, 0, .3);
+      font-size: 9px;
+    }
+
+    #master-bar .msub {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .55);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #master-bar .mright {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mctrl {
+      width: 20px;
+      height: 16px;
+      background: var(--black);
+      border: 1px solid rgba(255, 1, 0, .25);
+      color: var(--red);
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mctrl:hover { background: var(--red-dark); }
+    .mctrl--close:hover { background: var(--red-dark); }
+
+    /* ───────── STAGE / FRAME ───────── */
+    #stage {
+      position: fixed;
+      top: 32px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    /* En fila, como canicas-3d: viewport a la izquierda y sidebar a la
+       derecha. El ancho/alto exactos los fija fitStage() para que el
+       canvas llene su ventana sin dejar franjas negras. */
+    #frame {
+      width: min(calc(100vw - 72px), 1180px);
+      height: min(calc(100vh - 72px), 900px);
+      background: var(--black);
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      gap: 5px;
+      position: relative;
+    }
+
+    /* Ventana del viewport: su ancho lo fija fitStage a partir del canvas,
+       asi que el canvas la llena de borde a borde. */
+    #viewport {
+      flex: none;
+      min-width: 0;
+    }
+
+    /* La barra de titulo lleva un border-bottom negro de 2px. Sobre el
+       panel negro del sidebar no se nota, pero aqui cae justo entre la
+       barra y la ilustracion y se lee como una linea negra separandolas.
+       Se quita solo en el viewport. */
+    #viewport .win__bar {
+      border-bottom: 0;
+    }
+
+    #sidebar {
+      width: 210px;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: 0;
+    }
+    #sidebar > .win { flex: 1; min-height: 0; }
+
+    /* ───────── COMPONENTE VENTANA ───────── */
+    .win {
+      background: var(--black);
+      border: 2px solid var(--red);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .win__bar {
+      height: 22px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .win__bar .slz {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+    }
+
+    .win__bar-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .win__bar-title {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--black);
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win__bar-sub {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, .5);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .win__bar-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .win__ctrl {
+      width: 16px;
+      height: 13px;
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 7px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .win__ctrl:hover {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    /* ───────── COMPOSICIÓN DAISY (canvas 1080×1350 + panel) ───────── */
+    .daisy-main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Zona donde vive el canvas 1080×1350 — se centra y se ajusta por JS
+       (fitStage) manteniendo siempre la proporción 4:5, sin deformarse. */
+    .daisy-canvas-wrap {
+      flex: 1;
+      display: block;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    /* La ilustracion va a ras de la ventana: pegada a la barra de titulo
+       arriba y al borde de .win por los otros tres lados. El unico trazo
+       visible es el de la propia ventana.
+       Ocupa el hueco ENTERO en vez de ser una caja de tamano fijo
+       centrada dentro de el: al centrarla, cualquier sobrante de
+       redondeo se repartia mitad arriba y mitad abajo y aparecia como un
+       hueco sobre la ilustracion. Quien mantiene la proporcion 4:5 es
+       fitStage, dimensionando la ventana; el canvas solo la rellena. */
+    .daisy-canvas {
+      position: relative;
+      background: #000;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    .daisy-canvas video,
+    .daisy-canvas canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Orden de capas (de abajo hacia arriba):
+       1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
+       2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
+       3) #variasCanvas → varias flores con alfa, SIEMPRE visible
+       4) #stemCanvas   → el tallo, se dibuja y se arrastra
+       5) #unoCanvas    → la flor grande, anclada por su CENTRO a la
+                          punta del tallo, asi que se mueve con el.
+                          Tallo y flor van por ENCIMA del resto del arte
+       6) #handsCanvas  → esqueleto de las manos y medidor del pinch
+
+       UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
+       secuencia termina su ciclo parando en el frame 0, que es la imagen
+       estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
+    #bg1Canvas    { z-index: 1; }
+    #bg2Canvas    { z-index: 2; opacity: 0; }
+    #variasCanvas { z-index: 3; }
+    #stemCanvas   { z-index: 4; }
+    #unoCanvas    { z-index: 5; }
+    /* UI de las manos: va encima de todo y no intercepta el raton */
+    #handsCanvas  { z-index: 6; pointer-events: none; }
+
+    .daisy-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--black);
+      color: var(--red-dim);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 20px;
+      transition: opacity .4s ease;
+    }
+
+    /* ───────── PANEL DE CONTROL LATERAL ───────── */
+    /* Ya no es una columna dentro del viewport: ahora es el cuerpo de su
+       propia ventana en el sidebar, asi que ni ancho fijo ni borde
+       izquierdo separandola del canvas. */
+    .daisy-panel {
+      flex: 1;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .daisy-btn {
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 10px 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .daisy-btn:hover:not(:disabled) {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    .daisy-btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .daisy-status {
+      font-size: 9px;
+      line-height: 1.5;
+      letter-spacing: .03em;
+      color: var(--red-dim);
+    }
+
+    .daisy-meter-label {
+      font-size: 8px;
+      letter-spacing: .1em;
+      color: var(--red-dim);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .daisy-meter-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 1, 0, .12);
+      border: 1px solid var(--red-faint);
+    }
+
+    .daisy-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--red);
+      transition: width .08s linear;
+    }
+
+    /* ───────── CAMARA (control por manos) ───────── */
+    .cam-wrap { display: flex; flex-direction: column; gap: 7px; }
+    .cam-btn {
+      font-size: 8px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--red); background: #000; border: 1px solid var(--red);
+      padding: 5px 6px; cursor: pointer;
+    }
+    .cam-btn:hover, .cam-btn.on { background: var(--red); color: #000; }
+    .cam-box {
+      display: none; position: relative; width: 100%; aspect-ratio: 4 / 3;
+      border: 1px solid var(--red-faint); overflow: hidden; background: #000;
+    }
+    .cam-box video, .cam-box canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      /* espejo: mover la mano a la derecha lleva la flor a la derecha.
+         El overlay lleva el mismo espejo que el video, asi se dibuja con
+         las coordenadas del detector sin invertirlas a mano. */
+      transform: scaleX(-1); display: block;
+    }
+    .cam-ayuda {
+      font-size: 7px; line-height: 1.7; letter-spacing: .06em;
+      color: var(--red-dim); text-transform: uppercase;
+    }
+
+
+
+    /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
+    @media (max-width: 768px) {
+      html, body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      #stage {
+        position: relative;
+        top: 32px;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        height: auto;
+        min-height: calc(100vh - 32px);
+        padding: 10px;
+      }
+
+      #frame {
+        width: 100%;
+        height: auto;
+        min-height: calc(100vh - 52px);
+        padding: 10px;
+        flex-direction: column;
+      }
+
+      /* en mobile el viewport y el sidebar se apilan a ancho completo */
+      #viewport, #sidebar { width: 100% !important; flex: none; }
+
+      .daisy-main {
+        flex-direction: column;
+        overflow: visible;
+      }
+
+      .daisy-canvas-wrap {
+        flex: none;
+        padding: 0;
+      }
+
+      /* En desktop el alto sale de height:100% sobre un hueco que
+         fitStage ya dimensiono. Aqui fitStage no corre y el padre no
+         tiene alto propio en la pila vertical (colapsaba a 0), asi que
+         se fija por ancho y el aspect-ratio 4:5 deriva el alto. */
+      .daisy-canvas {
+        width: 100%;
+        height: auto;
+        /* proporcion del arte YA recortado (SRC_H - ART_CROP_TOP) */
+        aspect-ratio: 810 / 995;
+      }
+
+      .daisy-panel {
+        width: 100%;
+      }
+
+    }
+    /* ───────── INFO PANEL (arrastrable, minimizable, cerrable) ─────────
+       Vive fuera de #daisyCanvas: su área de arrastre está acotada a
+       .win pero SIN poder entrar nunca al rectángulo del canvas. */
+    .ip {
+      position: absolute;
+      top: 30px;
+      left: 10px;
+      width: min(240px, calc(100% - 16px));
+      background: #000;
+      border: 2px solid var(--red);
+      z-index: 40;
+      box-shadow: 0 6px 18px rgba(0,0,0,.5);
+      user-select: none;
+    }
+
+    .ip__bar {
+      height: 20px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      cursor: grab;
+      touch-action: none;
+    }
+    .ip__bar:active { cursor: grabbing; }
+
+    .ip__slz { font-size: 8px; font-weight: 700; color: rgba(0,0,0,.5); }
+    .ip__dot { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
+    .ip__title {
+      font-size: 9px; font-weight: 700; letter-spacing: .1em;
+      color: var(--black); text-transform: lowercase;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ip__ctrls { display: flex; gap: 4px; margin-left: auto; }
+    .ip__ctrl {
+      width: 15px; height: 13px; background: var(--black);
+      border: 1px solid rgba(255,1,0,.4); color: var(--red);
+      font-size: 8px; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; cursor: pointer;
+    }
+    .ip__ctrl:hover { background: var(--red); color: var(--black); }
+
+    .ip__body { padding: 9px 11px 11px; max-height: 220px; overflow-y: auto; }
+    .ip__desc {
+      font-size: 9px; line-height: 1.5; letter-spacing: .04em;
+      color: var(--red); text-transform: lowercase; margin-bottom: 7px;
+    }
+    .ip__steps { list-style: none; counter-reset: ip-step; display: flex; flex-direction: column; gap: 5px; }
+    .ip__steps li {
+      counter-increment: ip-step; font-size: 8px; line-height: 1.5;
+      letter-spacing: .04em; color: var(--red-dim); text-transform: lowercase;
+      display: flex; gap: 6px;
+    }
+    .ip__steps li::before { content: counter(ip-step) "."; color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+    /* Burbuja unificada: tanto minimizar como cerrar colapsan aquí */
+    .ip-bubble {
+      position: absolute; width: 26px; height: 26px;
+      background: #000; border: 2px solid var(--red); color: var(--red);
+      font-size: 13px; font-weight: 700; cursor: pointer; z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,.5);
+    }
+    .ip-bubble:hover { background: var(--red); color: var(--black); }
+
+    @media (max-width: 640px) {
+      .ip { width: min(72vw, 210px); }
+      .ip__body { max-height: 160px; }
+    }
+  </style>
+  <style>
+    /* We Don't Belong: lienzo vacío a la espera del contenido. */
+    .wdb-empty {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      pointer-events: none;
+      color: var(--red-dim);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .wdb-empty__code { color: var(--red); font-weight: 700; }
+    .wdb-empty__dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 6px;
+      background: var(--red);
+      animation: wdbBlink 1.1s steps(2, start) infinite;
+    }
+    @keyframes wdbBlink { to { visibility: hidden; } }
+  </style>
+</head>
+
+<body>
+
+  <!-- Barra madre fija superior -->
+  <div id="master-bar">
+    <span class="slz">///</span>
+    <div class="dot5"></div>
+    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button" aria-label="Volver al inicio" title="Volver al inicio">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+    <span class="mtitle">STUDIO GLAM</span>
+    <span class="msep">—</span>
+    <span class="msub">WE DON'T BELONG</span>
+    <div class="mright">
+      <div class="mctrl">—</div>
+      <div class="mctrl">□</div>
+      <div class="mctrl mctrl--close" id="mclose" role="button" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</div>
+    </div>
+    <span class="slz">///</span>
+  </div>
+
+  <!-- Stage centrado -->
+  <div id="stage">
+    <div id="frame">
+      <div class="win" id="viewport">
+        <div class="win__bar">
+          <span class="slz">///</span>
+          <div class="win__bar-dot"></div>
+          <span class="win__bar-title">VIEWPORT.WE_DONT_BELONG</span>
+          <span class="win__bar-sub">— MOUSE + SCROLL</span>
+          <div class="win__bar-controls">
+            <div class="win__ctrl">—</div>
+            <div class="win__ctrl">□</div>
+            <div class="win__ctrl" id="wclose" role="button" aria-label="Cerrar" title="Cerrar">✕</div>
+          </div>
+        </div>
+
+        <!-- Mismas clases que Daisy para heredar el layout exacto. -->
+        <div class="daisy-main">
+          <div class="daisy-canvas-wrap">
+            <div class="daisy-canvas" id="wdbCanvas">
+              <!-- Lienzo principal: vacío, aquí entra el contenido. -->
+              <canvas id="mainCanvas" width="810" height="995"></canvas>
+              <!-- Indicadores de las manos encima del lienzo. -->
+              <canvas id="handsCanvas" width="810" height="995"></canvas>
+              <div class="wdb-empty" id="wdbEmpty">
+                <span class="wdb-empty__code">C:\TOOLS\WE_DONT_BELONG.EXE</span>
+                <span><span class="wdb-empty__dot"></span>esperando contenido…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sidebar: ventana de estado al lado del viewport, igual que Daisy. -->
+      <div id="sidebar">
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">ESTADO</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">—</div>
+              <div class="win__ctrl">□</div>
+            </div>
+          </div>
+
+          <div class="daisy-panel">
+            <div class="daisy-status" id="wdbStatus">mueve el mouse sobre el lienzo, o haz scroll con la ruedita.</div>
+
+            <div>
+              <div class="daisy-meter-label"><span>MOUSE</span><span id="movePct">0%</span></div>
+              <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="moveFill"></div></div>
+            </div>
+            <div>
+              <div class="daisy-meter-label"><span>SCROLL</span><span id="scrollPct">0%</span></div>
+              <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="scrollFill"></div></div>
+            </div>
+
+            <div class="cam-wrap">
+              <button type="button" class="cam-btn" id="camBtn">MANOS</button>
+              <div class="cam-box" id="camBox">
+                <video id="camVid" autoplay playsinline muted></video>
+                <canvas id="camOverlay"></canvas>
+              </div>
+              <div class="cam-ayuda">
+                derecha: pellizca para interactuar<br>
+                izquierda: cierra para avanzar, abre para retroceder
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel de instrucciones flotante, fuera de la ventana. -->
+    <div class="ip" id="infoPanel">
+      <div class="ip__bar" id="infoPanelBar">
+        <span class="ip__slz">///</span>
+        <span class="ip__dot"></span>
+        <span class="ip__title">cómo usar — we don't belong</span>
+        <div class="ip__ctrls">
+          <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
+          <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
+        </div>
+      </div>
+      <div class="ip__body" id="infoBody">
+        <p class="ip__desc">herramienta en preparación: el lienzo está listo para recibir el contenido.</p>
+        <ol class="ip__steps">
+          <li>mueve el mouse sobre el lienzo</li>
+          <li>haz scroll con la ruedita para avanzar o retroceder</li>
+          <li>activa MANOS para controlar con la cámara</li>
+          <li>pellizca con la derecha para interactuar</li>
+          <li>cierra o abre la izquierda para avanzar o retroceder</li>
+        </ol>
+      </div>
+    </div>
+    <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
+  </div>
+
+  <script type="module">
+    // ═══════════════════════════════════════════════════════════
+    //  WE DON'T BELONG — mismo sistema que DAISY (ventanas, sidebar,
+    //  medidores, manos con MediaPipe, panel de ayuda), con el lienzo
+    //  vacío. Para cargar el contenido, dibuja en `mainCtx` dentro de
+    //  `renderScene()` usando `estado` (mouse, scroll, manos).
+    // ═══════════════════════════════════════════════════════════
+
+    const $ = (id) => document.getElementById(id);
+
+    // Casita y cerrar: vuelven siempre al inicio del sitio.
+    function goHome() {
+      try {
+        if (window.top && window.top !== window) {
+          window.top.location.href = '/';
+        } else {
+          window.location.href = '/';
+        }
+      } catch (e) {
+        window.location.href = '/';
+      }
+    }
+    $('mhouse').addEventListener('click', goHome);
+    $('mclose').addEventListener('click', goHome);
+    $('wclose').addEventListener('click', goHome);
+
+    // ─────────── TAMAÑO DEL LIENZO (mismo formato que Daisy) ───────────
+    const CANVAS_W = 810;
+    const CANVAS_H = 995;
+    const frameEl = $('frame');
+    const viewportEl = $('viewport');
+    const sidebarEl = $('sidebar');
+    const winBarEl = document.querySelector('.win__bar');
+
+    function fitStage() {
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      frameEl.style.width = '';
+      frameEl.style.height = '';
+      viewportEl.style.width = '';
+      if (isMobile) return;
+
+      const stageBox = $('stage').getBoundingClientRect();
+      const framePad = 20, winBorder = 2, gap = 5;
+      const sidebarW = sidebarEl.offsetWidth;
+      const chromeW = winBorder * 2;
+      const chromeH = winBarEl.offsetHeight + winBorder * 2;
+
+      const maxCanvasW = stageBox.width  - 8 - framePad * 2 - gap - sidebarW - chromeW;
+      const maxCanvasH = stageBox.height - 8 - framePad * 2 - chromeH;
+      const ratio = CANVAS_W / CANVAS_H;
+
+      let canvasH = maxCanvasH;
+      let canvasW = canvasH * ratio;
+      if (canvasW > maxCanvasW) {
+        canvasW = maxCanvasW;
+        canvasH = canvasW / ratio;
+      }
+      canvasW = Math.max(120, Math.floor(canvasW));
+      canvasH = Math.max(150, Math.floor(canvasH));
+
+      viewportEl.style.width = (canvasW + chromeW) + 'px';
+      frameEl.style.width  = (canvasW + chromeW + gap + sidebarW + framePad * 2) + 'px';
+      frameEl.style.height = (canvasH + chromeH + framePad * 2) + 'px';
+    }
+    window.addEventListener('resize', fitStage);
+    window.addEventListener('load', fitStage);
+
+    ['mainCanvas', 'handsCanvas'].forEach((id) => {
+      const c = $(id);
+      c.width = CANVAS_W;
+      c.height = CANVAS_H;
+    });
+    const mainCtx = $('mainCanvas').getContext('2d');
+    const handsCtx = $('handsCanvas').getContext('2d');
+
+    // ─────────── ESTADO DE INTERACCIÓN ───────────
+    const STILL_MS = 140;
+    const SCROLL_RECORRIDO_PX = 2400;
+
+    const estado = {
+      puntero: null,       // {x, y} en coordenadas del lienzo, o null
+      pulsado: false,      // mouse / dedo / pinch derecho cerrado
+      scroll: 0,           // 0..1, suavizado
+      scrollTarget: 0,     // 0..1, lo que fija el gesto
+      moviendo: false,
+      scrolleando: false,
+    };
+
+    let lastMouseMoveAt = 0;
+    let lastScrollAt = 0;
+
+    function deltaEnPx(e) {
+      if (e.deltaMode === 1) return e.deltaY * 16;
+      if (e.deltaMode === 2) return e.deltaY * 400;
+      return e.deltaY;
+    }
+    function moverScroll(deltaY) {
+      lastScrollAt = performance.now();
+      const t = estado.scrollTarget + deltaY / SCROLL_RECORRIDO_PX;
+      estado.scrollTarget = Math.min(1, Math.max(0, t));
+    }
+
+    const canvasEl = $('wdbCanvas');
+    function aCanvas(clientX, clientY) {
+      const r = canvasEl.getBoundingClientRect();
+      return {
+        x: (clientX - r.left) * (CANVAS_W / r.width),
+        y: (clientY - r.top) * (CANVAS_H / r.height),
+      };
+    }
+
+    canvasEl.addEventListener('mousemove', (e) => {
+      lastMouseMoveAt = performance.now();
+      estado.puntero = aCanvas(e.clientX, e.clientY);
+    });
+    canvasEl.addEventListener('mousedown', () => { estado.pulsado = true; });
+    window.addEventListener('mouseup', () => { estado.pulsado = false; });
+    canvasEl.addEventListener('mouseleave', () => { estado.puntero = null; estado.pulsado = false; });
+
+    let tocandoY = null;
+    canvasEl.addEventListener('touchstart', (e) => {
+      if (!e.touches.length) return;
+      const t = e.touches[0];
+      estado.puntero = aCanvas(t.clientX, t.clientY);
+      estado.pulsado = true;
+      lastMouseMoveAt = performance.now();
+      tocandoY = t.clientY;
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+    canvasEl.addEventListener('touchmove', (e) => {
+      if (!e.touches.length) return;
+      const t = e.touches[0];
+      estado.puntero = aCanvas(t.clientX, t.clientY);
+      lastMouseMoveAt = performance.now();
+      if (tocandoY !== null) {
+        moverScroll(tocandoY - t.clientY);
+        tocandoY = t.clientY;
+      }
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+    function finTocar() { tocandoY = null; estado.pulsado = false; }
+    window.addEventListener('touchend', finTocar);
+    window.addEventListener('touchcancel', finTocar);
+
+    canvasEl.addEventListener('wheel', (e) => {
+      moverScroll(deltaEnPx(e));
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    // ─────────── MEDIDORES DEL SIDEBAR ───────────
+    let moveLevel = 0;
+    function updateMeters(dt) {
+      moveLevel += ((estado.moviendo ? 1 : 0) - moveLevel) * Math.min(1, dt * 6);
+      const m = Math.round(moveLevel * 100);
+      const s = Math.round(estado.scroll * 100);
+      $('movePct').textContent = m + '%';
+      $('moveFill').style.width = m + '%';
+      $('scrollPct').textContent = s + '%';
+      $('scrollFill').style.width = s + '%';
+    }
+
+    // ─────────── ESCENA (vacía) ───────────
+    // Aquí va el contenido de We Don't Belong. Cuando dibujes algo,
+    // llama a ocultarVacio() para quitar el aviso "esperando contenido".
+    function ocultarVacio() { $('wdbEmpty').style.display = 'none'; }
+    window.ocultarVacio = ocultarVacio;
+
+    function renderScene() {
+      mainCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      // Lienzo vacío a propósito.
+    }
+
+    let lastTick = performance.now();
+    function updateScene() {
+      const now = performance.now();
+      const dt = Math.min(0.1, (now - lastTick) / 1000);
+      lastTick = now;
+
+      estado.moviendo = (now - lastMouseMoveAt) < STILL_MS;
+      estado.scrolleando = (now - lastScrollAt) < STILL_MS;
+      if (pinchIzq !== null) estado.scrollTarget = pinchIzq;
+      estado.scroll += (estado.scrollTarget - estado.scroll) * Math.min(1, dt * 8);
+
+      updateMeters(dt);
+      renderScene();
+    }
+
+    // ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ───────────
+    (function setupInfoPanel() {
+      const panel = $('infoPanel');
+      const bar = $('infoPanelBar');
+      const minBtn = $('infoMin');
+      const closeBtn = $('infoClose');
+      const bubble = $('infoBubble');
+      const bounds = $('stage');
+      const exclusionEl = $('frame');
+
+      function defaultPos() {
+        const b = bounds.getBoundingClientRect();
+        const c = exclusionEl.getBoundingClientRect();
+        const ex = { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height };
+        const pw = panel.offsetWidth, ph = panel.offsetHeight;
+        const roomRight = b.width - (ex.x + ex.w);
+        const roomBelow = b.height - (ex.y + ex.h);
+        if (roomRight >= pw + 14) return { x: ex.x + ex.w + 8, y: ex.y + 8 };
+        if (roomBelow >= ph + 14) return { x: 8, y: ex.y + ex.h + 8 };
+        return { x: 8, y: 8 };
+      }
+      function placeAt(pos) { panel.style.left = pos.x + 'px'; panel.style.top = pos.y + 'px'; }
+      function placeBubbleAt(pos) { bubble.style.left = pos.x + 'px'; bubble.style.top = pos.y + 'px'; }
+
+      let userMoved = false;
+      function resetToDefault() { if (!userMoved) placeAt(defaultPos()); }
+
+      let dragging = false, offsetX = 0, offsetY = 0;
+      function getPoint(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
+      function onDown(e) {
+        if (e.target === minBtn || e.target === closeBtn) return;
+        const p = getPoint(e);
+        const rect = panel.getBoundingClientRect();
+        dragging = true;
+        userMoved = true;
+        offsetX = p.clientX - rect.left;
+        offsetY = p.clientY - rect.top;
+      }
+      function onMove(e) {
+        if (!dragging) return;
+        const p = getPoint(e);
+        const b = bounds.getBoundingClientRect();
+        placeAt({ x: p.clientX - b.left - offsetX, y: p.clientY - b.top - offsetY });
+        if (e.cancelable) e.preventDefault();
+      }
+      function onUp() { dragging = false; }
+
+      bar.addEventListener('mousedown', onDown);
+      bar.addEventListener('touchstart', onDown, { passive: true });
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchend', onUp);
+
+      function collapseToBubble() {
+        const rect = panel.getBoundingClientRect();
+        const b = bounds.getBoundingClientRect();
+        placeBubbleAt({ x: rect.left - b.left, y: rect.top - b.top });
+        panel.style.display = 'none';
+        bubble.style.display = 'flex';
+      }
+      minBtn.addEventListener('click', collapseToBubble);
+      closeBtn.addEventListener('click', collapseToBubble);
+      bubble.addEventListener('click', () => {
+        const bRect = bubble.getBoundingClientRect();
+        const bnd = bounds.getBoundingClientRect();
+        placeAt({ x: bRect.left - bnd.left, y: bRect.top - bnd.top });
+        bubble.style.display = 'none';
+        panel.style.display = '';
+      });
+
+      window.addEventListener('resize', resetToDefault);
+      requestAnimationFrame(() => requestAnimationFrame(resetToDefault));
+    })();
+
+    // ─────────── MANOS (MediaPipe, igual que Daisy) ───────────
+    // Derecha: pinch = pulsar (estado.pulsado) y mueve el puntero.
+    // Izquierda: el pinch gobierna estado.scroll (cerrado avanza).
+    const PINCH_CERRADO = 0.025;
+    const PINCH_ABIERTO = 0.30;
+    const MANOS_EN_ESPEJO = true;
+    const MANO_DER_COLOR = '#46ebf0';
+    const MANO_IZQ_COLOR = '#bafd3a';
+    const CAM_LINEA = '#ff1a1a';
+    const AGARRE_CIERRA = 0.06;
+    const AGARRE_ABRE   = 0.11;
+
+    const vid = $('camVid');
+    const camBtn = $('camBtn');
+    const camBox = $('camBox');
+    const camOverlay = $('camOverlay');
+    const camCtx = camOverlay.getContext('2d');
+    let handLandmarker = null;
+    let manosActivas = false, camStream = null, manosRaf = 0, ultimoTs = -1;
+    let pinchIzq = null;
+    let pinchDerCerrado = false;
+
+    function aviso(txt) { $('wdbStatus').textContent = txt; }
+    function manoACanvas(x, y) { return { x: (1 - x) * CANVAS_W, y: y * CANVAS_H }; }
+    function pinchDe(lm) { return Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y); }
+    function cerrazonDe(d) {
+      const t = (d - PINCH_CERRADO) / (PINCH_ABIERTO - PINCH_CERRADO);
+      return 1 - Math.min(1, Math.max(0, t));
+    }
+
+    const HUESOS = [
+      [0,1],[1,2],[2,3],[3,4],
+      [0,5],[5,6],[6,7],[7,8],
+      [5,9],[9,10],[10,11],[11,12],
+      [9,13],[13,14],[14,15],[15,16],
+      [13,17],[17,18],[18,19],[19,20],
+      [0,17],
+    ];
+
+    function pintarCamara(manos) {
+      const cw = camOverlay.width, ch = camOverlay.height;
+      camCtx.clearRect(0, 0, cw, ch);
+      if (!manos.length) return;
+      camCtx.strokeStyle = CAM_LINEA;
+      camCtx.fillStyle = CAM_LINEA;
+      camCtx.lineWidth = 2;
+      for (const lm of manos) {
+        camCtx.beginPath();
+        for (const [a, b] of HUESOS) {
+          camCtx.moveTo(lm[a].x * cw, lm[a].y * ch);
+          camCtx.lineTo(lm[b].x * cw, lm[b].y * ch);
+        }
+        camCtx.stroke();
+        for (let i = 0; i < lm.length; i++) {
+          camCtx.beginPath();
+          camCtx.arc(lm[i].x * cw, lm[i].y * ch, i === 4 || i === 8 ? 4 : 2.2, 0, Math.PI * 2);
+          camCtx.fill();
+        }
+      }
+    }
+
+    function indicador(lm, color, cerrazon) {
+      const a = manoACanvas(lm[4].x, lm[4].y);
+      const b = manoACanvas(lm[8].x, lm[8].y);
+      const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const r = 12 + 30 * (1 - cerrazon);
+      handsCtx.strokeStyle = color;
+      handsCtx.fillStyle = color;
+      for (const p of [a, b]) {
+        handsCtx.beginPath();
+        handsCtx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        handsCtx.fill();
+      }
+      handsCtx.beginPath();
+      handsCtx.arc(m.x, m.y, r, 0, Math.PI * 2);
+      handsCtx.lineWidth = 2.5;
+      handsCtx.stroke();
+      handsCtx.beginPath();
+      handsCtx.moveTo(m.x, m.y);
+      handsCtx.arc(m.x, m.y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * cerrazon);
+      handsCtx.closePath();
+      handsCtx.globalAlpha = 0.3;
+      handsCtx.fill();
+      handsCtx.globalAlpha = 1;
+    }
+
+    function pintarManos(der, izq, cerrDer, cerrIzq) {
+      handsCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      if (izq) indicador(izq, MANO_IZQ_COLOR, cerrIzq);
+      if (der) indicador(der, MANO_DER_COLOR, cerrDer);
+      pintarCamara([izq, der].filter(Boolean));
+    }
+
+    function procesarManos(res) {
+      pinchIzq = null;
+      let der = null, izq = null;
+      const manos = res.landmarks || [];
+      for (let i = 0; i < manos.length; i++) {
+        const etiqueta = res.handedness?.[i]?.[0]?.categoryName || 'Right';
+        const esDerecha = MANOS_EN_ESPEJO ? etiqueta === 'Right' : etiqueta === 'Left';
+        if (esDerecha) der = manos[i]; else izq = manos[i];
+      }
+      if (izq) { pinchIzq = cerrazonDe(pinchDe(izq)); lastScrollAt = performance.now(); }
+
+      pintarManos(der, izq, der ? cerrazonDe(pinchDe(der)) : 0, pinchIzq ?? 0);
+
+      if (!der) {
+        if (pinchDerCerrado) { pinchDerCerrado = false; estado.pulsado = false; }
+        return;
+      }
+      const d = pinchDe(der);
+      estado.puntero = manoACanvas((der[4].x + der[8].x) / 2, (der[4].y + der[8].y) / 2);
+      lastMouseMoveAt = performance.now();
+      if (!pinchDerCerrado && d < AGARRE_CIERRA) {
+        pinchDerCerrado = true;
+        estado.pulsado = true;
+      } else if (pinchDerCerrado && d > AGARRE_ABRE) {
+        pinchDerCerrado = false;
+        estado.pulsado = false;
+      }
+    }
+
+    function bucleManos() {
+      manosRaf = requestAnimationFrame(bucleManos);
+      if (!manosActivas || !handLandmarker || vid.readyState < 2) return;
+      const ts = performance.now();
+      if (ts <= ultimoTs) return;
+      ultimoTs = ts;
+      try { procesarManos(handLandmarker.detectForVideo(vid, ts)); } catch (e) { /* frame suelto */ }
+    }
+
+    async function arrancarManos() {
+      camBtn.disabled = true;
+      camBtn.textContent = 'CARGANDO…';
+      try {
+        if (!handLandmarker) {
+          const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+          const fileset = await vision.FilesetResolver.forVisionTasks(
+            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+          );
+          handLandmarker = await vision.HandLandmarker.createFromOptions(fileset, {
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+              delegate: 'GPU',
+            },
+            runningMode: 'VIDEO',
+            numHands: 2,
+          });
+        }
+        camBtn.textContent = 'PIDIENDO CÁMARA…';
+        camStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 480, height: 360, facingMode: 'user' }, audio: false,
+        });
+        vid.srcObject = camStream;
+        await vid.play();
+        camBox.style.display = 'block';
+        camOverlay.width = camOverlay.clientWidth || 240;
+        camOverlay.height = camOverlay.clientHeight || 180;
+        manosActivas = true;
+        ultimoTs = -1;
+        if (!manosRaf) bucleManos();
+        camBtn.textContent = 'DETENER MANOS';
+        camBtn.classList.add('on');
+        aviso('derecha: pellizca para interactuar. izquierda: cierra para avanzar, abre para retroceder.');
+      } catch (e) {
+        camBtn.textContent = 'MANOS';
+        aviso('no se pudo activar la cámara o el modelo: ' + (e && e.message ? e.message : e));
+        console.error(e); // eslint-disable-line no-console
+      }
+      camBtn.disabled = false;
+    }
+
+    function pararManos() {
+      manosActivas = false;
+      if (manosRaf) { cancelAnimationFrame(manosRaf); manosRaf = 0; }
+      if (camStream) { camStream.getTracks().forEach((t) => t.stop()); camStream = null; }
+      vid.srcObject = null;
+      camBox.style.display = 'none';
+      handsCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      camCtx.clearRect(0, 0, camOverlay.width, camOverlay.height);
+      pinchIzq = null;
+      pinchDerCerrado = false;
+      estado.pulsado = false;
+      camBtn.textContent = 'MANOS';
+      camBtn.classList.remove('on');
+      aviso('mueve el mouse sobre el lienzo, o haz scroll con la ruedita.');
+    }
+
+    camBtn.addEventListener('click', () => {
+      if (manosActivas) pararManos(); else arrancarManos();
+    });
+
+    // ─────────── LOOP + INIT ───────────
+    function loop() {
+      updateScene();
+      requestAnimationFrame(loop);
+    }
+    fitStage();
+    requestAnimationFrame(loop);
+  </script>
+
+</body>
+
+</html>
