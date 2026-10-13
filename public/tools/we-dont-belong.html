@@ -586,33 +586,17 @@
     }
   </style>
   <style>
-    /* We Don't Belong: lienzo vacío a la espera del contenido. */
-    .wdb-empty {
-      position: absolute;
-      inset: 0;
-      z-index: 5;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      pointer-events: none;
-      color: var(--red-dim);
-      font-size: 10px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      text-align: center;
+    /* We Don't Belong: video de fondo + nave + ovejas con física. */
+    #bgVideo { z-index: 1; }
+    #mainCanvas { z-index: 2; cursor: default; }
+    #mainCanvas.over { cursor: grab; }
+    #mainCanvas.grabbing { cursor: grabbing; }
+    #handsCanvas { z-index: 3; pointer-events: none; }
+    .daisy-loading { z-index: 5; }
+    @media (max-width: 768px) {
+      /* el arte es 1080×1350 (4:5), no la proporción de Daisy */
+      .daisy-canvas { aspect-ratio: 1080 / 1350; }
     }
-    .wdb-empty__code { color: var(--red); font-weight: 700; }
-    .wdb-empty__dot {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      margin-right: 6px;
-      background: var(--red);
-      animation: wdbBlink 1.1s steps(2, start) infinite;
-    }
-    @keyframes wdbBlink { to { visibility: hidden; } }
   </style>
 </head>
 
@@ -644,7 +628,7 @@
           <span class="slz">///</span>
           <div class="win__bar-dot"></div>
           <span class="win__bar-title">VIEWPORT.WE_DONT_BELONG</span>
-          <span class="win__bar-sub">— MOUSE + SCROLL</span>
+          <span class="win__bar-sub">— ARRASTRA LAS OVEJAS</span>
           <div class="win__bar-controls">
             <div class="win__ctrl">—</div>
             <div class="win__ctrl">□</div>
@@ -656,14 +640,16 @@
         <div class="daisy-main">
           <div class="daisy-canvas-wrap">
             <div class="daisy-canvas" id="wdbCanvas">
-              <!-- Lienzo principal: vacío, aquí entra el contenido. -->
-              <canvas id="mainCanvas" width="810" height="995"></canvas>
+              <!-- Fondo: video en loop. AV1 primero (más liviano), H.264 de respaldo. -->
+              <video id="bgVideo" autoplay muted loop playsinline preload="auto" poster="/tools/wdb-media/poster.webp">
+                <source src="/tools/wdb-media/bg-av1.mp4" type='video/mp4; codecs="av01.0.08M.08"'>
+                <source src="/tools/wdb-media/bg-h264.mp4" type="video/mp4">
+              </video>
+              <!-- Ovejas (física) + nave encima de todo. -->
+              <canvas id="mainCanvas" width="1080" height="1350"></canvas>
               <!-- Indicadores de las manos encima del lienzo. -->
-              <canvas id="handsCanvas" width="810" height="995"></canvas>
-              <div class="wdb-empty" id="wdbEmpty">
-                <span class="wdb-empty__code">C:\TOOLS\WE_DONT_BELONG.EXE</span>
-                <span><span class="wdb-empty__dot"></span>esperando contenido…</span>
-              </div>
+              <canvas id="handsCanvas" width="1080" height="1350"></canvas>
+              <div class="daisy-loading" id="wdbLoading">CARGANDO ASSETS…</div>
             </div>
           </div>
         </div>
@@ -684,7 +670,7 @@
           </div>
 
           <div class="daisy-panel">
-            <div class="daisy-status" id="wdbStatus">mueve el mouse sobre el lienzo, o haz scroll con la ruedita.</div>
+            <div class="daisy-status" id="wdbStatus">agarra una oveja y arrástrala. suéltala y deja que caiga.</div>
 
             <div>
               <div class="daisy-meter-label"><span>MOUSE</span><span id="movePct">0%</span></div>
@@ -702,8 +688,8 @@
                 <canvas id="camOverlay"></canvas>
               </div>
               <div class="cam-ayuda">
-                derecha: pellizca para interactuar<br>
-                izquierda: cierra para avanzar, abre para retroceder
+                derecha: pellizca para agarrar una oveja<br>
+                izquierda: cierra la mano para abducir
               </div>
             </div>
           </div>
@@ -723,25 +709,32 @@
         </div>
       </div>
       <div class="ip__body" id="infoBody">
-        <p class="ip__desc">herramienta en preparación: el lienzo está listo para recibir el contenido.</p>
+        <p class="ip__desc">un rebaño con gravedad bajo la nave. agarra las ovejas y lánzalas.</p>
         <ol class="ip__steps">
-          <li>mueve el mouse sobre el lienzo</li>
-          <li>haz scroll con la ruedita para avanzar o retroceder</li>
-          <li>activa MANOS para controlar con la cámara</li>
-          <li>pellizca con la derecha para interactuar</li>
-          <li>cierra o abre la izquierda para avanzar o retroceder</li>
+          <li>haz click sobre una oveja y arrástrala por el lienzo</li>
+          <li>suéltala: cae, rebota y choca con las demás</li>
+          <li>haz scroll sobre el lienzo para que la nave las abduzca</li>
+          <li>activa MANOS: pellizca con la derecha para agarrar</li>
+          <li>cierra la izquierda para abducir con la mano</li>
         </ol>
       </div>
     </div>
     <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
   </div>
 
+  <script src="/tools/wdb-media/matter.min.js"></script>
   <script type="module">
     // ═══════════════════════════════════════════════════════════
     //  WE DON'T BELONG — mismo sistema que DAISY (ventanas, sidebar,
-    //  medidores, manos con MediaPipe, panel de ayuda), con el lienzo
-    //  vacío. Para cargar el contenido, dibuja en `mainCtx` dentro de
-    //  `renderScene()` usando `estado` (mouse, scroll, manos).
+    //  medidores, manos con MediaPipe, panel de ayuda).
+    //
+    //  #bgVideo (z=1)     → video del póster en loop
+    //  #mainCanvas (z=2)  → rayo + 30 ovejas con física (Matter.js)
+    //                        + la nave encima de todo
+    //  #handsCanvas (z=3) → indicadores de las manos
+    //
+    //  Mouse / dedo / pinch derecho: agarra y arrastra ovejas.
+    //  Scroll / pinch izquierdo: enciende el rayo y las abduce.
     // ═══════════════════════════════════════════════════════════
 
     const $ = (id) => document.getElementById(id);
@@ -763,8 +756,8 @@
     $('wclose').addEventListener('click', goHome);
 
     // ─────────── TAMAÑO DEL LIENZO (mismo formato que Daisy) ───────────
-    const CANVAS_W = 810;
-    const CANVAS_H = 995;
+    const CANVAS_W = 1080;
+    const CANVAS_H = 1350;
     const frameEl = $('frame');
     const viewportEl = $('viewport');
     const sidebarEl = $('sidebar');
@@ -881,7 +874,7 @@
     window.addEventListener('touchcancel', finTocar);
 
     canvasEl.addEventListener('wheel', (e) => {
-      moverScroll(deltaEnPx(e));
+      moverScroll(Math.abs(deltaEnPx(e)));
       if (e.cancelable) e.preventDefault();
     }, { passive: false });
 
@@ -897,15 +890,260 @@
       $('scrollFill').style.width = s + '%';
     }
 
-    // ─────────── ESCENA (vacía) ───────────
-    // Aquí va el contenido de We Don't Belong. Cuando dibujes algo,
-    // llama a ocultarVacio() para quitar el aviso "esperando contenido".
-    function ocultarVacio() { $('wdbEmpty').style.display = 'none'; }
-    window.ocultarVacio = ocultarVacio;
+    // ─────────── ARTE ───────────
+    function cargarImg(src) {
+      return new Promise((ok, mal) => {
+        const im = new Image();
+        im.onload = () => ok(im);
+        im.onerror = mal;
+        im.src = src;
+      });
+    }
+
+    // La oveja viene negra; la roja se tiñe una sola vez en un canvas
+    // aparte para no recalcularla en cada frame.
+    function teñir(img, color) {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const x = c.getContext('2d');
+      x.drawImage(img, 0, 0);
+      x.globalCompositeOperation = 'source-in';
+      x.fillStyle = color;
+      x.fillRect(0, 0, c.width, c.height);
+      return c;
+    }
+
+    // ─────────── COMPOSICIÓN (medida sobre el póster de referencia) ───────────
+    const NAVE_ANCHO = 0.576 * CANVAS_W;   // la nave ocupa ~58% del ancho
+    const NAVE_TOP   = 0.175 * CANVAS_H;   // justo debajo de "WE DON'T BELONG"
+    const OVEJA_W = 86;                    // ~8% del ancho, como en el póster
+    const OVEJA_ROJA = '#FF0307';
+    const N_OVEJAS = 30;
+    const N_NEGRAS = 4;                    // las que "no pertenecen"
+
+    let naveImg = null, ovejaNegra = null, ovejaRoja = null;
+    let naveH = 0, ovejaH = 0;
+
+    // ─────────── FÍSICA (Matter.js) ───────────
+    const { Engine, Bodies, Body, Composite, Constraint, Query, Vector } = Matter;
+    const engine = Engine.create();
+    engine.gravity.y = 1.1;
+    engine.positionIterations = 8;
+    engine.velocityIterations = 6;
+
+    // Paredes gruesas para que una oveja lanzada rápido no las atraviese.
+    const PARED = 400;
+    Composite.add(engine.world, [
+      Bodies.rectangle(CANVAS_W / 2, CANVAS_H + PARED / 2, CANVAS_W + PARED * 2, PARED, { isStatic: true, friction: 0.9 }), // suelo
+      Bodies.rectangle(CANVAS_W / 2, -PARED / 2, CANVAS_W + PARED * 2, PARED, { isStatic: true }),                        // techo
+      Bodies.rectangle(-PARED / 2, CANVAS_H / 2, PARED, CANVAS_H * 3, { isStatic: true, friction: 0.2 }),               // izquierda
+      Bodies.rectangle(CANVAS_W + PARED / 2, CANVAS_H / 2, PARED, CANVAS_H * 3, { isStatic: true, friction: 0.2 }),     // derecha
+    ]);
+
+    const ovejas = [];
+
+    function crearOvejas() {
+      // Las negras van a los extremos, como en el póster.
+      const negras = new Set([0, 1, N_OVEJAS - 2, N_OVEJAS - 1]);
+      for (let i = 0; i < N_OVEJAS; i++) {
+        const fila = Math.floor(i / 10);
+        const col = i % 10;
+        const x = OVEJA_W * 0.7 + col * ((CANVAS_W - OVEJA_W * 1.4) / 9) + (Math.random() - 0.5) * 20;
+        const y = CANVAS_H * 0.55 - fila * (ovejaH * 1.6) - Math.random() * 60;
+        const cuerpo = Bodies.rectangle(x, y, OVEJA_W * 0.94, ovejaH * 0.94, {
+          chamfer: { radius: [ovejaH * 0.4, ovejaH * 0.4, 6, 6] },
+          friction: 0.6,
+          frictionAir: 0.012,
+          restitution: 0.2,
+          density: 0.0018,
+        });
+        Body.setAngle(cuerpo, (Math.random() - 0.5) * 0.3);
+        cuerpo.oveja = {
+          img: negras.has(i) && N_NEGRAS > 0 ? ovejaNegra : ovejaRoja,
+          espejo: Math.random() < 0.35,
+        };
+        ovejas.push(cuerpo);
+      }
+      Composite.add(engine.world, ovejas);
+    }
+
+    // ── Agarrar / arrastrar / soltar (mouse, dedo y mano derecha) ──
+    let agarre = null;   // Constraint activo, o null
+    const VEL_MAX = 38;
+
+    function ovejaEn(p, radioExtra = 0) {
+      const hits = Query.point(ovejas, p);
+      if (hits.length) return hits[hits.length - 1];
+      if (!radioExtra) return null;
+      let mejor = null, dMin = radioExtra;
+      for (const o of ovejas) {
+        const d = Vector.magnitude(Vector.sub(o.position, p));
+        if (d < dMin) { dMin = d; mejor = o; }
+      }
+      return mejor;
+    }
+
+    function agarrar(p, radioExtra = 0) {
+      const o = ovejaEn(p, radioExtra);
+      if (!o) return false;
+      soltar();
+      agarre = Constraint.create({
+        pointA: { x: p.x, y: p.y },
+        bodyB: o,
+        pointB: Vector.sub(p, o.position),
+        stiffness: 0.18,
+        damping: 0.08,
+        length: 0,
+      });
+      Composite.add(engine.world, agarre);
+      $('mainCanvas').classList.add('grabbing');
+      return true;
+    }
+    function arrastrar(p) {
+      if (agarre) agarre.pointA = { x: p.x, y: p.y };
+    }
+    function soltar() {
+      if (!agarre) return;
+      const o = agarre.bodyB;
+      Composite.remove(engine.world, agarre);
+      agarre = null;
+      // se limita la velocidad del lanzamiento para que no atraviese nada
+      const v = o.velocity, m = Math.hypot(v.x, v.y);
+      if (m > VEL_MAX) Body.setVelocity(o, { x: v.x / m * VEL_MAX, y: v.y / m * VEL_MAX });
+      $('mainCanvas').classList.remove('grabbing');
+    }
+
+    canvasEl.addEventListener('mousedown', (e) => {
+      if (agarrar(aCanvas(e.clientX, e.clientY))) e.preventDefault();
+    });
+    canvasEl.addEventListener('mousemove', (e) => {
+      const p = aCanvas(e.clientX, e.clientY);
+      arrastrar(p);
+      $('mainCanvas').classList.toggle('over', !agarre && !!ovejaEn(p));
+    });
+    window.addEventListener('mouseup', soltar);
+    canvasEl.addEventListener('mouseleave', soltar);
+
+    // Táctil: si el dedo cae sobre una oveja la arrastra; si no, el
+    // gesto funciona como el scroll (y enciende el rayo).
+    canvasEl.addEventListener('touchstart', (e) => {
+      if (!e.touches.length) return;
+      const t = e.touches[0];
+      if (agarrar(aCanvas(t.clientX, t.clientY), 30)) tocandoY = null;
+    }, { passive: false });
+    canvasEl.addEventListener('touchmove', (e) => {
+      if (!e.touches.length || !agarre) return;
+      const t = e.touches[0];
+      arrastrar(aCanvas(t.clientX, t.clientY));
+    }, { passive: false });
+    window.addEventListener('touchend', soltar);
+    window.addEventListener('touchcancel', soltar);
+
+    // ── Rayo de abducción ──
+    // estado.scroll (0..1) es la intensidad. El rayo sale de la base de
+    // la nave y se abre hacia el suelo, como en el póster.
+    function rayo() {
+      const y0 = NAVE_TOP + naveH * 0.86;
+      return {
+        y0,
+        xTop0: CANVAS_W * 0.455, xTop1: CANVAS_W * 0.545,
+        xBot0: CANVAS_W * 0.16,  xBot1: CANVAS_W * 0.84,
+      };
+    }
+    function dentroDelRayo(p) {
+      const r = rayo();
+      if (p.y < r.y0) return 0;
+      const t = (p.y - r.y0) / (CANVAS_H - r.y0);
+      const x0 = r.xTop0 + (r.xBot0 - r.xTop0) * t;
+      const x1 = r.xTop1 + (r.xBot1 - r.xTop1) * t;
+      if (p.x < x0 || p.x > x1) return 0;
+      // más fuerte en el centro del rayo
+      const c = (p.x - x0) / (x1 - x0);
+      return 1 - Math.abs(c - 0.5) * 2 * 0.6;
+    }
+
+    function aplicarAbduccion() {
+      const k = estado.scroll;
+      if (k < 0.01) return;
+      const cx = CANVAS_W / 2;
+      for (const o of ovejas) {
+        if (agarre && agarre.bodyB === o) continue;
+        const f = dentroDelRayo(o.position);
+        if (!f) continue;
+        const m = o.mass;
+        // vence la gravedad y sube; además centra suavemente hacia el eje
+        const subir = -m * engine.gravity.y * engine.gravity.scale * (1 + 1.4 * k) * f * k;
+        const centrar = (cx - o.position.x) * m * 0.0000035 * k;
+        Body.applyForce(o, o.position, { x: centrar, y: subir });
+        Body.setAngularVelocity(o, o.angularVelocity * 0.96 + 0.004 * k);
+      }
+    }
+
+    // ─────────── DIBUJO ───────────
+    function dibujarRayo() {
+      const k = estado.scroll;
+      if (k < 0.01) return;
+      const r = rayo();
+      const g = mainCtx.createLinearGradient(0, r.y0, 0, CANVAS_H);
+      g.addColorStop(0, `rgba(120, 40, 40, ${0.55 * k})`);
+      g.addColorStop(0.5, `rgba(205, 140, 120, ${0.6 * k})`);
+      g.addColorStop(1, `rgba(245, 230, 200, ${0.85 * k})`);
+      mainCtx.fillStyle = g;
+      mainCtx.beginPath();
+      mainCtx.moveTo(r.xTop0, r.y0);
+      mainCtx.lineTo(r.xTop1, r.y0);
+      mainCtx.lineTo(r.xBot1, CANVAS_H);
+      mainCtx.lineTo(r.xBot0, CANVAS_H);
+      mainCtx.closePath();
+      mainCtx.fill();
+    }
+
+    function dibujarOvejas() {
+      for (const o of ovejas) {
+        mainCtx.save();
+        mainCtx.translate(o.position.x, o.position.y);
+        mainCtx.rotate(o.angle);
+        if (o.oveja.espejo) mainCtx.scale(-1, 1);
+        mainCtx.drawImage(o.oveja.img, -OVEJA_W / 2, -ovejaH / 2, OVEJA_W, ovejaH);
+        mainCtx.restore();
+      }
+    }
+
+    function dibujarNave(t) {
+      const flota = Math.sin(t * 0.0018) * 6;   // leve flotación
+      mainCtx.drawImage(naveImg, (CANVAS_W - NAVE_ANCHO) / 2, NAVE_TOP + flota, NAVE_ANCHO, naveH);
+    }
 
     function renderScene() {
       mainCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-      // Lienzo vacío a propósito.
+      if (!naveImg) return;
+      dibujarRayo();
+      dibujarOvejas();
+      dibujarNave(performance.now());   // la nave va sobre todo
+    }
+
+    // Las ovejas tienden a quedar de pie: un empujoncito de giro hacia
+    // 0 rad, suave para que igual puedan rodar y caer de lado un rato.
+    function enderezar() {
+      for (const o of ovejas) {
+        if (agarre && agarre.bodyB === o) continue;
+        const ang = Math.atan2(Math.sin(o.angle), Math.cos(o.angle));
+        Body.setAngularVelocity(o, o.angularVelocity * 0.98 - ang * 0.0025);
+      }
+    }
+
+    // Paso de física fijo (60 Hz) para que no dependa de los fps.
+    const PASO = 1000 / 60;
+    let acumulado = 0;
+    function pasoFisica(dt) {
+      acumulado = Math.min(acumulado + dt * 1000, PASO * 4);
+      while (acumulado >= PASO) {
+        aplicarAbduccion();
+        enderezar();
+        Engine.update(engine, PASO);
+        acumulado -= PASO;
+      }
     }
 
     let lastTick = performance.now();
@@ -916,10 +1154,16 @@
 
       estado.moviendo = (now - lastMouseMoveAt) < STILL_MS;
       estado.scrolleando = (now - lastScrollAt) < STILL_MS;
-      if (pinchIzq !== null) estado.scrollTarget = pinchIzq;
+      if (pinchIzq !== null) {
+        estado.scrollTarget = pinchIzq;
+      } else if (!estado.scrolleando) {
+        // al dejar de scrollear el rayo se apaga solo y las ovejas caen
+        estado.scrollTarget = Math.max(0, estado.scrollTarget - dt * 0.35);
+      }
       estado.scroll += (estado.scrollTarget - estado.scroll) * Math.min(1, dt * 8);
 
       updateMeters(dt);
+      if (naveImg) pasoFisica(dt);
       renderScene();
     }
 
@@ -1105,19 +1349,23 @@
       pintarManos(der, izq, der ? cerrazonDe(pinchDe(der)) : 0, pinchIzq ?? 0);
 
       if (!der) {
-        if (pinchDerCerrado) { pinchDerCerrado = false; estado.pulsado = false; }
+        if (pinchDerCerrado) { pinchDerCerrado = false; estado.pulsado = false; soltar(); }
         return;
       }
       const d = pinchDe(der);
-      estado.puntero = manoACanvas((der[4].x + der[8].x) / 2, (der[4].y + der[8].y) / 2);
+      const p = manoACanvas((der[4].x + der[8].x) / 2, (der[4].y + der[8].y) / 2);
+      estado.puntero = p;
       lastMouseMoveAt = performance.now();
       if (!pinchDerCerrado && d < AGARRE_CIERRA) {
         pinchDerCerrado = true;
         estado.pulsado = true;
+        agarrar(p, 110);   // radio generoso: la mano es menos precisa
       } else if (pinchDerCerrado && d > AGARRE_ABRE) {
         pinchDerCerrado = false;
         estado.pulsado = false;
+        soltar();
       }
+      if (pinchDerCerrado) arrastrar(p);
     }
 
     function bucleManos() {
@@ -1161,7 +1409,7 @@
         if (!manosRaf) bucleManos();
         camBtn.textContent = 'DETENER MANOS';
         camBtn.classList.add('on');
-        aviso('derecha: pellizca para interactuar. izquierda: cierra para avanzar, abre para retroceder.');
+        aviso('derecha: pellizca para agarrar una oveja. izquierda: cierra la mano para abducir.');
       } catch (e) {
         camBtn.textContent = 'MANOS';
         aviso('no se pudo activar la cámara o el modelo: ' + (e && e.message ? e.message : e));
@@ -1181,9 +1429,10 @@
       pinchIzq = null;
       pinchDerCerrado = false;
       estado.pulsado = false;
+      soltar();
       camBtn.textContent = 'MANOS';
       camBtn.classList.remove('on');
-      aviso('mueve el mouse sobre el lienzo, o haz scroll con la ruedita.');
+      aviso('agarra una oveja y arrástrala. suéltala y deja que caiga.');
     }
 
     camBtn.addEventListener('click', () => {
@@ -1195,8 +1444,36 @@
       updateScene();
       requestAnimationFrame(loop);
     }
-    fitStage();
-    requestAnimationFrame(loop);
+    (async function init() {
+      fitStage();
+      requestAnimationFrame(loop);
+      // el video arranca solo (autoplay + muted); por si el navegador lo
+      // frena, se reintenta al primer gesto
+      const v = $('bgVideo');
+      const reproducir = () => v.play().catch(() => {});
+      reproducir();
+      window.addEventListener('pointerdown', reproducir, { once: true });
+
+      try {
+        const [nave, oveja] = await Promise.all([
+          cargarImg('/tools/wdb-media/nave.png'),
+          cargarImg('/tools/wdb-media/oveja.png'),
+        ]);
+        naveH = NAVE_ANCHO * nave.naturalHeight / nave.naturalWidth;
+        ovejaH = OVEJA_W * oveja.naturalHeight / oveja.naturalWidth;
+        ovejaNegra = oveja;
+        ovejaRoja = teñir(oveja, OVEJA_ROJA);
+        crearOvejas();
+        naveImg = nave;
+      } catch (e) {
+        aviso('no se pudieron cargar los assets.');
+        console.error(e); // eslint-disable-line no-console
+      }
+      fitStage();
+      const load = $('wdbLoading');
+      load.style.opacity = '0';
+      setTimeout(() => { load.style.display = 'none'; }, 400);
+    })();
   </script>
 
 </body>
