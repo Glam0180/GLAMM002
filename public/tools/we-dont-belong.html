@@ -589,7 +589,8 @@
     /* We Don't Belong: video de fondo + nave + ovejas con física. */
     /* isolation: la exclusión de la estela solo mezcla con lo que hay
        dentro del lienzo (video + ovejas), no con el resto de la página */
-    #wdbCanvas { cursor: crosshair; }
+    /* manito abierta; al hacer click, cerrada */
+    #wdbCanvas { cursor: grab; }
     .wdb-contador {
       display: flex;
       justify-content: space-between;
@@ -599,7 +600,6 @@
       color: var(--red);
     }
     .wdb-contador b { font-weight: 700; }
-    #wdbCanvas.over { cursor: grab; }
     #wdbCanvas.grab { cursor: grabbing; }
     /* Las capas se componen en JS y salen ya mezcladas y con el tono
        aplicado en #outCanvas. El video y las capas de trabajo no se ven:
@@ -696,7 +696,7 @@
           <div class="daisy-panel">
             <div class="daisy-status" id="wdbStatus">mueve la nave con el mouse. mantén el click para succionar.</div>
 
-            <div class="wdb-contador"><span>ABDUCIDAS</span><b id="abducidas">0 / 100</b></div>
+            <div class="wdb-contador"><span>ABDUCIDAS</span><b id="abducidas">0 / 130</b></div>
             <div class="wdb-contador"><span>TONO</span><b id="tonoActual">0°</b></div>
 
             <div>
@@ -740,7 +740,7 @@
         <ol class="ip__steps">
           <li>mueve el mouse: la nave te sigue y se inclina</li>
           <li>mantén el click: la estela se abre al doble y succiona</li>
-          <li>las que tocan la nave son abducidas: a las 10, 30 y 50 cambia el tono; a las 100 vuelve a empezar</li>
+          <li>las que tocan la nave son abducidas: a las 30, 60 y 100 cambia el tono</li>
           <li>click sobre una oveja para arrastrarla y lanzarla</li>
           <li>MANOS: la derecha guía la nave; pellizca o cierra la izquierda para succionar</li>
         </ol>
@@ -1026,7 +1026,7 @@
     let pendientes = 0;          // ovejas por reponer
     let proximaEntrada = 0;      // cuándo entra la siguiente (ms)
     let ladoEntrada = 1;         // alterna izquierda / derecha
-    const ENTRADA_CADA_MS = 180;
+    const ENTRADA_CADA_MS = 60;
 
     function reponer(ahora) {
       if (!pendientes || ahora < proximaEntrada) return;
@@ -1069,11 +1069,11 @@
 
     // Tono por etapas (como una capa de ajuste Tono/Saturación).
     const ETAPAS_TONO = [
-      { desde: 10, tono: -32 },
-      { desde: 30, tono: -180 },
-      { desde: 50, tono: -83 },
+      { desde: 30, tono: -32 },
+      { desde: 60, tono: -180 },
+      { desde: 100, tono: -83 },
     ];
-    const REINICIO = 100;
+    const REINICIO = 130;   // el último tono dura otras 30 y vuelve a empezar
 
     function tonoPara(n) {
       let t = 0;
@@ -1170,8 +1170,7 @@
     }
 
     function actualizarCursor(p) {
-      canvasEl.classList.toggle('grab', !!agarre);
-      canvasEl.classList.toggle('over', !agarre && !!p && !!ovejaEn(p));
+      canvasEl.classList.toggle('grab', !!agarre || succionandoPuntero);
     }
 
     canvasEl.addEventListener('mousemove', (e) => {
