@@ -721,7 +721,7 @@
         <p class="ip__desc">la nave sigue tu cursor y su estela de luz busca al rebaño.</p>
         <ol class="ip__steps">
           <li>mueve el mouse: la nave te sigue y se inclina</li>
-          <li>mantén el click: la estela se abre y succiona</li>
+          <li>mantén el click: la estela se abre al doble y succiona</li>
           <li>solo suben las ovejas que toca la estela</li>
           <li>click sobre una oveja para arrastrarla y lanzarla</li>
           <li>MANOS: la derecha guía la nave; pellizca o cierra la izquierda para succionar</li>
@@ -867,12 +867,14 @@
 
     // Estela: cono invertido color #FD030B en modo de fusión "exclusión"
     // (lo hace el CSS del canvas #beamCanvas, así afecta al video y a las
-    // ovejas que tiene debajo). Medida sobre el póster: arriba ~9% del
-    // ancho, abajo ~68% cuando la nave está en su sitio original.
+    // ovejas que tiene debajo).
+    // PRESIONADA = medida sobre el póster: arriba ~8% del ancho y abajo
+    // ~69% con la nave en su sitio original.
+    // REPOSO = la mitad de ancho que la presionada.
     const ESTELA_COLOR = '#FD030B';
-    const ESTELA_MEDIO_ARRIBA = 0.045 * CANVAS_W;
-    const ESTELA_APERTURA = 0.35;          // cuánto se abre por cada px de largo
-    const ESTELA_EXPANSION = 0.4;          // +40% de ancho con el click sostenido
+    const ESTELA_MEDIO_ARRIBA_PRES = 0.039 * CANVAS_W;   // medio ancho en el ancla
+    const ESTELA_APERTURA_PRES = 0.358;                  // px de medio ancho por px de largo
+    const ESTELA_REPOSO = 0.5;                           // reposo = 50% de la presionada
     const ANCLA_Y = 0.86;                  // ancla: 86% del alto de la nave (su base)
 
     let naveImg = null, ovejaImg = null;
@@ -926,9 +928,10 @@
       const dir = { x: -Math.sin(nave.ang), y: Math.cos(nave.ang) };
       const nor = { x: dir.y, y: -dir.x };
       const largo = (CANVAS_H - a.y) / Math.max(0.5, dir.y) + 120;
-      const e = 1 + ESTELA_EXPANSION * estado.succion;
-      const w0 = ESTELA_MEDIO_ARRIBA * (1 + 0.5 * (e - 1));
-      const w1 = w0 + largo * ESTELA_APERTURA * e;
+      // de reposo (50%) a presionada (100%) según la succión
+      const f = ESTELA_REPOSO + (1 - ESTELA_REPOSO) * estado.succion;
+      const w0 = ESTELA_MEDIO_ARRIBA_PRES * f;
+      const w1 = w0 + largo * ESTELA_APERTURA_PRES * f;
       const fin = { x: a.x + dir.x * largo, y: a.y + dir.y * largo };
       return [
         { x: a.x - nor.x * w0, y: a.y - nor.y * w0 },
