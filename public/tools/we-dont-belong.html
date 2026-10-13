@@ -589,7 +589,23 @@
     /* We Don't Belong: video de fondo + nave + ovejas con física. */
     /* isolation: la exclusión de la estela solo mezcla con lo que hay
        dentro del lienzo (video + ovejas), no con el resto de la página */
-    #wdbCanvas { isolation: isolate; cursor: crosshair; }
+    #wdbCanvas {
+      isolation: isolate;
+      cursor: crosshair;
+      /* capa de ajuste de tono: afecta a todo el póster (video, ovejas,
+         estela y nave). El valor lo fija el JS según las abducidas. */
+      filter: hue-rotate(var(--wdb-hue, 0deg));
+      transition: filter .9s ease;
+    }
+    .wdb-contador {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--red);
+    }
+    .wdb-contador b { font-weight: 700; }
     #wdbCanvas.over { cursor: grab; }
     #wdbCanvas.grab { cursor: grabbing; }
     #bgVideo { z-index: 1; }
@@ -681,6 +697,9 @@
           <div class="daisy-panel">
             <div class="daisy-status" id="wdbStatus">mueve la nave con el mouse. mantén el click para succionar.</div>
 
+            <div class="wdb-contador"><span>ABDUCIDAS</span><b id="abducidas">0 / 100</b></div>
+            <div class="wdb-contador"><span>TONO</span><b id="tonoActual">0°</b></div>
+
             <div>
               <div class="daisy-meter-label"><span>MOUSE</span><span id="movePct">0%</span></div>
               <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="moveFill"></div></div>
@@ -722,7 +741,7 @@
         <ol class="ip__steps">
           <li>mueve el mouse: la nave te sigue y se inclina</li>
           <li>mantén el click: la estela se abre al doble y succiona</li>
-          <li>solo suben las ovejas que toca la estela</li>
+          <li>las que tocan la nave son abducidas: a las 10, 30 y 50 cambia el tono; a las 100 vuelve a empezar</li>
           <li>click sobre una oveja para arrastrarla y lanzarla</li>
           <li>MANOS: la derecha guía la nave; pellizca o cierra la izquierda para succionar</li>
         </ol>
@@ -863,7 +882,7 @@
     const NAVE_ANCHO = 0.576 * CANVAS_W;   // la nave ocupa ~58% del ancho
     const NAVE_TOP   = 0.175 * CANVAS_H;   // posición inicial: debajo del título
     const OVEJA_W = 86;                    // ~8% del ancho, como en el póster
-    const N_OVEJAS = 30;
+    const N_OVEJAS = 60;
 
     // Estela: cono invertido color #FD030B en modo de fusión "exclusión"
     // (lo hace el CSS del canvas #beamCanvas, así afecta al video y a las
@@ -872,8 +891,9 @@
     // ~69% con la nave en su sitio original.
     // REPOSO = la mitad de ancho que la presionada.
     const ESTELA_COLOR = '#FD030B';
-    const ESTELA_MEDIO_ARRIBA_PRES = 0.039 * CANVAS_W;   // medio ancho en el ancla
-    const ESTELA_APERTURA_PRES = 0.358;                  // px de medio ancho por px de largo
+    // ×0.65: más delgada que la del póster en los dos estados
+    const ESTELA_MEDIO_ARRIBA_PRES = 0.039 * 0.65 * CANVAS_W;   // medio ancho en el ancla
+    const ESTELA_APERTURA_PRES = 0.358 * 0.65;                  // px de medio ancho por px de largo
     const ESTELA_REPOSO = 0.5;                           // reposo = 50% de la presionada
     const ANCLA_Y = 0.86;                  // ancla: 86% del alto de la nave (su base)
 
@@ -959,34 +979,137 @@
     engine.velocityIterations = 6;
 
     // Paredes gruesas para que una oveja lanzada rápido no las atraviese.
+    // Las laterales tienen su propia categoría: una oveja que está
+    // ENTRANDO desde el costado las ignora hasta estar dentro del lienzo.
     const PARED = 400;
+    const CAT_LADO = 0x0002;
+    const MASK_NORMAL = 0xFFFFFFFF;
+    const MASK_ENTRANDO = 0xFFFFFFFF & ~CAT_LADO;
     Composite.add(engine.world, [
       Bodies.rectangle(CANVAS_W / 2, CANVAS_H + PARED / 2, CANVAS_W + PARED * 2, PARED, { isStatic: true, friction: 0.9 }), // suelo
       Bodies.rectangle(CANVAS_W / 2, -PARED / 2, CANVAS_W + PARED * 2, PARED, { isStatic: true }),                        // techo
-      Bodies.rectangle(-PARED / 2, CANVAS_H / 2, PARED, CANVAS_H * 3, { isStatic: true, friction: 0.2 }),               // izquierda
-      Bodies.rectangle(CANVAS_W + PARED / 2, CANVAS_H / 2, PARED, CANVAS_H * 3, { isStatic: true, friction: 0.2 }),     // derecha
+      Bodies.rectangle(-PARED / 2, CANVAS_H / 2, PARED, CANVAS_H * 3, { isStatic: true, friction: 0.2, collisionFilter: { category: CAT_LADO } }),           // izquierda
+      Bodies.rectangle(CANVAS_W + PARED / 2, CANVAS_H / 2, PARED, CANVAS_H * 3, { isStatic: true, friction: 0.2, collisionFilter: { category: CAT_LADO } }), // derecha
     ]);
 
     const ovejas = [];
+
+    function nuevaOveja(x, y) {
+      const cuerpo = Bodies.rectangle(x, y, OVEJA_W * 0.94, ovejaH * 0.94, {
+        chamfer: { radius: [ovejaH * 0.4, ovejaH * 0.4, 6, 6] },
+        friction: 0.6,
+        frictionAir: 0.012,
+        restitution: 0.2,
+        density: 0.0018,
+      });
+      Body.setAngle(cuerpo, (Math.random() - 0.5) * 0.3);
+      cuerpo.oveja = { espejo: Math.random() < 0.35, entrando: false };
+      return cuerpo;
+    }
 
     function crearOvejas() {
       for (let i = 0; i < N_OVEJAS; i++) {
         const fila = Math.floor(i / 10);
         const col = i % 10;
         const x = OVEJA_W * 0.7 + col * ((CANVAS_W - OVEJA_W * 1.4) / 9) + (Math.random() - 0.5) * 20;
-        const y = CANVAS_H * 0.55 - fila * (ovejaH * 1.6) - Math.random() * 60;
-        const cuerpo = Bodies.rectangle(x, y, OVEJA_W * 0.94, ovejaH * 0.94, {
-          chamfer: { radius: [ovejaH * 0.4, ovejaH * 0.4, 6, 6] },
-          friction: 0.6,
-          frictionAir: 0.012,
-          restitution: 0.2,
-          density: 0.0018,
-        });
-        Body.setAngle(cuerpo, (Math.random() - 0.5) * 0.3);
-        cuerpo.oveja = { espejo: Math.random() < 0.35 };
-        ovejas.push(cuerpo);
+        // apiladas desde el suelo, lejos de la nave, para que ninguna
+        // nazca tocándola
+        const y = CANVAS_H - ovejaH * (0.7 + fila * 1.15) - Math.random() * 8;
+        ovejas.push(nuevaOveja(x, y));
       }
       Composite.add(engine.world, ovejas);
+    }
+
+    // ── Reposición: por cada oveja consumida entra otra desde un costado ──
+    let pendientes = 0;          // ovejas por reponer
+    let proximaEntrada = 0;      // cuándo entra la siguiente (ms)
+    let ladoEntrada = 1;         // alterna izquierda / derecha
+    const ENTRADA_CADA_MS = 180;
+
+    function reponer(ahora) {
+      if (!pendientes || ahora < proximaEntrada) return;
+      ladoEntrada *= -1;
+      const desdeIzq = ladoEntrada < 0;
+      const x = desdeIzq ? -OVEJA_W * 0.6 : CANVAS_W + OVEJA_W * 0.6;
+      const y = CANVAS_H - ovejaH * (3 + Math.random() * 3);
+      const o = nuevaOveja(x, y);
+      Body.setAngle(o, 0);
+      o.oveja.espejo = !desdeIzq;            // mira hacia donde camina
+      o.oveja.entrando = true;
+      o.collisionFilter.mask = MASK_ENTRANDO;
+      Body.setVelocity(o, { x: desdeIzq ? 7 : -7, y: -2 });
+      ovejas.push(o);
+      Composite.add(engine.world, o);
+      pendientes--;
+      proximaEntrada = ahora + ENTRADA_CADA_MS;
+    }
+
+    // Una oveja que entra vuelve a chocar con las paredes en cuanto está
+    // entera dentro del lienzo.
+    function revisarEntradas() {
+      for (const o of ovejas) {
+        if (!o.oveja.entrando) continue;
+        const b = o.bounds;
+        if (b.min.x > 2 && b.max.x < CANVAS_W - 2) {
+          o.oveja.entrando = false;
+          o.collisionFilter.mask = MASK_NORMAL;
+        } else if (Math.abs(o.velocity.x) < 3) {
+          // que no se quede a medio entrar
+          Body.setVelocity(o, { x: (o.position.x < CANVAS_W / 2 ? 5 : -5), y: o.velocity.y });
+        }
+      }
+    }
+
+    // ── Abducción: la oveja que toca la nave hace "pop" hacia dentro ──
+    const absorbiendo = [];      // {x, y, ang, espejo, t0}
+    const POP_MS = 380;
+    let abducidas = 0;
+
+    // Tono por etapas (como una capa de ajuste Tono/Saturación).
+    const ETAPAS_TONO = [
+      { desde: 10, tono: -32 },
+      { desde: 30, tono: -180 },
+      { desde: 50, tono: -83 },
+    ];
+    const REINICIO = 100;
+
+    function tonoPara(n) {
+      let t = 0;
+      for (const e of ETAPAS_TONO) if (n >= e.desde) t = e.tono;
+      return t;
+    }
+    function aplicarTono() {
+      const t = tonoPara(abducidas);
+      canvasEl.style.setProperty('--wdb-hue', t + 'deg');
+      $('tonoActual').textContent = t + '°';
+      $('abducidas').textContent = abducidas + ' / ' + REINICIO;
+    }
+
+    // La nave se aproxima con una elipse en su propio marco (girada con
+    // ella). Se agranda un poco con el tamaño de la oveja: basta con tocarla.
+    function tocaNave(o) {
+      const cx = nave.x, cy = nave.y + nave.flota;
+      const dx = o.position.x - cx, dy = o.position.y - cy;
+      const c = Math.cos(-nave.ang), s = Math.sin(-nave.ang);
+      const lx = dx * c - dy * s, ly = dx * s + dy * c;
+      const rx = NAVE_ANCHO * 0.42 + OVEJA_W * 0.3;
+      const ry = naveH * 0.42 + ovejaH * 0.4;
+      return (lx * lx) / (rx * rx) + (ly * ly) / (ry * ry) <= 1;
+    }
+
+    function absorber(ahora) {
+      for (let i = ovejas.length - 1; i >= 0; i--) {
+        const o = ovejas[i];
+        if (o.oveja.entrando || !tocaNave(o)) continue;
+        if (agarre && agarre.bodyB === o) soltar();
+        Composite.remove(engine.world, o);
+        ovejas.splice(i, 1);
+        absorbiendo.push({ x: o.position.x, y: o.position.y, ang: o.angle, espejo: o.oveja.espejo, t0: ahora });
+        pendientes++;
+        abducidas++;
+        if (abducidas >= REINICIO) abducidas = 0;   // vuelve a empezar
+        aplicarTono();
+      }
     }
 
     // ── Agarrar / arrastrar / soltar ovejas ──
@@ -1143,8 +1266,30 @@
     const beamCtx = $('beamCanvas').getContext('2d');
     const shipCtx = $('shipCanvas').getContext('2d');
 
+    // Pop hacia dentro: un pequeño rebote (crece ~15%) y luego se encoge
+    // a cero mientras se mete en la nave.
+    function dibujarAbsorbiendo(ahora) {
+      const a = { x: nave.x, y: nave.y + nave.flota };
+      for (let i = absorbiendo.length - 1; i >= 0; i--) {
+        const p = absorbiendo[i];
+        const t = (ahora - p.t0) / POP_MS;
+        if (t >= 1) { absorbiendo.splice(i, 1); continue; }
+        const esc = t < 0.25 ? 1 + 0.15 * Math.sin((t / 0.25) * Math.PI / 2)
+                             : 1.15 * (1 - (t - 0.25) / 0.75) ** 2;
+        const m = t * t;   // se acerca al centro de la nave acelerando
+        const x = p.x + (a.x - p.x) * m, y = p.y + (a.y - p.y) * m;
+        mainCtx.save();
+        mainCtx.translate(x, y);
+        mainCtx.rotate(p.ang + t * 2.5);
+        mainCtx.scale(p.espejo ? -esc : esc, esc);
+        mainCtx.drawImage(ovejaImg, -OVEJA_W / 2, -ovejaH / 2, OVEJA_W, ovejaH);
+        mainCtx.restore();
+      }
+    }
+
     function dibujarOvejas() {
       mainCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      dibujarAbsorbiendo(performance.now());
       for (const o of ovejas) {
         mainCtx.save();
         mainCtx.translate(o.position.x, o.position.y);
@@ -1190,6 +1335,9 @@
       while (acumulado >= PASO) {
         aplicarSuccion();
         enderezar();
+        absorber(performance.now());
+        reponer(performance.now());
+        revisarEntradas();
         Engine.update(engine, PASO);
         acumulado -= PASO;
       }
@@ -1508,6 +1656,7 @@
         ovejaH = OVEJA_W * oveja.naturalHeight / oveja.naturalWidth;
         ovejaImg = oveja;   // negra, tal cual el archivo
         crearOvejas();
+        aplicarTono();
         // arranca en su sitio del póster, debajo del título
         nave.y = NAVE_TOP + naveH / 2;
         naveImg = naveArte;
