@@ -1,5 +1,17 @@
 export const TOOLS = [
   {
+    id: 'we-dont-belong',
+    slug: 'we-dont-belong',
+    name: "We Don't Belong",
+    description: 'Póster interactivo: una nave que sigue tu cursor y abduce al rebaño con su estela de luz.',
+    category: 'interaction',
+    status: 'live',
+    tech: ['Canvas API', 'WebGL', 'Matter.js', 'MediaPipe'],
+    path: '/tools/we-dont-belong',
+    index: '000',
+    thumbnail: '/tool-thumbnails/we-dont-belong.webp',
+  },
+  {
     id: 'floralis',
     slug: 'floralis',
     name: 'Floralis',
@@ -88,18 +100,6 @@ export const TOOLS = [
     path: '/tools/daisy',
     index: '007',
     // Sin thumbnail todavía a propósito: se muestra el placeholder del sistema.
-  },
-  {
-    id: 'we-dont-belong',
-    slug: 'we-dont-belong',
-    name: "We Don't Belong",
-    description: 'Próximamente. Lienzo listo, esperando su contenido.',
-    category: 'experimental',
-    status: 'wip',
-    tech: ['TBD'],
-    path: '/tools/we-dont-belong',
-    index: '008',
-    // Sin thumbnail todavía: se muestra el placeholder del sistema.
   },
 ]
 
