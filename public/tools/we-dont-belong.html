@@ -587,12 +587,17 @@
   </style>
   <style>
     /* We Don't Belong: video de fondo + nave + ovejas con física. */
+    /* isolation: la exclusión de la estela solo mezcla con lo que hay
+       dentro del lienzo (video + ovejas), no con el resto de la página */
+    #wdbCanvas { isolation: isolate; cursor: crosshair; }
+    #wdbCanvas.over { cursor: grab; }
+    #wdbCanvas.grab { cursor: grabbing; }
     #bgVideo { z-index: 1; }
-    #mainCanvas { z-index: 2; cursor: default; }
-    #mainCanvas.over { cursor: grab; }
-    #mainCanvas.grabbing { cursor: grabbing; }
-    #handsCanvas { z-index: 3; pointer-events: none; }
-    .daisy-loading { z-index: 5; }
+    #mainCanvas { z-index: 2; pointer-events: none; }
+    #beamCanvas { z-index: 3; pointer-events: none; mix-blend-mode: exclusion; }
+    #shipCanvas { z-index: 4; pointer-events: none; }
+    #handsCanvas { z-index: 5; pointer-events: none; }
+    .daisy-loading { z-index: 6; }
     @media (max-width: 768px) {
       /* el arte es 1080×1350 (4:5), no la proporción de Daisy */
       .daisy-canvas { aspect-ratio: 1080 / 1350; }
@@ -628,7 +633,7 @@
           <span class="slz">///</span>
           <div class="win__bar-dot"></div>
           <span class="win__bar-title">VIEWPORT.WE_DONT_BELONG</span>
-          <span class="win__bar-sub">— ARRASTRA LAS OVEJAS</span>
+          <span class="win__bar-sub">— MUEVE LA NAVE</span>
           <div class="win__bar-controls">
             <div class="win__ctrl">—</div>
             <div class="win__ctrl">□</div>
@@ -645,8 +650,12 @@
                 <source src="/tools/wdb-media/bg-av1.mp4" type='video/mp4; codecs="av01.0.08M.08"'>
                 <source src="/tools/wdb-media/bg-h264.mp4" type="video/mp4">
               </video>
-              <!-- Ovejas (física) + nave encima de todo. -->
+              <!-- Ovejas con física. -->
               <canvas id="mainCanvas" width="1080" height="1350"></canvas>
+              <!-- Estela #FD030B en exclusión: afecta a video + ovejas. -->
+              <canvas id="beamCanvas" width="1080" height="1350"></canvas>
+              <!-- Nave: sigue al cursor, encima de todo. -->
+              <canvas id="shipCanvas" width="1080" height="1350"></canvas>
               <!-- Indicadores de las manos encima del lienzo. -->
               <canvas id="handsCanvas" width="1080" height="1350"></canvas>
               <div class="daisy-loading" id="wdbLoading">CARGANDO ASSETS…</div>
@@ -670,14 +679,14 @@
           </div>
 
           <div class="daisy-panel">
-            <div class="daisy-status" id="wdbStatus">agarra una oveja y arrástrala. suéltala y deja que caiga.</div>
+            <div class="daisy-status" id="wdbStatus">mueve la nave con el mouse. mantén el click para succionar.</div>
 
             <div>
               <div class="daisy-meter-label"><span>MOUSE</span><span id="movePct">0%</span></div>
               <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="moveFill"></div></div>
             </div>
             <div>
-              <div class="daisy-meter-label"><span>SCROLL</span><span id="scrollPct">0%</span></div>
+              <div class="daisy-meter-label"><span>SUCCIÓN</span><span id="scrollPct">0%</span></div>
               <div class="daisy-meter-bar"><div class="daisy-meter-fill" id="scrollFill"></div></div>
             </div>
 
@@ -688,8 +697,8 @@
                 <canvas id="camOverlay"></canvas>
               </div>
               <div class="cam-ayuda">
-                derecha: pellizca para agarrar una oveja<br>
-                izquierda: cierra la mano para abducir
+                derecha: mueve la nave; pellizca para succionar o agarrar<br>
+                izquierda: cierra la mano para succionar
               </div>
             </div>
           </div>
@@ -709,13 +718,13 @@
         </div>
       </div>
       <div class="ip__body" id="infoBody">
-        <p class="ip__desc">un rebaño con gravedad bajo la nave. agarra las ovejas y lánzalas.</p>
+        <p class="ip__desc">la nave sigue tu cursor y su estela de luz busca al rebaño.</p>
         <ol class="ip__steps">
-          <li>haz click sobre una oveja y arrástrala por el lienzo</li>
-          <li>suéltala: cae, rebota y choca con las demás</li>
-          <li>haz scroll sobre el lienzo para que la nave las abduzca</li>
-          <li>activa MANOS: pellizca con la derecha para agarrar</li>
-          <li>cierra la izquierda para abducir con la mano</li>
+          <li>mueve el mouse: la nave te sigue y se inclina</li>
+          <li>mantén el click: la estela se abre y succiona</li>
+          <li>solo suben las ovejas que toca la estela</li>
+          <li>click sobre una oveja para arrastrarla y lanzarla</li>
+          <li>MANOS: la derecha guía la nave; pellizca o cierra la izquierda para succionar</li>
         </ol>
       </div>
     </div>
@@ -729,12 +738,14 @@
     //  medidores, manos con MediaPipe, panel de ayuda).
     //
     //  #bgVideo (z=1)     → video del póster en loop
-    //  #mainCanvas (z=2)  → rayo + 30 ovejas con física (Matter.js)
-    //                        + la nave encima de todo
-    //  #handsCanvas (z=3) → indicadores de las manos
+    //  #mainCanvas (z=2)  → 30 ovejas con física (Matter.js)
+    //  #beamCanvas (z=3)  → estela #FD030B, mix-blend-mode: exclusion
+    //  #shipCanvas (z=4)  → la nave, que sigue al cursor
+    //  #handsCanvas (z=5) → indicadores de las manos
     //
-    //  Mouse / dedo / pinch derecho: agarra y arrastra ovejas.
-    //  Scroll / pinch izquierdo: enciende el rayo y las abduce.
+    //  Mover: la nave sigue al puntero y se inclina según la velocidad.
+    //  Click sostenido: la estela se abre y succiona las ovejas que toca.
+    //  Click sobre una oveja: se agarra y se arrastra.
     // ═══════════════════════════════════════════════════════════
 
     const $ = (id) => document.getElementById(id);
@@ -796,7 +807,7 @@
     window.addEventListener('resize', fitStage);
     window.addEventListener('load', fitStage);
 
-    ['mainCanvas', 'handsCanvas'].forEach((id) => {
+    ['mainCanvas', 'beamCanvas', 'shipCanvas', 'handsCanvas'].forEach((id) => {
       const c = $(id);
       c.width = CANVAS_W;
       c.height = CANVAS_H;
@@ -806,30 +817,16 @@
 
     // ─────────── ESTADO DE INTERACCIÓN ───────────
     const STILL_MS = 140;
-    const SCROLL_RECORRIDO_PX = 2400;
 
     const estado = {
-      puntero: null,       // {x, y} en coordenadas del lienzo, o null
-      pulsado: false,      // mouse / dedo / pinch derecho cerrado
-      scroll: 0,           // 0..1, suavizado
-      scrollTarget: 0,     // 0..1, lo que fija el gesto
+      puntero: null,       // {x, y} en coordenadas del lienzo (mouse, dedo o mano)
+      succion: 0,          // 0..1, suavizado: cuánto está abierta la estela
       moviendo: false,
-      scrolleando: false,
     };
 
     let lastMouseMoveAt = 0;
-    let lastScrollAt = 0;
-
-    function deltaEnPx(e) {
-      if (e.deltaMode === 1) return e.deltaY * 16;
-      if (e.deltaMode === 2) return e.deltaY * 400;
-      return e.deltaY;
-    }
-    function moverScroll(deltaY) {
-      lastScrollAt = performance.now();
-      const t = estado.scrollTarget + deltaY / SCROLL_RECORRIDO_PX;
-      estado.scrollTarget = Math.min(1, Math.max(0, t));
-    }
+    let succionandoPuntero = false;   // click / dedo sostenido fuera de una oveja
+    let succionandoMano = false;      // mano izquierda cerrada
 
     const canvasEl = $('wdbCanvas');
     function aCanvas(clientX, clientY) {
@@ -840,50 +837,12 @@
       };
     }
 
-    canvasEl.addEventListener('mousemove', (e) => {
-      lastMouseMoveAt = performance.now();
-      estado.puntero = aCanvas(e.clientX, e.clientY);
-    });
-    canvasEl.addEventListener('mousedown', () => { estado.pulsado = true; });
-    window.addEventListener('mouseup', () => { estado.pulsado = false; });
-    canvasEl.addEventListener('mouseleave', () => { estado.puntero = null; estado.pulsado = false; });
-
-    let tocandoY = null;
-    canvasEl.addEventListener('touchstart', (e) => {
-      if (!e.touches.length) return;
-      const t = e.touches[0];
-      estado.puntero = aCanvas(t.clientX, t.clientY);
-      estado.pulsado = true;
-      lastMouseMoveAt = performance.now();
-      tocandoY = t.clientY;
-      if (e.cancelable) e.preventDefault();
-    }, { passive: false });
-    canvasEl.addEventListener('touchmove', (e) => {
-      if (!e.touches.length) return;
-      const t = e.touches[0];
-      estado.puntero = aCanvas(t.clientX, t.clientY);
-      lastMouseMoveAt = performance.now();
-      if (tocandoY !== null) {
-        moverScroll(tocandoY - t.clientY);
-        tocandoY = t.clientY;
-      }
-      if (e.cancelable) e.preventDefault();
-    }, { passive: false });
-    function finTocar() { tocandoY = null; estado.pulsado = false; }
-    window.addEventListener('touchend', finTocar);
-    window.addEventListener('touchcancel', finTocar);
-
-    canvasEl.addEventListener('wheel', (e) => {
-      moverScroll(Math.abs(deltaEnPx(e)));
-      if (e.cancelable) e.preventDefault();
-    }, { passive: false });
-
     // ─────────── MEDIDORES DEL SIDEBAR ───────────
     let moveLevel = 0;
     function updateMeters(dt) {
       moveLevel += ((estado.moviendo ? 1 : 0) - moveLevel) * Math.min(1, dt * 6);
       const m = Math.round(moveLevel * 100);
-      const s = Math.round(estado.scroll * 100);
+      const s = Math.round(estado.succion * 100);
       $('movePct').textContent = m + '%';
       $('moveFill').style.width = m + '%';
       $('scrollPct').textContent = s + '%';
@@ -900,30 +859,94 @@
       });
     }
 
-    // La oveja viene negra; la roja se tiñe una sola vez en un canvas
-    // aparte para no recalcularla en cada frame.
-    function teñir(img, color) {
-      const c = document.createElement('canvas');
-      c.width = img.naturalWidth;
-      c.height = img.naturalHeight;
-      const x = c.getContext('2d');
-      x.drawImage(img, 0, 0);
-      x.globalCompositeOperation = 'source-in';
-      x.fillStyle = color;
-      x.fillRect(0, 0, c.width, c.height);
-      return c;
-    }
-
     // ─────────── COMPOSICIÓN (medida sobre el póster de referencia) ───────────
     const NAVE_ANCHO = 0.576 * CANVAS_W;   // la nave ocupa ~58% del ancho
-    const NAVE_TOP   = 0.175 * CANVAS_H;   // justo debajo de "WE DON'T BELONG"
+    const NAVE_TOP   = 0.175 * CANVAS_H;   // posición inicial: debajo del título
     const OVEJA_W = 86;                    // ~8% del ancho, como en el póster
-    const OVEJA_ROJA = '#FF0307';
     const N_OVEJAS = 30;
-    const N_NEGRAS = 4;                    // las que "no pertenecen"
 
-    let naveImg = null, ovejaNegra = null, ovejaRoja = null;
+    // Estela: cono invertido color #FD030B en modo de fusión "exclusión"
+    // (lo hace el CSS del canvas #beamCanvas, así afecta al video y a las
+    // ovejas que tiene debajo). Medida sobre el póster: arriba ~9% del
+    // ancho, abajo ~68% cuando la nave está en su sitio original.
+    const ESTELA_COLOR = '#FD030B';
+    const ESTELA_MEDIO_ARRIBA = 0.045 * CANVAS_W;
+    const ESTELA_APERTURA = 0.35;          // cuánto se abre por cada px de largo
+    const ESTELA_EXPANSION = 0.4;          // +40% de ancho con el click sostenido
+    const ANCLA_Y = 0.86;                  // ancla: 86% del alto de la nave (su base)
+
+    let naveImg = null, ovejaImg = null;
     let naveH = 0, ovejaH = 0;
+
+    // ─────────── NAVE: sigue al puntero con suavidad e inclinación ───────────
+    const nave = {
+      x: CANVAS_W / 2,
+      y: 0,              // centro de la nave; se fija al cargar
+      vx: 0,
+      ang: 0,
+      flota: 0,
+    };
+    const NAVE_SEGUIR = 7;        // qué tan rápido alcanza al puntero
+    const NAVE_INCLINA = 0.0009;  // rad por px/s de velocidad horizontal
+    const NAVE_INCLINA_MAX = 0.32;
+
+    function moverNave(dt) {
+      if (!naveImg) return;
+      const t = performance.now();
+      const objetivo = estado.puntero || { x: nave.x, y: nave.y };
+      // límites: siempre dentro del lienzo, sin bajar tanto que la
+      // estela quede sin recorrido
+      const tx = Math.min(CANVAS_W - NAVE_ANCHO * 0.25, Math.max(NAVE_ANCHO * 0.25, objetivo.x));
+      const ty = Math.min(CANVAS_H * 0.72, Math.max(naveH * 0.55, objetivo.y));
+      const k = 1 - Math.exp(-NAVE_SEGUIR * dt);
+      const nx = nave.x + (tx - nave.x) * k;
+      const ny = nave.y + (ty - nave.y) * k;
+      nave.vx = dt > 0 ? (nx - nave.x) / dt : 0;
+      nave.x = nx;
+      nave.y = ny;
+      // se inclina hacia donde va, y vuelve sola a horizontal al parar
+      const angObjetivo = Math.max(-NAVE_INCLINA_MAX, Math.min(NAVE_INCLINA_MAX, nave.vx * NAVE_INCLINA));
+      nave.ang += (angObjetivo - nave.ang) * (1 - Math.exp(-8 * dt));
+      nave.flota = Math.sin(t * 0.0018) * 5;
+    }
+
+    // Punto de anclaje de la estela: la base de la nave, girada con ella.
+    function ancla() {
+      const off = naveH * (ANCLA_Y - 0.5);
+      return {
+        x: nave.x - Math.sin(nave.ang) * off,
+        y: nave.y + nave.flota + Math.cos(nave.ang) * off,
+      };
+    }
+
+    // Cono de la estela como polígono de 4 puntos. Gira con la nave y
+    // siempre llega más allá del borde inferior del lienzo.
+    function conoEstela() {
+      const a = ancla();
+      const dir = { x: -Math.sin(nave.ang), y: Math.cos(nave.ang) };
+      const nor = { x: dir.y, y: -dir.x };
+      const largo = (CANVAS_H - a.y) / Math.max(0.5, dir.y) + 120;
+      const e = 1 + ESTELA_EXPANSION * estado.succion;
+      const w0 = ESTELA_MEDIO_ARRIBA * (1 + 0.5 * (e - 1));
+      const w1 = w0 + largo * ESTELA_APERTURA * e;
+      const fin = { x: a.x + dir.x * largo, y: a.y + dir.y * largo };
+      return [
+        { x: a.x - nor.x * w0, y: a.y - nor.y * w0 },
+        { x: a.x + nor.x * w0, y: a.y + nor.y * w0 },
+        { x: fin.x + nor.x * w1, y: fin.y + nor.y * w1 },
+        { x: fin.x - nor.x * w1, y: fin.y - nor.y * w1 },
+      ];
+    }
+
+    function dentroDePoligono(p, pol) {
+      let dentro = false;
+      for (let i = 0, j = pol.length - 1; i < pol.length; j = i++) {
+        const a = pol[i], b = pol[j];
+        if ((a.y > p.y) !== (b.y > p.y) &&
+            p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) dentro = !dentro;
+      }
+      return dentro;
+    }
 
     // ─────────── FÍSICA (Matter.js) ───────────
     const { Engine, Bodies, Body, Composite, Constraint, Query, Vector } = Matter;
@@ -944,8 +967,6 @@
     const ovejas = [];
 
     function crearOvejas() {
-      // Las negras van a los extremos, como en el póster.
-      const negras = new Set([0, 1, N_OVEJAS - 2, N_OVEJAS - 1]);
       for (let i = 0; i < N_OVEJAS; i++) {
         const fila = Math.floor(i / 10);
         const col = i % 10;
@@ -959,16 +980,13 @@
           density: 0.0018,
         });
         Body.setAngle(cuerpo, (Math.random() - 0.5) * 0.3);
-        cuerpo.oveja = {
-          img: negras.has(i) && N_NEGRAS > 0 ? ovejaNegra : ovejaRoja,
-          espejo: Math.random() < 0.35,
-        };
+        cuerpo.oveja = { espejo: Math.random() < 0.35 };
         ovejas.push(cuerpo);
       }
       Composite.add(engine.world, ovejas);
     }
 
-    // ── Agarrar / arrastrar / soltar (mouse, dedo y mano derecha) ──
+    // ── Agarrar / arrastrar / soltar ovejas ──
     let agarre = null;   // Constraint activo, o null
     const VEL_MAX = 38;
 
@@ -997,7 +1015,6 @@
         length: 0,
       });
       Composite.add(engine.world, agarre);
-      $('mainCanvas').classList.add('grabbing');
       return true;
     }
     function arrastrar(p) {
@@ -1011,116 +1028,102 @@
       // se limita la velocidad del lanzamiento para que no atraviese nada
       const v = o.velocity, m = Math.hypot(v.x, v.y);
       if (m > VEL_MAX) Body.setVelocity(o, { x: v.x / m * VEL_MAX, y: v.y / m * VEL_MAX });
-      $('mainCanvas').classList.remove('grabbing');
     }
 
-    canvasEl.addEventListener('mousedown', (e) => {
-      if (agarrar(aCanvas(e.clientX, e.clientY))) e.preventDefault();
-    });
+    // ── Pulsar: sobre una oveja la agarra; en cualquier otro sitio,
+    //    mientras se mantiene, la estela se abre y succiona. ──
+    function presionar(p, radioExtra = 0) {
+      if (agarrar(p, radioExtra)) return;
+      succionandoPuntero = true;
+    }
+    function liberar() {
+      soltar();
+      succionandoPuntero = false;
+    }
+
+    function actualizarCursor(p) {
+      canvasEl.classList.toggle('grab', !!agarre);
+      canvasEl.classList.toggle('over', !agarre && !!p && !!ovejaEn(p));
+    }
+
     canvasEl.addEventListener('mousemove', (e) => {
       const p = aCanvas(e.clientX, e.clientY);
+      lastMouseMoveAt = performance.now();
+      estado.puntero = p;
       arrastrar(p);
-      $('mainCanvas').classList.toggle('over', !agarre && !!ovejaEn(p));
+      actualizarCursor(p);
     });
-    window.addEventListener('mouseup', soltar);
-    canvasEl.addEventListener('mouseleave', soltar);
+    canvasEl.addEventListener('mousedown', (e) => {
+      const p = aCanvas(e.clientX, e.clientY);
+      estado.puntero = p;
+      presionar(p);
+      actualizarCursor(p);
+      e.preventDefault();
+    });
+    window.addEventListener('mouseup', () => { liberar(); actualizarCursor(null); });
+    canvasEl.addEventListener('mouseleave', () => { liberar(); actualizarCursor(null); });
 
-    // Táctil: si el dedo cae sobre una oveja la arrastra; si no, el
-    // gesto funciona como el scroll (y enciende el rayo).
+    // Táctil: el dedo lleva la nave; mantenerlo apretado succiona, y si
+    // cae sobre una oveja la arrastra.
     canvasEl.addEventListener('touchstart', (e) => {
       if (!e.touches.length) return;
       const t = e.touches[0];
-      if (agarrar(aCanvas(t.clientX, t.clientY), 30)) tocandoY = null;
+      const p = aCanvas(t.clientX, t.clientY);
+      estado.puntero = p;
+      lastMouseMoveAt = performance.now();
+      presionar(p, 30);
+      if (e.cancelable) e.preventDefault();
     }, { passive: false });
     canvasEl.addEventListener('touchmove', (e) => {
-      if (!e.touches.length || !agarre) return;
+      if (!e.touches.length) return;
       const t = e.touches[0];
-      arrastrar(aCanvas(t.clientX, t.clientY));
+      const p = aCanvas(t.clientX, t.clientY);
+      estado.puntero = p;
+      lastMouseMoveAt = performance.now();
+      arrastrar(p);
+      if (e.cancelable) e.preventDefault();
     }, { passive: false });
-    window.addEventListener('touchend', soltar);
-    window.addEventListener('touchcancel', soltar);
+    window.addEventListener('touchend', liberar);
+    window.addEventListener('touchcancel', liberar);
 
-    // ── Rayo de abducción ──
-    // estado.scroll (0..1) es la intensidad. El rayo sale de la base de
-    // la nave y se abre hacia el suelo, como en el póster.
-    function rayo() {
-      const y0 = NAVE_TOP + naveH * 0.86;
-      return {
-        y0,
-        xTop0: CANVAS_W * 0.455, xTop1: CANVAS_W * 0.545,
-        xBot0: CANVAS_W * 0.16,  xBot1: CANVAS_W * 0.84,
-      };
-    }
-    function dentroDelRayo(p) {
-      const r = rayo();
-      if (p.y < r.y0) return 0;
-      const t = (p.y - r.y0) / (CANVAS_H - r.y0);
-      const x0 = r.xTop0 + (r.xBot0 - r.xTop0) * t;
-      const x1 = r.xTop1 + (r.xBot1 - r.xTop1) * t;
-      if (p.x < x0 || p.x > x1) return 0;
-      // más fuerte en el centro del rayo
-      const c = (p.x - x0) / (x1 - x0);
-      return 1 - Math.abs(c - 0.5) * 2 * 0.6;
+    // La rueda no se usa aquí, pero no debe mover la página.
+    canvasEl.addEventListener('wheel', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+
+    // ── Succión: solo las ovejas que TOCAN la estela ──
+    // Una oveja toca la estela si su centro o cualquiera de sus vértices
+    // cae dentro del cono. Las demás no se enteran.
+    function tocaEstela(o, cono) {
+      if (dentroDePoligono(o.position, cono)) return true;
+      for (const v of o.vertices) if (dentroDePoligono(v, cono)) return true;
+      return false;
     }
 
-    function aplicarAbduccion() {
-      const k = estado.scroll;
-      if (k < 0.01) return;
-      const cx = CANVAS_W / 2;
+    const SUCCION_FUERZA = 0.0026;   // tirón hacia la nave (por unidad de masa)
+    function aplicarSuccion() {
+      const k = estado.succion;
+      if (k < 0.05 || !naveImg) return;
+      const cono = conoEstela();
+      const a = ancla();
+      const g = engine.gravity.y * engine.gravity.scale;
       for (const o of ovejas) {
         if (agarre && agarre.bodyB === o) continue;
-        const f = dentroDelRayo(o.position);
-        if (!f) continue;
+        if (!tocaEstela(o, cono)) continue;
         const m = o.mass;
-        // vence la gravedad y sube; además centra suavemente hacia el eje
-        const subir = -m * engine.gravity.y * engine.gravity.scale * (1 + 1.4 * k) * f * k;
-        const centrar = (cx - o.position.x) * m * 0.0000035 * k;
-        Body.applyForce(o, o.position, { x: centrar, y: subir });
-        Body.setAngularVelocity(o, o.angularVelocity * 0.96 + 0.004 * k);
+        const d = Vector.sub(a, o.position);
+        const dist = Math.max(1, Vector.magnitude(d));
+        const dirN = { x: d.x / dist, y: d.y / dist };
+        // anula la gravedad y tira hacia el ancla
+        Body.applyForce(o, o.position, {
+          x: dirN.x * m * SUCCION_FUERZA * k,
+          y: dirN.y * m * SUCCION_FUERZA * k - m * g * k,
+        });
+        // cerca de la nave se frenan, para que se amontonen debajo en
+        // vez de pasar de largo y rebotar
+        if (dist < 160) {
+          Body.setVelocity(o, { x: o.velocity.x * 0.9, y: o.velocity.y * 0.9 });
+        }
+        Body.setAngularVelocity(o, o.angularVelocity * 0.95 + 0.003 * k);
       }
-    }
-
-    // ─────────── DIBUJO ───────────
-    function dibujarRayo() {
-      const k = estado.scroll;
-      if (k < 0.01) return;
-      const r = rayo();
-      const g = mainCtx.createLinearGradient(0, r.y0, 0, CANVAS_H);
-      g.addColorStop(0, `rgba(120, 40, 40, ${0.55 * k})`);
-      g.addColorStop(0.5, `rgba(205, 140, 120, ${0.6 * k})`);
-      g.addColorStop(1, `rgba(245, 230, 200, ${0.85 * k})`);
-      mainCtx.fillStyle = g;
-      mainCtx.beginPath();
-      mainCtx.moveTo(r.xTop0, r.y0);
-      mainCtx.lineTo(r.xTop1, r.y0);
-      mainCtx.lineTo(r.xBot1, CANVAS_H);
-      mainCtx.lineTo(r.xBot0, CANVAS_H);
-      mainCtx.closePath();
-      mainCtx.fill();
-    }
-
-    function dibujarOvejas() {
-      for (const o of ovejas) {
-        mainCtx.save();
-        mainCtx.translate(o.position.x, o.position.y);
-        mainCtx.rotate(o.angle);
-        if (o.oveja.espejo) mainCtx.scale(-1, 1);
-        mainCtx.drawImage(o.oveja.img, -OVEJA_W / 2, -ovejaH / 2, OVEJA_W, ovejaH);
-        mainCtx.restore();
-      }
-    }
-
-    function dibujarNave(t) {
-      const flota = Math.sin(t * 0.0018) * 6;   // leve flotación
-      mainCtx.drawImage(naveImg, (CANVAS_W - NAVE_ANCHO) / 2, NAVE_TOP + flota, NAVE_ANCHO, naveH);
-    }
-
-    function renderScene() {
-      mainCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-      if (!naveImg) return;
-      dibujarRayo();
-      dibujarOvejas();
-      dibujarNave(performance.now());   // la nave va sobre todo
     }
 
     // Las ovejas tienden a quedar de pie: un empujoncito de giro hacia
@@ -1133,13 +1136,56 @@
       }
     }
 
+    // ─────────── DIBUJO ───────────
+    const beamCtx = $('beamCanvas').getContext('2d');
+    const shipCtx = $('shipCanvas').getContext('2d');
+
+    function dibujarOvejas() {
+      mainCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      for (const o of ovejas) {
+        mainCtx.save();
+        mainCtx.translate(o.position.x, o.position.y);
+        mainCtx.rotate(o.angle);
+        if (o.oveja.espejo) mainCtx.scale(-1, 1);
+        mainCtx.drawImage(ovejaImg, -OVEJA_W / 2, -ovejaH / 2, OVEJA_W, ovejaH);
+        mainCtx.restore();
+      }
+    }
+
+    function dibujarEstela() {
+      beamCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      const c = conoEstela();
+      beamCtx.fillStyle = ESTELA_COLOR;
+      beamCtx.beginPath();
+      beamCtx.moveTo(c[0].x, c[0].y);
+      for (let i = 1; i < c.length; i++) beamCtx.lineTo(c[i].x, c[i].y);
+      beamCtx.closePath();
+      beamCtx.fill();
+    }
+
+    function dibujarNave() {
+      shipCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      shipCtx.save();
+      shipCtx.translate(nave.x, nave.y + nave.flota);
+      shipCtx.rotate(nave.ang);
+      shipCtx.drawImage(naveImg, -NAVE_ANCHO / 2, -naveH / 2, NAVE_ANCHO, naveH);
+      shipCtx.restore();
+    }
+
+    function renderScene() {
+      if (!naveImg) return;
+      dibujarOvejas();
+      dibujarEstela();   // encima de video + ovejas, en exclusión
+      dibujarNave();     // la nave va sobre todo
+    }
+
     // Paso de física fijo (60 Hz) para que no dependa de los fps.
     const PASO = 1000 / 60;
     let acumulado = 0;
     function pasoFisica(dt) {
       acumulado = Math.min(acumulado + dt * 1000, PASO * 4);
       while (acumulado >= PASO) {
-        aplicarAbduccion();
+        aplicarSuccion();
         enderezar();
         Engine.update(engine, PASO);
         acumulado -= PASO;
@@ -1153,16 +1199,13 @@
       lastTick = now;
 
       estado.moviendo = (now - lastMouseMoveAt) < STILL_MS;
-      estado.scrolleando = (now - lastScrollAt) < STILL_MS;
-      if (pinchIzq !== null) {
-        estado.scrollTarget = pinchIzq;
-      } else if (!estado.scrolleando) {
-        // al dejar de scrollear el rayo se apaga solo y las ovejas caen
-        estado.scrollTarget = Math.max(0, estado.scrollTarget - dt * 0.35);
-      }
-      estado.scroll += (estado.scrollTarget - estado.scroll) * Math.min(1, dt * 8);
+      // la estela se abre rápido al apretar y se cierra un poco más lento
+      const objetivo = (succionandoPuntero || succionandoMano) ? 1 : 0;
+      const vel = objetivo > estado.succion ? 9 : 5;
+      estado.succion += (objetivo - estado.succion) * Math.min(1, dt * vel);
 
       updateMeters(dt);
+      moverNave(dt);
       if (naveImg) pasoFisica(dt);
       renderScene();
     }
@@ -1243,8 +1286,8 @@
     })();
 
     // ─────────── MANOS (MediaPipe, igual que Daisy) ───────────
-    // Derecha: pinch = pulsar (estado.pulsado) y mueve el puntero.
-    // Izquierda: el pinch gobierna estado.scroll (cerrado avanza).
+    // Derecha: guía la nave; pinch = click (agarra oveja o succiona).
+    // Izquierda: mano cerrada = succión.
     const PINCH_CERRADO = 0.025;
     const PINCH_ABIERTO = 0.30;
     const MANOS_EN_ESPEJO = true;
@@ -1344,12 +1387,13 @@
         const esDerecha = MANOS_EN_ESPEJO ? etiqueta === 'Right' : etiqueta === 'Left';
         if (esDerecha) der = manos[i]; else izq = manos[i];
       }
-      if (izq) { pinchIzq = cerrazonDe(pinchDe(izq)); lastScrollAt = performance.now(); }
+      if (izq) pinchIzq = cerrazonDe(pinchDe(izq));
+      succionandoMano = pinchIzq !== null && pinchIzq > 0.6;
 
       pintarManos(der, izq, der ? cerrazonDe(pinchDe(der)) : 0, pinchIzq ?? 0);
 
       if (!der) {
-        if (pinchDerCerrado) { pinchDerCerrado = false; estado.pulsado = false; soltar(); }
+        if (pinchDerCerrado) { pinchDerCerrado = false; liberar(); }
         return;
       }
       const d = pinchDe(der);
@@ -1358,12 +1402,10 @@
       lastMouseMoveAt = performance.now();
       if (!pinchDerCerrado && d < AGARRE_CIERRA) {
         pinchDerCerrado = true;
-        estado.pulsado = true;
-        agarrar(p, 110);   // radio generoso: la mano es menos precisa
+        presionar(p, 110);   // radio generoso: la mano es menos precisa
       } else if (pinchDerCerrado && d > AGARRE_ABRE) {
         pinchDerCerrado = false;
-        estado.pulsado = false;
-        soltar();
+        liberar();
       }
       if (pinchDerCerrado) arrastrar(p);
     }
@@ -1409,7 +1451,7 @@
         if (!manosRaf) bucleManos();
         camBtn.textContent = 'DETENER MANOS';
         camBtn.classList.add('on');
-        aviso('derecha: pellizca para agarrar una oveja. izquierda: cierra la mano para abducir.');
+        aviso('derecha: mueve la nave y pellizca para succionar. izquierda: cierra la mano para succionar.');
       } catch (e) {
         camBtn.textContent = 'MANOS';
         aviso('no se pudo activar la cámara o el modelo: ' + (e && e.message ? e.message : e));
@@ -1428,11 +1470,11 @@
       camCtx.clearRect(0, 0, camOverlay.width, camOverlay.height);
       pinchIzq = null;
       pinchDerCerrado = false;
-      estado.pulsado = false;
-      soltar();
+      succionandoMano = false;
+      liberar();
       camBtn.textContent = 'MANOS';
       camBtn.classList.remove('on');
-      aviso('agarra una oveja y arrástrala. suéltala y deja que caiga.');
+      aviso('mueve la nave con el mouse. mantén el click para succionar.');
     }
 
     camBtn.addEventListener('click', () => {
@@ -1455,16 +1497,17 @@
       window.addEventListener('pointerdown', reproducir, { once: true });
 
       try {
-        const [nave, oveja] = await Promise.all([
+        const [naveArte, oveja] = await Promise.all([
           cargarImg('/tools/wdb-media/nave.png'),
           cargarImg('/tools/wdb-media/oveja.png'),
         ]);
-        naveH = NAVE_ANCHO * nave.naturalHeight / nave.naturalWidth;
+        naveH = NAVE_ANCHO * naveArte.naturalHeight / naveArte.naturalWidth;
         ovejaH = OVEJA_W * oveja.naturalHeight / oveja.naturalWidth;
-        ovejaNegra = oveja;
-        ovejaRoja = teñir(oveja, OVEJA_ROJA);
+        ovejaImg = oveja;   // negra, tal cual el archivo
         crearOvejas();
-        naveImg = nave;
+        // arranca en su sitio del póster, debajo del título
+        nave.y = NAVE_TOP + naveH / 2;
+        naveImg = naveArte;
       } catch (e) {
         aviso('no se pudieron cargar los assets.');
         console.error(e); // eslint-disable-line no-console
