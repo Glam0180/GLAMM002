@@ -18,10 +18,10 @@ import './ToolSystemShell.css'
  * flotante: vive FUERA de la ventana de contenido (`.tss__frame`, el
  * "canvas" de la herramienta) y solo puede arrastrarse por fuera de ella.
  */
-// ── Switch vertical de inversión de color (rojo ↔ negro) ──
+// ── Switch vertical de tema: arriba rojo/negro, abajo #00E9B4 / #E64CDF / negro ──
 // Misma clave de localStorage que /tools/glam-invert.js, así la elección
 // se comparte con las herramientas que viven en HTML (y sus iframes).
-const CLAVE_INV = 'glam-invert'
+const CLAVE_INV = 'glam-tema'
 function leerInv() {
   try { return localStorage.getItem(CLAVE_INV) === '1' } catch (e) { return false }
 }
@@ -30,7 +30,7 @@ function InvertSwitch() {
   const [inv, setInv] = useState(leerInv)
 
   useEffect(() => {
-    document.documentElement.classList.toggle('glam-inv', inv)
+    document.documentElement.classList.toggle('glam-alt', inv)
   }, [inv])
 
   useEffect(() => {
@@ -44,7 +44,7 @@ function InvertSwitch() {
       window.removeEventListener('storage', onStorage)
       window.removeEventListener('message', onMsg)
       // al salir de la herramienta, el resto del sitio vuelve a su color
-      document.documentElement.classList.remove('glam-inv')
+      document.documentElement.classList.remove('glam-alt')
     }
   }, [])
 
@@ -60,8 +60,8 @@ function InvertSwitch() {
       className="g-inv"
       role="switch"
       aria-checked={inv}
-      aria-label="Invertir colores"
-      title={inv ? 'Colores originales' : 'Invertir colores'}
+      aria-label="Cambiar colores"
+      title={inv ? 'Colores originales' : 'Cambiar colores'}
       onClick={alternar}
     />
   )

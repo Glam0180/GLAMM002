@@ -6,8 +6,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Floralis</title>
 <style>
-:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb));--g-red-dark:#CC0000}
-html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
+/* Tema alterno (switch): fondo #00E9B4, ventanas #E64CDF, líneas y texto negros.
+   --g-red = color de acento (líneas, texto, barras); --g-black = superficie.
+   En las barras de título se vuelve a cruzar el par para que queden
+   magenta con texto negro. */
+:root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb))}
+:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red-dark:#CC0000}
+html.glam-alt{--g-red-rgb:0,0,0;--g-black-rgb:230,76,223;--g-red-dark:#3a3a3a}
+html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red-rgb:230,76,223;--g-black-rgb:0,0,0;--g-red-dark:#b93ab3}
+html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{background:#00E9B4}
 
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
@@ -336,6 +343,24 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
   .hex-label{
     font-family:var(--font-mono); font-size:var(--text-2xs);
     color:var(--color-text-tertiary); flex:1; margin-left:4px;
+  }
+
+  /* Tema alterno: jardín #00E9B4, paneles #E64CDF, texto y bordes negros */
+  html.glam-alt {
+    --color-bg:              #00E9B4;
+    --color-surface-win:     #E64CDF;
+    --color-surface-2:       #d644cf;
+    --color-titlebar-bg:     #E64CDF;
+    --color-white:           #000000;
+    --color-white-dim:       rgba(0,0,0,0.65);
+    --color-white-faint:     rgba(0,0,0,0.25);
+    --color-border:          #000000;
+    --color-border-win:      #000000;
+    --color-border-win-in:   rgba(0,0,0,0.25);
+    --color-text-primary:    #000000;
+    --color-text-secondary:  rgba(0,0,0,0.65);
+    --color-text-tertiary:   rgba(0,0,0,0.45);
+    --win-shadow:            3px 3px 0px #000000;
   }
 </style>
 </head>
@@ -730,7 +755,9 @@ function onHandResults(results){
 // ── FONDO ──
 function drawBg(){
   const bg=ctx.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#FF0100');bg.addColorStop(1,'#cc0000');
+  // con el switch de tema abajo, el jardín va en #00E9B4
+  const alt=document.documentElement.classList.contains('glam-alt');
+  bg.addColorStop(0,alt?'#00E9B4':'#FF0100');bg.addColorStop(1,alt?'#00c79a':'#cc0000');
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
   ctx.save();ctx.globalAlpha=0.04;
   for(let x=0;x<W;x+=16){ctx.fillStyle='#000';ctx.fillRect(x,0,8,H);}

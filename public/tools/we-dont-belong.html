@@ -12,8 +12,15 @@
     if (/[?&]grabar\b/.test(location.search)) document.documentElement.classList.add('grabar');
   </script>
   <style>
-:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb));--g-red-dark:#CC0000}
-html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
+/* Tema alterno (switch): fondo #00E9B4, ventanas #E64CDF, líneas y texto negros.
+   --g-red = color de acento (líneas, texto, barras); --g-black = superficie.
+   En las barras de título se vuelve a cruzar el par para que queden
+   magenta con texto negro. */
+:root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb))}
+:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red-dark:#CC0000}
+html.glam-alt{--g-red-rgb:0,0,0;--g-black-rgb:230,76,223;--g-red-dark:#3a3a3a}
+html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red-rgb:230,76,223;--g-black-rgb:0,0,0;--g-red-dark:#b93ab3}
+html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{background:#00E9B4}
 
     /* Space Mono — mismo design system que CANICAS.3D */
 
@@ -26,7 +33,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
       border-radius: 0 !important;
     }
 
-    :root {
+    :root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar) {
       --red: var(--g-red);
       --red-dark: var(--g-red-dark);
       --red-dim: rgba(var(--g-red-rgb), 0.55);

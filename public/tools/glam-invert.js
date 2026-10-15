@@ -1,18 +1,19 @@
 /* ═══════════════════════════════════════════════════════════
-   GLAM — switch de inversión de color (rojo ↔ negro)
+   GLAM — switch de tema de color
+   arriba: rojo/negro (normal) · abajo: #00E9B4 / #E64CDF / negro
 
    Se carga en el <head> de cada herramienta (sin defer) para que la
    clase quede puesta antes del primer pintado y no haya parpadeo.
 
-   - html.glam-inv invierte las variables --g-* que usa la interfaz.
-   - La elección se guarda en localStorage ('glam-invert') y se comparte
+   - html.glam-alt cambia las variables --g-* que usa la interfaz.
+   - La elección se guarda en localStorage ('glam-tema') y se comparte
      entre todas las herramientas, incluido el shell de React y los
      iframes (el evento 'storage' los mantiene sincronizados).
    - Si la página tiene #master-bar, se inserta el switch vertical antes
      de los controles de ventana (— □ ✕).
    ═══════════════════════════════════════════════════════════ */
 (function () {
-  var CLAVE = 'glam-invert';
+  var CLAVE = 'glam-tema';
   var root = document.documentElement;
 
   function leer() {
@@ -23,11 +24,11 @@
   }
 
   function aplicar(v) {
-    root.classList.toggle('glam-inv', v);
+    root.classList.toggle('glam-alt', v);
     var sw = document.querySelectorAll('.g-inv');
     for (var i = 0; i < sw.length; i++) {
       sw[i].setAttribute('aria-checked', v ? 'true' : 'false');
-      sw[i].title = v ? 'Colores originales' : 'Invertir colores';
+      sw[i].title = v ? 'Colores originales' : 'Cambiar colores';
     }
   }
 
@@ -38,7 +39,7 @@
   });
 
   function alternar() {
-    var v = !root.classList.contains('glam-inv');
+    var v = !root.classList.contains('glam-alt');
     guardar(v);
     aplicar(v);
     // por si la página está dentro de un iframe del shell
@@ -69,12 +70,12 @@
     b.type = 'button';
     b.className = 'g-inv';
     b.setAttribute('role', 'switch');
-    b.setAttribute('aria-label', 'Invertir colores');
+    b.setAttribute('aria-label', 'Cambiar colores');
     b.addEventListener('click', function (e) { e.stopPropagation(); alternar(); });
     var mright = bar.querySelector('.mright');
     if (mright) mright.insertBefore(b, mright.firstChild);
     else bar.appendChild(b);
-    aplicar(root.classList.contains('glam-inv'));
+    aplicar(root.classList.contains('glam-alt'));
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montar);
