@@ -808,6 +808,7 @@ GlamRec.montar({
   nombre:'floralis',
   manual:false,
   // la ventana del viewport es la del shell (página que contiene el iframe)
+  zonaCursor:()=>document.documentElement,
   ventana:()=>{try{return window.frameElement&&window.frameElement.closest('.tss__win');}catch(e){return null;}},
   alIniciar(){RK=Math.min(3,Math.max(1,1350/recorte45(W,H).h));resize();},
   alTerminar(){RK=1;resize();},

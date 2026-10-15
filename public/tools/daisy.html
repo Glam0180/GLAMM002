@@ -349,6 +349,9 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
        UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
        secuencia termina su ciclo parando en el frame 0, que es la imagen
        estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
+    /* manito pixel art: dedo apuntando; al presionar, pinch */
+    #daisyCanvas { cursor: url(/tools/cursor-point.png) 13 1, pointer; }
+    #daisyCanvas:active { cursor: url(/tools/cursor-pinch.png) 13 8, pointer; }
     #bg1Canvas    { z-index: 1; }
     #bg2Canvas    { z-index: 2; opacity: 0; }
     #variasCanvas { z-index: 3; }
@@ -1954,6 +1957,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
       nombre: 'daisy',
       manual: false,
       ventana: () => $('viewport'),
+      zonaCursor: () => $('daisyCanvas'),
       dibujar(c, W, H) {
         const capas = ['bg1Canvas', 'bg2Canvas', 'variasCanvas', 'stemCanvas', 'unoCanvas'];
         for (const id of capas) {

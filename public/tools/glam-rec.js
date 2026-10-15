@@ -15,6 +15,9 @@
                    que el grabador tome cuadros solo,
        dibujar(ctx, W, H) { ...pinta el viewport en ctx a W×H... },
        alIniciar(), alTerminar()   // opcionales (p. ej. subir resolución)
+       zonaCursor()  // opcional: elemento cuyo recorte 4:5 central es lo que
+                     // se graba; el cursor (manito) se dibuja en el video
+                     // sobre esa zona: dedo apuntando, y pinch al presionar.
        ventana()   // opcional: devuelve el elemento .win del viewport.
                    // Si está, el video muestra esa ventana (borde y barra
                    // de título, copiados del DOM con el tema activo) con
@@ -173,6 +176,28 @@
     }
   }
 
+  // ── Cursor (manito pixel art) ─────────────────────────────
+  // Mismos PNG que el cursor en pantalla: 36×36, punta en (13,1) y el
+  // pinch con el contacto en (13,8).
+  var CURSOR = {
+    apunta: { src: '/tools/cursor-point.png', hx: 13, hy: 1 },
+    pinch:  { src: '/tools/cursor-pinch.png', hx: 13, hy: 8 },
+  };
+  for (var k in CURSOR) { var im = new Image(); im.src = CURSOR[k].src; CURSOR[k].img = im; }
+  var TAM_CURSOR = 36;   // px CSS en pantalla
+
+  // Posición del puntero dentro del recorte 4:5 central de un elemento.
+  function mapa45(el, x, y) {
+    var r = el === el.ownerDocument.documentElement
+      ? { left: 0, top: 0, width: el.ownerDocument.defaultView.innerWidth, height: el.ownerDocument.defaultView.innerHeight }
+      : el.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    var cx = 0, cy = 0, cw = r.width, ch = r.height;
+    if (r.width / r.height > 0.8) { cw = r.height * 0.8; cx = (r.width - cw) / 2; }
+    else { ch = r.width / 0.8; cy = (r.height - ch) / 2; }
+    return { u: (x - r.left - cx) / cw, v: (y - r.top - cy) / ch, ancho: cw };
+  }
+
   function dosDigitos(n) { return (n < 10 ? '0' : '') + n; }
   function tiempo(ms) {
     var s = Math.floor(ms / 1000);
@@ -243,6 +268,35 @@
     var stream = null, pista = null, url = null, ultimoArchivo = '';
     var plan = null, planEn = 0;
 
+    // Puntero: se sigue siempre (también fuera de la grabación) para que
+    // el primer cuadro ya tenga la manito en su sitio.
+    var ptr = { x: 0, y: 0, dentro: false, presionado: false };
+    if (op.zonaCursor) {
+      var vista = window;
+      vista.addEventListener('pointermove', function (e) { ptr.x = e.clientX; ptr.y = e.clientY; ptr.dentro = true; }, true);
+      vista.addEventListener('pointerdown', function (e) { ptr.x = e.clientX; ptr.y = e.clientY; ptr.dentro = true; ptr.presionado = true; }, true);
+      vista.addEventListener('pointerup', function () { ptr.presionado = false; }, true);
+      vista.addEventListener('pointercancel', function () { ptr.presionado = false; }, true);
+      document.documentElement.addEventListener('pointerleave', function () { ptr.dentro = false; });
+      vista.addEventListener('blur', function () { ptr.presionado = false; });
+    }
+
+    function pintarCursor(c, cw, ch) {
+      if (!op.zonaCursor || !ptr.dentro) return;
+      var z = op.zonaCursor();
+      if (!z) return;
+      var m = mapa45(z, ptr.x, ptr.y);
+      if (!m || m.u < 0 || m.u > 1 || m.v < 0 || m.v > 1) return;
+      var cur = ptr.presionado ? CURSOR.pinch : CURSOR.apunta;
+      if (!cur.img.complete || !cur.img.naturalWidth) return;
+      var s = cw / m.ancho;                 // px de video por px de pantalla
+      var t = TAM_CURSOR * s;
+      c.save();
+      c.imageSmoothingEnabled = false;      // pixel art nítido
+      c.drawImage(cur.img, Math.round(m.u * cw - cur.hx * s), Math.round(m.v * ch - cur.hy * s), Math.round(t), Math.round(t));
+      c.restore();
+    }
+
     function pintar() {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha = 1;
@@ -263,12 +317,18 @@
         ctx.rect(c.x, c.y, c.w, c.h);
         ctx.clip();
         ctx.translate(c.x, c.y);
+        ctx.save();
         try { op.dibujar(ctx, c.w, c.h); } catch (e) { /* un cuadro suelto */ }
+        ctx.restore();
+        pintarCursor(ctx, c.w, c.h);
         ctx.restore();
       } else {
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, W, H);
+        ctx.save();
         try { op.dibujar(ctx, W, H); } catch (e) { /* un cuadro suelto */ }
+        ctx.restore();
+        pintarCursor(ctx, W, H);
       }
       if (pista && pista.requestFrame) pista.requestFrame();
     }

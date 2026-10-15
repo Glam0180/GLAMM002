@@ -3366,6 +3366,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         nombre: 'canicas-3d',
         manual: true,
         ventana: () => $('canvas-area'),
+        zonaCursor: () => $('vp-fit'),
         alIniciar() {
           const r = $('vp-fit').getBoundingClientRect();
           const cr = recorte45(r.width, r.height);
