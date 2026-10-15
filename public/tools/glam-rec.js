@@ -17,7 +17,7 @@
        alIniciar(), alTerminar()   // opcionales (p. ej. subir resolución)
        zonaCursor()  // opcional: elemento cuyo recorte 4:5 central es lo que
                      // se graba; el cursor (manito) se dibuja en el video
-                     // sobre esa zona: dedo apuntando, y mano cerrada al presionar.
+                     // sobre esa zona: dedo apuntando, y pinch al presionar.
        ventana()   // opcional: devuelve el elemento .win del viewport.
                    // Si está, el video muestra esa ventana (borde y barra
                    // de título, copiados del DOM con el tema activo) con
@@ -178,10 +178,10 @@
 
   // ── Cursor (manito pixel art) ─────────────────────────────
   // Mismos PNG que el cursor en pantalla: 24×24 pixel art; punta del
-  // dedo en (9,1); mano cerrada al presionar.
+  // dedo en (9,1); pinch al presionar.
   var CURSOR = {
     apunta:  { src: '/tools/cursor-point.png', hx: 9, hy: 1 },
-    cerrada: { src: '/tools/cursor-grab.png', hx: 12, hy: 6 },
+    cerrada: { src: '/tools/cursor-pinch.png', hx: 9, hy: 5 },
   };
   for (var k in CURSOR) { var im = new Image(); im.src = CURSOR[k].src; CURSOR[k].img = im; }
   var TAM_CURSOR = 24;   // px CSS en pantalla
