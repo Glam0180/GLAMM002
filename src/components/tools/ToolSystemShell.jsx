@@ -69,7 +69,6 @@ function InvertSwitch() {
 
 export default function ToolSystemShell({ tool, children, whatItDoes, steps }) {
   const name = tool?.name || 'HERRAMIENTA'
-  const subLabel = children ? name.toUpperCase() : `${name.toUpperCase()} — EN DESARROLLO`
   const boundsRef = useRef(null)
   const frameRef = useRef(null)
 
@@ -102,7 +101,6 @@ export default function ToolSystemShell({ tool, children, whatItDoes, steps }) {
               <span className="tss__slz">///</span>
               <div className="tss__win-dot" />
               <span className="tss__win-title">VIEWPORT.{name.toUpperCase().replace(/\s+/g, '_')}</span>
-              <span className="tss__win-sub">{subLabel}</span>
               <div className="tss__win-controls">
                 <span className="tss__win-ctrl">—</span>
                 <span className="tss__win-ctrl">□</span>
