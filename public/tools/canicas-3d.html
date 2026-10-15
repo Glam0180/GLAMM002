@@ -1299,7 +1299,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
             <div class="sep"></div>
 
             <div class="plabel">Control por gesto</div>
-            <button class="gbtn" id="gestb">🖐 ACTIVAR CÁMARA (MANO)</button>
+            <button class="gbtn" id="gestb">WOW</button>
             <div class="cdnote" id="gestst">Apunta y cierra el pinch (pulgar+índice) para disparar</div>
 
             <div class="sep"></div>
@@ -1330,7 +1330,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
         <ol class="ip__steps">
           <li>haz click y arrastra para apuntar y cargar potencia</li>
           <li>suelta para disparar la canica</li>
-          <li>activa "activar cámara" para usar tu mano</li>
+          <li>activa "WOW" para usar tu mano</li>
           <li>cierra el pinch para cargar y apunta moviendo la mano</li>
           <li>abre el pinch para disparar</li>
         </ol>
@@ -2855,7 +2855,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
     //  CONTROL POR GESTO (MediaPipe Hands) — el pellizco (pulgar +
     //  índice) de tu mano controla dirección y fuerza; al CERRARLO
     //  se dispara la canica. Todo opcional, se activa con el botón
-    //  "ACTIVAR CÁMARA" del panel.
+    //  "WOW" del panel.
     // ═══════════════════════════════════════════════════════════
     let handLandmarker = null;
     let gestureActive = false;
@@ -2917,7 +2917,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
     function stopGestureControl() {
       gestureActive = false;
       if (gestureStream) { gestureStream.getTracks().forEach(t => t.stop()); gestureStream = null; }
-      $('gestb').textContent = '🖐 ACTIVAR CÁMARA (MANO)';
+      $('gestb').textContent = 'WOW';
       $('gestst').textContent = 'Apunta y cierra el pinch (pulgar+índice) para disparar';
       $('gestHud').style.display = 'none';
       $('camPreview').style.display = 'none';

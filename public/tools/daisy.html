@@ -672,7 +672,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
             </div>
 
             <div class="cam-wrap">
-              <button type="button" class="cam-btn" id="camBtn">MANOS</button>
+              <button type="button" class="cam-btn" id="camBtn">WOW</button>
               <div class="cam-box" id="camBox">
                 <video id="camVid" autoplay playsinline muted></video>
                 <canvas id="camOverlay"></canvas>
@@ -1909,7 +1909,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
         camBtn.classList.add('on');
         avisoManos('derecha: pellizca para agarrar la flor. izquierda: cierra para avanzar, abre para retroceder.');
       } catch (e) {
-        camBtn.textContent = 'MANOS';
+        camBtn.textContent = 'WOW';
         avisoManos('no se pudo activar la cámara o el modelo: ' + (e && e.message ? e.message : e));
         console.error(e); // eslint-disable-line no-console
       }
@@ -1926,7 +1926,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
       camCtx.clearRect(0, 0, camOverlay.width, camOverlay.height);
       pinchIzq = null;
       if (pinchDerCerrado) { pinchDerCerrado = false; levantar(); }
-      camBtn.textContent = 'MANOS';
+      camBtn.textContent = 'WOW';
       camBtn.classList.remove('on');
       avisoManos('mueve el mouse sobre el lienzo, o haz scroll con la ruedita.');
     }

@@ -343,7 +343,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
 <canvas id="c"></canvas>
 <video id="vid" autoplay playsinline muted></video>
 <div id="title"><h1>Floralis</h1><p>jardín libre</p></div>
-<button id="camBtn">&#128247; mano</button>
+<button id="camBtn">WOW</button>
 <div id="ui"><span>arrastra con el mouse o</span> <b>pinch</b> <span>con tu mano derecha</span></div>
 <div id="dot"></div>
 <div id="pinchDot"></div>
@@ -705,7 +705,7 @@ async function startHand(){
 }
 function stopHand(){
   if(camStream)camStream.getTracks().forEach(t=>t.stop());
-  vid.style.display='none';handActive=false;camBtn.textContent='Mano';camBtn.classList.remove('active');
+  vid.style.display='none';handActive=false;camBtn.textContent='WOW';camBtn.classList.remove('active');
   dot.classList.remove('hand');pinchDot.style.display='none';
   if(handDragged){handDragged.release();handDragged=null;}pinching=false;
 }

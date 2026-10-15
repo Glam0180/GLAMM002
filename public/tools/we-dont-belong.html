@@ -734,7 +734,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
             </div>
 
             <div class="cam-wrap">
-              <button type="button" class="cam-btn" id="camBtn">MANOS</button>
+              <button type="button" class="cam-btn" id="camBtn">WOW</button>
               <div class="cam-box" id="camBox">
                 <video id="camVid" autoplay playsinline muted></video>
                 <canvas id="camOverlay"></canvas>
@@ -767,7 +767,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
           <li>mantén el click o el dedo: la estela se abre al doble y succiona</li>
           <li>las que tocan la nave son abducidas: a las 30, 60 y 100 cambia el tono</li>
           <li>click sobre una oveja para arrastrarla y lanzarla</li>
-          <li>MANOS: la derecha guía la nave; pellizca o cierra la izquierda para succionar</li>
+          <li>WOW: la derecha guía la nave; pellizca o cierra la izquierda para succionar</li>
         </ol>
       </div>
     </div>
@@ -1960,7 +1960,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
         camBtn.classList.add('on');
         aviso('derecha: mueve la nave y pellizca para succionar. izquierda: cierra la mano para succionar.');
       } catch (e) {
-        camBtn.textContent = 'MANOS';
+        camBtn.textContent = 'WOW';
         aviso('no se pudo activar la cámara o el modelo: ' + (e && e.message ? e.message : e));
         console.error(e); // eslint-disable-line no-console
       }
@@ -1979,7 +1979,7 @@ html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
       pinchDerCerrado = false;
       succionandoMano = false;
       liberar();
-      camBtn.textContent = 'MANOS';
+      camBtn.textContent = 'WOW';
       camBtn.classList.remove('on');
       aviso('mueve la nave con el mouse. mantén el click para succionar.');
     }
