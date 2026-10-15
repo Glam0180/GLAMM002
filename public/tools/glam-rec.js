@@ -17,7 +17,7 @@
        alIniciar(), alTerminar()   // opcionales (p. ej. subir resolución)
        zonaCursor()  // opcional: elemento cuyo recorte 4:5 central es lo que
                      // se graba; el cursor (manito) se dibuja en el video
-                     // sobre esa zona: dedo apuntando, y pinch al presionar.
+                     // sobre esa zona: dedo apuntando, y mano cerrada al presionar.
        ventana()   // opcional: devuelve el elemento .win del viewport.
                    // Si está, el video muestra esa ventana (borde y barra
                    // de título, copiados del DOM con el tema activo) con
@@ -177,14 +177,14 @@
   }
 
   // ── Cursor (manito pixel art) ─────────────────────────────
-  // Mismos PNG que el cursor en pantalla: 36×36, punta en (13,1) y el
-  // pinch con el contacto en (13,8).
+  // Mismos PNG que el cursor en pantalla: 24×24 pixel art; punta del
+  // dedo en (9,1); mano cerrada al presionar.
   var CURSOR = {
-    apunta: { src: '/tools/cursor-point.png', hx: 13, hy: 1 },
-    pinch:  { src: '/tools/cursor-pinch.png', hx: 13, hy: 8 },
+    apunta:  { src: '/tools/cursor-point.png', hx: 9, hy: 1 },
+    cerrada: { src: '/tools/cursor-grab.png', hx: 11, hy: 9 },
   };
   for (var k in CURSOR) { var im = new Image(); im.src = CURSOR[k].src; CURSOR[k].img = im; }
-  var TAM_CURSOR = 36;   // px CSS en pantalla
+  var TAM_CURSOR = 24;   // px CSS en pantalla
 
   // Posición del puntero dentro del recorte 4:5 central de un elemento.
   function mapa45(el, x, y) {
@@ -287,7 +287,7 @@
       if (!z) return;
       var m = mapa45(z, ptr.x, ptr.y);
       if (!m || m.u < 0 || m.u > 1 || m.v < 0 || m.v > 1) return;
-      var cur = ptr.presionado ? CURSOR.pinch : CURSOR.apunta;
+      var cur = ptr.presionado ? CURSOR.cerrada : CURSOR.apunta;
       if (!cur.img.complete || !cur.img.naturalWidth) return;
       var s = cw / m.ancho;                 // px de video por px de pantalla
       var t = TAM_CURSOR * s;
