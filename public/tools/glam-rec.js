@@ -181,7 +181,7 @@
   // dedo en (9,1); mano cerrada al presionar.
   var CURSOR = {
     apunta:  { src: '/tools/cursor-point.png', hx: 9, hy: 1 },
-    cerrada: { src: '/tools/cursor-grab.png', hx: 11, hy: 9 },
+    cerrada: { src: '/tools/cursor-grab.png', hx: 12, hy: 6 },
   };
   for (var k in CURSOR) { var im = new Image(); im.src = CURSOR[k].src; CURSOR[k].img = im; }
   var TAM_CURSOR = 24;   // px CSS en pantalla
