@@ -1,31 +1,35 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <script src="/tools/glam-invert.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Floralis</title>
 <style>
+:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb));--g-red-dark:#CC0000}
+html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
+
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
   /* ══ VARIABLES — global.css sistema retro punk ══ */
   :root {
-    --color-red:             #FF0100;
-    --color-red-dark:        #CC0000;
-    --color-black:           #000000;
+    --color-red:             var(--g-red);
+    --color-red-dark:        var(--g-red-dark);
+    --color-black:           var(--g-black);
     --color-white:           #FFFFFF;
     --color-white-dim:       rgba(255,255,255,0.65);
     --color-white-faint:     rgba(255,255,255,0.25);
-    --color-red-faint:       rgba(255,1,0,0.15);
+    --color-red-faint:       rgba(var(--g-red-rgb), 0.15);
 
-    --color-bg:              #FF0100;       /* Fondo global: ROJO */
-    --color-surface-win:     #000000;       /* Ventanas: NEGRO */
+    --color-bg:              var(--g-red);       /* Fondo global: ROJO */
+    --color-surface-win:     var(--g-black);       /* Ventanas: NEGRO */
     --color-surface-2:       #0a0a0a;
-    --color-titlebar-bg:     #000000;       /* Titlebar: NEGRO */
+    --color-titlebar-bg:     var(--g-black);       /* Titlebar: NEGRO */
     --color-border:          #FFFFFF;
     --color-border-win:      #FFFFFF;       /* Borde ventana: BLANCO */
     --color-border-win-in:   rgba(255,255,255,0.18);
     --color-text-primary:    #FFFFFF;
-    --color-text-on-red:     #000000;
+    --color-text-on-red:     var(--g-black);
     --color-text-secondary:  rgba(255,255,255,0.65);
     --color-text-tertiary:   rgba(255,255,255,0.45);
 
@@ -40,7 +44,7 @@
 
     --win-border-w:   2px;
     --win-titlebar-h: 24px;
-    --win-shadow:     3px 3px 0px #000000;
+    --win-shadow:     3px 3px 0px var(--g-black);
 
     --space-1: 2px; --space-2: 4px; --space-3: 6px;
     --space-4: 8px; --space-5: 10px; --space-6: 12px; --space-8: 16px;
@@ -66,7 +70,7 @@
     background-image: repeating-linear-gradient(
       0deg,
       transparent, transparent 2px,
-      rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 3px
+      rgba(var(--g-black-rgb), 0.07) 2px, rgba(var(--g-black-rgb), 0.07) 3px
     );
   }
 
@@ -144,14 +148,14 @@
     text-transform:uppercase;
     color:var(--color-black);
     line-height:1;
-    text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+    text-shadow: 2px 2px 0 rgba(var(--g-black-rgb), 0.3);
   }
   #title p{
     font-family:var(--font-mono);
     font-size:var(--text-2xs);
     letter-spacing:var(--tracking-widest);
     text-transform:uppercase;
-    color:rgba(0,0,0,0.55);
+    color:rgba(var(--g-black-rgb), 0.55);
     margin-top:5px;
   }
 
@@ -172,7 +176,7 @@
     pointer-events:none; transform:translate(-50%,-50%);
     z-index:9998; display:none; transition:border-color .15s;
   }
-  #pinchDot.closed{ background:rgba(255,1,0,0.35); border-color:var(--color-red); }
+  #pinchDot.closed{ background:rgba(var(--g-red-rgb), 0.35); border-color:var(--color-red); }
 
   /* ══ PANEL — componente .win ══ */
   #panel{
@@ -189,7 +193,7 @@
     border-left:none;
     position:relative;
     display:flex; flex-direction:column; gap:0;
-    box-shadow:4px 4px 0 rgba(0,0,0,0.8);
+    box-shadow:4px 4px 0 rgba(var(--g-black-rgb), 0.8);
   }
   /* doble borde inner */
   #panelInner::after{
@@ -241,7 +245,7 @@
     border-left:none;
     display:flex; align-items:center; justify-content:center;
     cursor:pointer; font-size:13px; color:var(--color-white-dim);
-    box-shadow:3px 3px 0 rgba(0,0,0,0.8);
+    box-shadow:3px 3px 0 rgba(var(--g-black-rgb), 0.8);
     transition:background var(--duration-fast), color var(--duration-fast);
     user-select:none;
   }
@@ -267,7 +271,7 @@
     -webkit-appearance:none; width:10px; height:10px;
     background:var(--color-red);
     border:1px solid var(--color-white);
-    box-shadow:1px 1px 0 rgba(0,0,0,0.4); cursor:pointer;
+    box-shadow:1px 1px 0 rgba(var(--g-black-rgb), 0.4); cursor:pointer;
   }
 
   /* Badge de valor */

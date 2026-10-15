@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import InfoPanel from './InfoPanel'
 import './ToolSystemShell.css'
@@ -18,6 +18,55 @@ import './ToolSystemShell.css'
  * flotante: vive FUERA de la ventana de contenido (`.tss__frame`, el
  * "canvas" de la herramienta) y solo puede arrastrarse por fuera de ella.
  */
+// ── Switch vertical de inversión de color (rojo ↔ negro) ──
+// Misma clave de localStorage que /tools/glam-invert.js, así la elección
+// se comparte con las herramientas que viven en HTML (y sus iframes).
+const CLAVE_INV = 'glam-invert'
+function leerInv() {
+  try { return localStorage.getItem(CLAVE_INV) === '1' } catch (e) { return false }
+}
+
+function InvertSwitch() {
+  const [inv, setInv] = useState(leerInv)
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('glam-inv', inv)
+  }, [inv])
+
+  useEffect(() => {
+    const onStorage = (e) => { if (e.key === CLAVE_INV) setInv(e.newValue === '1') }
+    const onMsg = (e) => {
+      if (e.origin === window.location.origin && e.data && typeof e.data.glamInvert === 'boolean') setInv(e.data.glamInvert)
+    }
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('message', onMsg)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('message', onMsg)
+      // al salir de la herramienta, el resto del sitio vuelve a su color
+      document.documentElement.classList.remove('glam-inv')
+    }
+  }, [])
+
+  const alternar = () => {
+    const v = !inv
+    try { localStorage.setItem(CLAVE_INV, v ? '1' : '0') } catch (e) { /* sin storage */ }
+    setInv(v)
+  }
+
+  return (
+    <button
+      type="button"
+      className="g-inv"
+      role="switch"
+      aria-checked={inv}
+      aria-label="Invertir colores"
+      title={inv ? 'Colores originales' : 'Invertir colores'}
+      onClick={alternar}
+    />
+  )
+}
+
 export default function ToolSystemShell({ tool, children, whatItDoes, steps }) {
   const name = tool?.name || 'HERRAMIENTA'
   const subLabel = children ? name.toUpperCase() : `${name.toUpperCase()} — EN DESARROLLO`
@@ -38,6 +87,7 @@ export default function ToolSystemShell({ tool, children, whatItDoes, steps }) {
         <span className="tss__msep">—</span>
         <span className="tss__msub">{name}</span>
         <div className="tss__mright">
+          <InvertSwitch />
           <span className="tss__mctrl">—</span>
           <span className="tss__mctrl">□</span>
           <Link to="/" className="tss__mctrl tss__mctrl--close" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</Link>

@@ -2,6 +2,7 @@
 <html lang="es">
 
 <head>
+  <script src="/tools/glam-invert.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -11,6 +12,9 @@
     if (/[?&]grabar\b/.test(location.search)) document.documentElement.classList.add('grabar');
   </script>
   <style>
+:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb));--g-red-dark:#CC0000}
+html.glam-inv{--g-red-rgb:0,0,0;--g-black-rgb:255,1,0;--g-red-dark:#3a0000}
+
     /* Space Mono — mismo design system que CANICAS.3D */
 
     *,
@@ -23,12 +27,12 @@
     }
 
     :root {
-      --red: #FF0100;
-      --red-dark: #CC0000;
-      --red-dim: rgba(255, 1, 0, 0.55);
-      --red-faint: rgba(255, 1, 0, 0.18);
-      --red-ghost: rgba(255, 1, 0, 0.10);
-      --black: #000000;
+      --red: var(--g-red);
+      --red-dark: var(--g-red-dark);
+      --red-dim: rgba(var(--g-red-rgb), 0.55);
+      --red-faint: rgba(var(--g-red-rgb), 0.18);
+      --red-ghost: rgba(var(--g-red-rgb), 0.10);
+      --black: var(--g-black);
     }
 
     html,
@@ -45,7 +49,7 @@
       content: '';
       position: fixed;
       inset: 0;
-      background-image: radial-gradient(circle, rgba(255, 1, 0, 0.55) 1px, transparent 1px);
+      background-image: radial-gradient(circle, rgba(var(--g-red-rgb), 0.55) 1px, transparent 1px);
       background-size: 20px 20px;
       pointer-events: none;
       z-index: 0;
@@ -92,7 +96,7 @@
     #master-bar .slz {
       font-size: 9px;
       font-weight: 700;
-      color: rgba(0, 0, 0, .5);
+      color: rgba(var(--g-black-rgb), .5);
     }
 
     #master-bar .dot5 {
@@ -116,14 +120,14 @@
     }
 
     #master-bar .msep {
-      color: rgba(0, 0, 0, .3);
+      color: rgba(var(--g-black-rgb), .3);
       font-size: 9px;
     }
 
     #master-bar .msub {
       font-size: 9px;
       font-weight: 700;
-      color: rgba(0, 0, 0, .55);
+      color: rgba(var(--g-black-rgb), .55);
       text-transform: uppercase;
       letter-spacing: .08em;
     }
@@ -138,7 +142,7 @@
       width: 20px;
       height: 16px;
       background: var(--black);
-      border: 1px solid rgba(255, 1, 0, .25);
+      border: 1px solid rgba(var(--g-red-rgb), .25);
       color: var(--red);
       font-size: 9px;
       font-weight: 700;
@@ -229,7 +233,7 @@
     .win__bar .slz {
       font-size: 8px;
       font-weight: 700;
-      color: rgba(0, 0, 0, .5);
+      color: rgba(var(--g-black-rgb), .5);
     }
 
     .win__bar-dot {
@@ -253,7 +257,7 @@
     .win__bar-sub {
       font-size: 8px;
       font-weight: 700;
-      color: rgba(0, 0, 0, .5);
+      color: rgba(var(--g-black-rgb), .5);
       text-transform: uppercase;
       letter-spacing: .1em;
     }
@@ -312,7 +316,7 @@
        fitStage, dimensionando la ventana; el canvas solo la rellena. */
     .daisy-canvas {
       position: relative;
-      background: #000;
+      background: var(--g-black);
       overflow: hidden;
       width: 100%;
       height: 100%;
@@ -423,7 +427,7 @@
     .daisy-meter-bar {
       width: 100%;
       height: 6px;
-      background: rgba(255, 1, 0, .12);
+      background: rgba(var(--g-red-rgb), .12);
       border: 1px solid var(--red-faint);
     }
 
@@ -438,13 +442,13 @@
     .cam-wrap { display: flex; flex-direction: column; gap: 7px; }
     .cam-btn {
       font-size: 8px; letter-spacing: .12em; text-transform: uppercase;
-      color: var(--red); background: #000; border: 1px solid var(--red);
+      color: var(--red); background: var(--g-black); border: 1px solid var(--red);
       padding: 5px 6px; cursor: pointer;
     }
-    .cam-btn:hover, .cam-btn.on { background: var(--red); color: #000; }
+    .cam-btn:hover, .cam-btn.on { background: var(--red); color: var(--g-black); }
     .cam-box {
       display: none; position: relative; width: 100%; aspect-ratio: 4 / 3;
-      border: 1px solid var(--red-faint); overflow: hidden; background: #000;
+      border: 1px solid var(--red-faint); overflow: hidden; background: var(--g-black);
     }
     .cam-box video, .cam-box canvas {
       position: absolute; inset: 0;
@@ -525,10 +529,10 @@
       top: 30px;
       left: 10px;
       width: min(240px, calc(100% - 16px));
-      background: #000;
+      background: var(--g-black);
       border: 2px solid var(--red);
       z-index: 40;
-      box-shadow: 0 6px 18px rgba(0,0,0,.5);
+      box-shadow: 0 6px 18px rgba(var(--g-black-rgb), .5);
       user-select: none;
     }
 
@@ -545,7 +549,7 @@
     }
     .ip__bar:active { cursor: grabbing; }
 
-    .ip__slz { font-size: 8px; font-weight: 700; color: rgba(0,0,0,.5); }
+    .ip__slz { font-size: 8px; font-weight: 700; color: rgba(var(--g-black-rgb), .5); }
     .ip__dot { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
     .ip__title {
       font-size: 9px; font-weight: 700; letter-spacing: .1em;
@@ -555,7 +559,7 @@
     .ip__ctrls { display: flex; gap: 4px; margin-left: auto; }
     .ip__ctrl {
       width: 15px; height: 13px; background: var(--black);
-      border: 1px solid rgba(255,1,0,.4); color: var(--red);
+      border: 1px solid rgba(var(--g-red-rgb), .4); color: var(--red);
       font-size: 8px; font-weight: 700; display: flex; align-items: center;
       justify-content: center; cursor: pointer;
     }
@@ -577,10 +581,10 @@
     /* Burbuja unificada: tanto minimizar como cerrar colapsan aquí */
     .ip-bubble {
       position: absolute; width: 26px; height: 26px;
-      background: #000; border: 2px solid var(--red); color: var(--red);
+      background: var(--g-black); border: 2px solid var(--red); color: var(--red);
       font-size: 13px; font-weight: 700; cursor: pointer; z-index: 40;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 14px rgba(0,0,0,.5);
+      box-shadow: 0 4px 14px rgba(var(--g-black-rgb), .5);
     }
     .ip-bubble:hover { background: var(--red); color: var(--black); }
 
