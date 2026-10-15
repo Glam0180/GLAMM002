@@ -807,6 +807,8 @@ GlamRec.montar({
   clase:'recbtn',
   nombre:'floralis',
   manual:false,
+  // la ventana del viewport es la del shell (página que contiene el iframe)
+  ventana:()=>{try{return window.frameElement&&window.frameElement.closest('.tss__win');}catch(e){return null;}},
   alIniciar(){RK=Math.min(3,Math.max(1,1350/recorte45(W,H).h));resize();},
   alTerminar(){RK=1;resize();},
   dibujar(c,w,h){const r=recorte45(W,H);c.drawImage(cv,r.x*RK,r.y*RK,r.w*RK,r.h*RK,0,0,w,h);}

@@ -1751,6 +1751,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
       clase: 'cam-btn',
       nombre: 'we-dont-belong',
       manual: true,
+      ventana: () => $('viewport'),
       dibujar(c, W, H) {
         if (glOk) c.drawImage(outEl, 0, 0, W, H);
         else {
