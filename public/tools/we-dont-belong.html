@@ -623,6 +623,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     #mainCanvas, #beamCanvas, #shipCanvas, #compCanvas { display: none; }
     #outCanvas { z-index: 2; pointer-events: none; }
     #handsCanvas { z-index: 5; pointer-events: none; }
+    /* chispas: lienzo a 1/3 de resolución escalado sin suavizado = píxeles */
+    #sparkCanvas { z-index: 4; pointer-events: none; image-rendering: pixelated; image-rendering: crisp-edges; }
     .daisy-loading { z-index: 6; }
     /* ── MODO GRABACIÓN (?grabar) ──
        Solo el póster, centrado y lo más grande posible en 4:5, sobre
@@ -704,6 +706,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
               <!-- Salida visible: la composición con la capa de Tono (WebGL). -->
               <canvas id="outCanvas" width="1080" height="1350"></canvas>
               <!-- Indicadores de las manos encima del lienzo. -->
+              <!-- Chispas blancas del click sostenido (pixeladas, sin tono). -->
+              <canvas id="sparkCanvas" width="360" height="450"></canvas>
               <canvas id="handsCanvas" width="1080" height="1350"></canvas>
               <div class="daisy-loading" id="wdbLoading">CARGANDO ASSETS…</div>
             </div>
@@ -728,7 +732,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
           <div class="daisy-panel">
             <div class="daisy-status" id="wdbStatus">mueve la nave con el mouse. mantén el click para succionar.</div>
 
-            <div class="wdb-contador"><span>ABDUCIDAS</span><b id="abducidas">0 / 130</b></div>
+            <div class="wdb-contador"><span>ABDUCIDAS</span><b id="abducidas">0</b></div>
             <div class="wdb-contador"><span>TONO</span><b id="tonoActual">0°</b></div>
 
             <div>
@@ -772,7 +776,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         <ol class="ip__steps">
           <li>mueve el mouse o el dedo: la nave te sigue y se inclina</li>
           <li>mantén el click o el dedo: la estela se abre al doble y succiona</li>
-          <li>las que tocan la nave son abducidas: a las 30, 60 y 100 cambia el tono</li>
+          <li>las que tocan la nave son abducidas: cada una gira el tono un poco más</li>
           <li>click sobre una oveja para arrastrarla y lanzarla</li>
           <li>WOW: la derecha guía la nave; pellizca o cierra la izquierda para succionar</li>
         </ol>
@@ -1099,24 +1103,21 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     const POP_MS = 380;
     let abducidas = 0;
 
-    // Tono por etapas (como una capa de ajuste Tono/Saturación).
-    const ETAPAS_TONO = [
-      { desde: 30, tono: -32 },
-      { desde: 60, tono: -180 },
-      { desde: 100, tono: -83 },
-    ];
-    const REINICIO = 130;   // el último tono dura otras 30 y vuelve a empezar
+    // Tono continuo (capa de ajuste Tono/Saturación): cada oveja abducida
+    // suma un giro de matiz, y el tono avanza hacia esa meta SIEMPRE a la
+    // misma velocidad. Si entran muchas de golpe no salta: sigue girando
+    // parejo hasta alcanzarla. Sin ovejas nuevas, se queda quieto.
+    const TONO_POR_OVEJA = 4;      // grados por oveja (90 ovejas = una vuelta)
+    const TONO_VELOCIDAD = 22;     // grados por segundo, constante
+    const TONO_MAX_ADELANTO = 30;  // la meta no se aleja más que esto: al dejar
+                                   // de absorber, el giro para en ~1,4 s
 
-    function tonoPara(n) {
-      let t = 0;
-      for (const e of ETAPAS_TONO) if (n >= e.desde) t = e.tono;
-      return t;
-    }
     function aplicarTono() {
-      const t = window.__tonoFijo ?? tonoPara(abducidas);
-      tono.objetivo = t;
-      $('tonoActual').textContent = t + '°';
-      $('abducidas').textContent = abducidas + ' / ' + REINICIO;
+      $('abducidas').textContent = String(abducidas);
+    }
+    function sumarTono() {
+      if (window.__tonoFijo !== undefined) return;
+      tono.objetivo = Math.max(tono.objetivo - TONO_POR_OVEJA, tono.actual - TONO_MAX_ADELANTO);
     }
 
     // La nave se aproxima con una elipse en su propio marco (girada con
@@ -1141,7 +1142,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         absorbiendo.push({ x: o.position.x, y: o.position.y, ang: o.angle, espejo: o.oveja.espejo, t0: ahora });
         pendientes++;
         abducidas++;
-        if (abducidas >= REINICIO) abducidas = 0;   // vuelve a empezar
+        sumarTono();
         aplicarTono();
       }
     }
@@ -1668,11 +1669,70 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
       compEl.style.filter = tono.actual ? `hue-rotate(${tono.actual}deg)` : '';
     }
 
+    // ─────────── CHISPAS DEL CLICK SOSTENIDO ───────────
+    // Salen del punto donde se mantiene el click (o el pinch derecho),
+    // blancas, pocas y pequeñas. Se dibujan en un lienzo de 1/3 de
+    // resolución que el navegador escala sin suavizar: quedan pixeladas.
+    const sparkEl = $('sparkCanvas');
+    const sparkCtx = sparkEl.getContext('2d');
+    const SP_ESC = sparkEl.width / CANVAS_W;   // 1/3
+    const chispas = [];
+    const CHISPAS_POR_SEG = 38;
+    const CHISPAS_MAX = 90;
+    let chispaResto = 0;
+    let habiaChispas = false;
+
+    function emitirChispas(dt) {
+      if (!succionandoPuntero || agarre || !estado.puntero) { chispaResto = 0; return; }
+      chispaResto += CHISPAS_POR_SEG * dt;
+      while (chispaResto >= 1 && chispas.length < CHISPAS_MAX) {
+        chispaResto -= 1;
+        const ang = Math.random() * Math.PI * 2;
+        const vel = 60 + Math.random() * 170;            // px lógicos por segundo
+        chispas.push({
+          x: estado.puntero.x + (Math.random() - 0.5) * 8,
+          y: estado.puntero.y + (Math.random() - 0.5) * 8,
+          vx: Math.cos(ang) * vel,
+          vy: Math.sin(ang) * vel - 40,                  // un poco hacia arriba
+          vida: 0,
+          dura: 0.25 + Math.random() * 0.4,
+          tam: Math.random() < 0.8 ? 1 : 2,              // en píxeles del lienzo chico
+        });
+      }
+    }
+
+    function dibujarChispas(dt) {
+      emitirChispas(dt);
+      if (!chispas.length) {
+        if (habiaChispas) { sparkCtx.clearRect(0, 0, sparkEl.width, sparkEl.height); habiaChispas = false; }
+        return;
+      }
+      habiaChispas = true;
+      sparkCtx.clearRect(0, 0, sparkEl.width, sparkEl.height);
+      sparkCtx.fillStyle = '#fff';
+      for (let i = chispas.length - 1; i >= 0; i--) {
+        const c = chispas[i];
+        c.vida += dt;
+        if (c.vida >= c.dura) { chispas.splice(i, 1); continue; }
+        c.vx *= 0.94; c.vy = c.vy * 0.94 + 260 * dt;     // frena y cae apenas
+        c.x += c.vx * dt; c.y += c.vy * dt;
+        const t = c.vida / c.dura;
+        // parpadeo sutil y se apaga al final
+        sparkCtx.globalAlpha = (1 - t) * (Math.random() < 0.18 ? 0.35 : 0.9);
+        sparkCtx.fillRect(Math.round(c.x * SP_ESC), Math.round(c.y * SP_ESC), c.tam, c.tam);
+      }
+      sparkCtx.globalAlpha = 1;
+    }
+
     let naveSubida = false;
+    let ultimoGradoMostrado = null;
     function renderScene(dt) {
-      // el tono cambia en ~0,9 s
-      tono.actual += (tono.objetivo - tono.actual) * Math.min(1, dt * 5);
-      if (Math.abs(tono.objetivo - tono.actual) < 0.05) tono.actual = tono.objetivo;
+      // avance lineal y constante hacia la meta
+      const falta = tono.objetivo - tono.actual;
+      const paso = TONO_VELOCIDAD * dt;
+      tono.actual = Math.abs(falta) <= paso ? tono.objetivo : tono.actual + Math.sign(falta) * paso;
+      const grados = Math.round(((tono.actual % 360) + 360) % 360);
+      if (grados !== ultimoGradoMostrado) { ultimoGradoMostrado = grados; $('tonoActual').textContent = (grados ? grados - 360 : 0) + '°'; }
 
       vigilarLoop();
       if (naveImg) {
@@ -1680,6 +1740,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         dibujarOvejas();
       }
       if (glOk) pintarGL(); else pintar2D();
+      dibujarChispas(dt);
     }
 
     // Paso de física fijo (60 Hz) para que no dependa de los fps.
