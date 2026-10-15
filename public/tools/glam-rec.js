@@ -248,7 +248,18 @@
     caja.appendChild(info);
     if (op.contenedor) op.contenedor.appendChild(caja);
 
-    if (!formato || !HTMLCanvasElement.prototype.captureStream) {
+    // Dos motores:
+    //  1) WebCodecs + MP4 (Chrome, Edge, Safari 16.4+, Firefox 130+):
+    //     cada cuadro se codifica con su marca de tiempo exacta (n/60 s),
+    //     así el archivo sale a 60 fps constantes, en H.264 MP4. Si la
+    //     herramienta pinta más lento, se repite el último cuadro para no
+    //     perder el ritmo; si pinta más rápido (pantallas 120 Hz), se
+    //     toma uno cada 1/60 s.
+    //  2) Respaldo con MediaRecorder, con el mismo ritmo de 60 cuadros/s.
+    var webc = null;          // { codec } si WebCodecs sirve
+    var listo = false;
+    var tieneWebc = typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined';
+    if (!tieneWebc && (!formato || !HTMLCanvasElement.prototype.captureStream)) {
       btn.disabled = true;
       info.textContent = 'este navegador no permite grabar';
       return { frame: function () {}, grabando: function () { return false; } };
@@ -267,6 +278,37 @@
     var grabando = false, rec = null, partes = [], t0 = 0, reloj = 0, raf = 0;
     var stream = null, pista = null, url = null, ultimoArchivo = '';
     var plan = null, planEn = 0;
+    var hechos = 0;                 // cuadros ya entregados al video
+    var MS = 1000 / FPS;
+    var encoder = null, muxer = null, fallo = false;
+
+    function cargarMuxer() {
+      if (window.Mp4Muxer) return Promise.resolve();
+      return new Promise(function (ok, mal) {
+        var sc = document.createElement('script');
+        sc.src = '/tools/lib/mp4-muxer.min.js';
+        sc.onload = function () { ok(); };
+        sc.onerror = mal;
+        document.head.appendChild(sc);
+      });
+    }
+
+    // Se elige el codec una vez, al montar.
+    (function prepararWebc() {
+      if (!tieneWebc) { listo = true; return; }
+      // H.264 primero (lo que Instagram acepta directo); VP9/AV1 en MP4
+      // solo si el navegador no codifica H.264.
+      var codecs = ['avc1.64002A', 'avc1.4D002A', 'avc1.42002A', 'avc1.640028', 'vp09.00.41.08', 'av01.0.09M.08'];
+      var i = 0;
+      function probar() {
+        if (i >= codecs.length) { listo = true; if (!formato) { btn.disabled = true; info.textContent = 'este navegador no permite grabar'; } return; }
+        var c = codecs[i++];
+        VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: BITRATE, framerate: FPS })
+          .then(function (r) { if (r && r.supported) { webc = { codec: c }; listo = true; info.textContent = 'post IG · 1080×1350 · 60 fps'; } else probar(); })
+          .catch(probar);
+      }
+      probar();
+    })();
 
     // Puntero: se sigue siempre (también fuera de la grabación) para que
     // el primer cuadro ya tenga la manito en su sitio.
@@ -330,21 +372,87 @@
         ctx.restore();
         pintarCursor(ctx, W, H);
       }
-      if (pista && pista.requestFrame) pista.requestFrame();
     }
 
-    function frame() { if (grabando) pintar(); }
+    // Ritmo fijo de 60 cuadros por segundo de tiempo real.
+    function frame() {
+      if (!grabando || fallo) return;
+      var ahora = performance.now();
+      var debidos = Math.floor((ahora - t0) / MS) + 1;
+      if (debidos <= hechos) return;            // todavía no toca otro cuadro
+      // Si la pestaña estuvo oculta, no se rellena el hueco: se sigue
+      // desde aquí (el video no tendrá un tramo congelado).
+      if (debidos - hechos > 30) { t0 += (debidos - hechos - 1) * MS; debidos = hechos + 1; }
+      pintar();
+      if (encoder) {
+        while (hechos < debidos) {
+          var vf = new VideoFrame(lienzo, { timestamp: Math.round(hechos * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+          try { encoder.encode(vf, { keyFrame: hechos % (FPS * 2) === 0 }); } catch (e) { fallo = true; }
+          vf.close();
+          hechos++;
+        }
+      } else {
+        if (pista && pista.requestFrame) pista.requestFrame();
+        hechos = debidos;
+      }
+    }
 
     function bucle() {
       if (!grabando) return;
-      pintar();
+      frame();
       raf = requestAnimationFrame(bucle);
     }
 
+    function arrancarComun() {
+      if (op.alIniciar) { try { op.alIniciar(); } catch (e) { /* nada */ } }
+      grabando = true;
+      fallo = false;
+      planEn = 0;
+      hechos = 0;
+      t0 = performance.now();
+      frame();
+      btn.disabled = false;
+      btn.classList.add('grabando', 'on');
+      btn.textContent = '■ DETENER 00:00';
+      info.textContent = 'grabando · 1080×1350 · 60 fps';
+      reloj = setInterval(function () { btn.textContent = '■ DETENER ' + tiempo(performance.now() - t0); }, 250);
+      if (!op.manual) raf = requestAnimationFrame(bucle);
+    }
+
     function empezar() {
+      if (!listo) return;
       if (url) { URL.revokeObjectURL(url); url = null; }
       dl.hidden = true;
       partes = [];
+      if (webc) {
+        btn.disabled = true;
+        info.textContent = 'preparando…';
+        cargarMuxer().then(function () {
+          var mx = new Mp4Muxer.Muxer({
+            target: new Mp4Muxer.ArrayBufferTarget(),
+            video: { codec: /^avc/.test(webc.codec) ? 'avc' : /^vp09/.test(webc.codec) ? 'vp9' : 'av1', width: W, height: H, frameRate: FPS },
+            fastStart: 'in-memory',
+          });
+          muxer = mx;
+          encoder = new VideoEncoder({
+            // el muxer de ESTA grabación (no la variable compartida, que
+            // se suelta al detener mientras aún llegan los últimos cuadros)
+            output: function (chunk, meta) { mx.addVideoChunk(chunk, meta); },
+            error: function () { fallo = true; },
+          });
+          var conf = { codec: webc.codec, width: W, height: H, bitrate: BITRATE, framerate: FPS };
+          if (/^avc/.test(webc.codec)) conf.avc = { format: 'avc' };
+          encoder.configure(conf);
+          arrancarComun();
+        }).catch(function () {
+          // sin el muxer, se graba con el respaldo
+          webc = null; encoder = null; muxer = null;
+          btn.disabled = false;
+          empezar();
+        });
+        return;
+      }
+      if (!formato) return;
       stream = lienzo.captureStream(0);
       pista = stream.getVideoTracks()[0];
       if (!pista || !pista.requestFrame) {
@@ -358,18 +466,9 @@
         return;
       }
       rec.ondataavailable = function (e) { if (e.data && e.data.size) partes.push(e.data); };
-      rec.onstop = terminar;
-      if (op.alIniciar) { try { op.alIniciar(); } catch (e) { /* nada */ } }
-      grabando = true;
-      planEn = 0;
-      pintar();
+      rec.onstop = function () { terminar(new Blob(partes, { type: formato.mime.split(';')[0] }), formato.ext); };
       rec.start(1000);
-      t0 = performance.now();
-      btn.classList.add('grabando', 'on');
-      btn.textContent = '■ DETENER 00:00';
-      info.textContent = 'grabando · 1080×1350';
-      reloj = setInterval(function () { btn.textContent = '■ DETENER ' + tiempo(performance.now() - t0); }, 250);
-      if (!op.manual) raf = requestAnimationFrame(bucle);
+      arrancarComun();
     }
 
     function detener() {
@@ -381,19 +480,28 @@
       btn.classList.remove('grabando', 'on');
       btn.textContent = '● GRABAR';
       info.textContent = 'procesando…';
-      if (rec && rec.state !== 'inactive') rec.stop();
+      if (encoder) {
+        var enc = encoder, mx = muxer;
+        encoder = null; muxer = null;
+        btn.disabled = true;
+        enc.flush().then(function () {
+          enc.close();
+          mx.finalize();
+          terminar(new Blob([mx.target.buffer], { type: 'video/mp4' }), 'mp4');
+        }).catch(function () {
+          info.textContent = 'no se pudo terminar el video, intenta de nuevo';
+        }).then(function () { btn.disabled = false; });
+      } else if (rec && rec.state !== 'inactive') rec.stop();
     }
 
-    function terminar() {
-      if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
-      var dur = performance.now() - t0;
-      var blob = new Blob(partes, { type: formato.mime.split(';')[0] });
+    function terminar(blob, ext) {
+      if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
       partes = [];
-      if (!blob.size) { info.textContent = 'no se grabó nada, intenta de nuevo'; return; }
+      if (!blob || !blob.size || !hechos) { info.textContent = 'no se grabó nada, intenta de nuevo'; return; }
       url = URL.createObjectURL(blob);
-      ultimoArchivo = (op.nombre || 'glam') + '-' + sello() + '.' + formato.ext;
+      ultimoArchivo = (op.nombre || 'glam') + '-' + sello() + '.' + ext;
       dl.hidden = false;
-      info.textContent = 'listo · ' + tiempo(dur) + ' · ' + (blob.size / 1048576).toFixed(1) + ' MB · ' + formato.ext.toUpperCase();
+      info.textContent = 'listo · ' + tiempo(hechos * MS) + ' · 60 fps · ' + (blob.size / 1048576).toFixed(1) + ' MB · ' + ext.toUpperCase();
     }
 
     btn.addEventListener('click', function (e) {
