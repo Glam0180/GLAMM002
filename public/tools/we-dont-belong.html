@@ -3,6 +3,7 @@
 
 <head>
   <script src="/tools/glam-invert.js"></script>
+  <script src="/tools/glam-rec.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -754,6 +755,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
                 izquierda: cierra la mano para succionar
               </div>
             </div>
+            <!-- Grabar el viewport como post de IG (1080×1350) -->
+            <div class="cam-wrap" id="recSlot"></div>
           </div>
         </div>
       </div>
@@ -1737,7 +1740,28 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
       }
       if (glOk) pintarGL(); else pintar2D();
       dibujarChispas(dt);
+      grabador.frame();   // mismo cuadro: el WebGL todavía tiene la imagen
     }
+
+    // ─────────── GRABAR (post IG 1080×1350) ───────────
+    // Solo el póster: composición final con el tono + chispas. Sin los
+    // indicadores de las manos.
+    const grabador = GlamRec.montar({
+      contenedor: $('recSlot'),
+      clase: 'cam-btn',
+      nombre: 'we-dont-belong',
+      manual: true,
+      dibujar(c, W, H) {
+        if (glOk) c.drawImage(outEl, 0, 0, W, H);
+        else {
+          c.filter = tono.actual ? `hue-rotate(${tono.actual}deg)` : 'none';
+          c.drawImage(compEl, 0, 0, W, H);
+          c.filter = 'none';
+        }
+        c.imageSmoothingEnabled = false;   // chispas pixeladas
+        c.drawImage(sparkEl, 0, 0, W, H);
+      },
+    });
 
     // Paso de física fijo (60 Hz) para que no dependa de los fps.
     const PASO = 1000 / 60;

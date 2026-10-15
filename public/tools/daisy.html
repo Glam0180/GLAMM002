@@ -3,6 +3,7 @@
 
 <head>
   <script src="/tools/glam-invert.js"></script>
+  <script src="/tools/glam-rec.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -688,6 +689,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
                 izquierda: cierra para avanzar, abre para retroceder
               </div>
             </div>
+            <!-- Grabar el viewport como post de IG (1080×1350) -->
+            <div class="cam-wrap" id="recSlot"></div>
           </div>
         </div>
       </div>
@@ -1942,6 +1945,27 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     });
 
     // ─────────── LOOP PRINCIPAL ───────────
+    // ─────────── GRABAR (post IG 1080×1350) ───────────
+    // Las capas del póster en su orden, con la opacidad actual de BG2.
+    // Sin los indicadores de las manos.
+    GlamRec.montar({
+      contenedor: $('recSlot'),
+      clase: 'cam-btn',
+      nombre: 'daisy',
+      manual: false,
+      dibujar(c, W, H) {
+        const capas = ['bg1Canvas', 'bg2Canvas', 'variasCanvas', 'stemCanvas', 'unoCanvas'];
+        for (const id of capas) {
+          const el = $(id);
+          const a = id === 'bg2Canvas' ? (parseFloat(el.style.opacity) || 0) : 1;
+          if (a <= 0) continue;
+          c.globalAlpha = a;
+          GlamRec.cubrir(c, el, 0, 0, el.width, el.height, W, H);
+        }
+        c.globalAlpha = 1;
+      },
+    });
+
     function loop() {
       updateScene();
       requestAnimationFrame(loop);

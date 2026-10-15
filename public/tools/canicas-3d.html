@@ -3,6 +3,7 @@
 
 <head>
   <script src="/tools/glam-invert.js"></script>
+  <script src="/tools/glam-rec.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -1229,6 +1230,11 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <span class="slz end">///</span>
           </div>
           <div class="win__body scroll">
+
+            <div class="plabel">Grabar</div>
+            <div id="recSlot"></div>
+
+            <div class="sep"></div>
 
             <div>
               <div class="plabel">Canica</div>
@@ -3336,6 +3342,57 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
       // un recálculo completo de OrbitControls en cada uno de los ~60
       // frames por segundo sin ningún efecto visual.
       renderer.render(scene, camera);
+      if (grabadorCanicas) grabadorCanicas.frame();   // mismo cuadro que el render
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GRABAR (post IG 1080×1350)
+    //  Se compone el viewport tal como se ve (fondo + video de impacto
+    //  + escena 3D) y se recorta al centro en 4:5. Mientras graba, el
+    //  render sube de resolución para que el recorte llegue a 1350 px.
+    // ═══════════════════════════════════════════════════════════
+    let bgRecImg = null;
+    let grabadorCanicas = null;
+
+    function recorte45(w, h) {
+      if (w / h > 0.8) { const cw = h * 0.8; return { x: (w - cw) / 2, y: 0, w: cw, h }; }
+      const ch = w / 0.8; return { x: 0, y: (h - ch) / 2, w, h: ch };
+    }
+
+    function montarGrabador() {
+      grabadorCanicas = GlamRec.montar({
+        contenedor: $('recSlot'),
+        clase: 'gbtn',
+        nombre: 'canicas-3d',
+        manual: true,
+        alIniciar() {
+          const r = $('vp-fit').getBoundingClientRect();
+          const cr = recorte45(r.width, r.height);
+          renderer.setPixelRatio(Math.min(3, Math.max(window.devicePixelRatio || 1, 1350 / Math.max(1, cr.h))));
+          renderer.setSize(Math.max(1, r.width), Math.max(1, r.height), false);
+        },
+        alTerminar() { applyRenderScale(); },
+        dibujar(c, W, H) {
+          const r = $('vp-fit').getBoundingClientRect();
+          const cr = recorte45(r.width, r.height);
+          const k = W / cr.w;
+          c.setTransform(k, 0, 0, k, -cr.x * k, -cr.y * k);   // coordenadas del viewport
+          if (bgRecImg) {
+            const ia = bgRecImg.naturalWidth / bgRecImg.naturalHeight;
+            let w = r.width, h = r.width / ia;
+            if (h > r.height) { h = r.height; w = h * ia; }
+            c.drawImage(bgRecImg, (r.width - w) / 2, (r.height - h) / 2, w, h);
+          }
+          const hv = $('hitVideo');
+          const op = parseFloat(getComputedStyle(hv).opacity) || 0;
+          if (op > 0 && hv.readyState >= 2) {
+            c.globalAlpha = op;
+            c.drawImage(hv, 0, 0, r.width, r.height);
+            c.globalAlpha = 1;
+          }
+          c.drawImage(renderer.domElement, 0, 0, r.width, r.height);
+        },
+      });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -3377,6 +3434,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         e.target.value = '';
       });
       $('qbg').addEventListener('click', () => {
+        bgRecImg = null;
         $('bg-layer').style.backgroundImage = 'none';
         $('bg-layer').style.background = '#000000';
         imgAspect = null;
@@ -3410,6 +3468,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         layoutFrame();
         syncCameraAspect();
         applyRenderScale();
+        bgRecImg = img;   // para el grabador
         $('bg-layer').style.background = '#000000';
         $('bg-layer').style.backgroundImage = `url("${url}")`;
         $('bg-layer').style.backgroundSize = 'contain';
@@ -3450,6 +3509,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     // ═══════════════════════════════════════════════════════════
     initSliderFills();
     layoutFrame();
+    montarGrabador();
     initThree();
     preloadMarbleTextures(); // precarga texturas para evitar lag al disparar
     preloadConfettiTextures(); // precarga texturas de confeti para evitar lag en el primer golpe

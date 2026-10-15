@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <script src="/tools/glam-invert.js"></script>
+  <script src="/tools/glam-rec.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Floralis</title>
@@ -266,6 +267,18 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     margin-bottom:6px;
   }
   .pgroup{ display:flex; flex-direction:column; }
+  /* Botón de grabar: mismo lenguaje que el resto del panel */
+  .recbtn{
+    background:var(--color-black);
+    border:var(--win-border-w) solid var(--color-border-win);
+    padding:6px 8px;
+    font-family:var(--font-mono); font-size:var(--text-2xs);
+    letter-spacing:var(--tracking-wider); text-transform:uppercase;
+    color:var(--color-white); cursor:pointer;
+    transition:background var(--duration-fast), color var(--duration-fast);
+  }
+  .recbtn:hover, .recbtn.on{ background:var(--color-white); color:var(--color-black); }
+  #recSlot .g-rec__info{ color:var(--color-text-secondary); margin-top:2px; }
   .prow{ display:flex; align-items:center; gap:8px; }
 
   /* Sliders */
@@ -390,6 +403,13 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     <div id="panelContent">
 
     <div class="pgroup">
+      <div class="plabel">Grabar</div>
+      <div id="recSlot"></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="pgroup">
       <div class="plabel">Color tallo</div>
       <div class="prow">
         <input type="color" id="stemColorPick" value="#3d8b37">
@@ -444,7 +464,10 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const dot=document.getElementById('dot'),pinchDot=document.getElementById('pinchDot');
 let W,H;
-function resize(){W=cv.width=window.innerWidth;H=cv.height=window.innerHeight;}
+// RK: escala de render. 1 normalmente; mientras se graba sube para que el
+// recorte 4:5 del jardín llegue a 1350 px de alto.
+let RK=1;
+function resize(){W=window.innerWidth;H=window.innerHeight;cv.width=Math.round(W*RK);cv.height=Math.round(H*RK);}
 resize();window.addEventListener('resize',()=>{resize();buildGarden();});
 
 // ── PROPS ──
@@ -767,12 +790,27 @@ function drawBg(){
 // ── LOOP ──
 let last=0;
 function loop(ts){
-  const dt=Math.min((ts-last)/1000,0.05);last=ts;drawBg();
+  const dt=Math.min((ts-last)/1000,0.05);last=ts;ctx.setTransform(RK,0,0,RK,0,0);drawBg();
   const active=dragged||handDragged;
   for(const f of flowers){f.update(dt);if(f!==active)f.draw();}
   if(active)active.draw();requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+
+// ── GRABAR (post IG 1080×1350): recorte 4:5 al centro del jardín ──
+function recorte45(w,h){
+  if(w/h>0.8){const cw=h*0.8;return{x:(w-cw)/2,y:0,w:cw,h};}
+  const ch=w/0.8;return{x:0,y:(h-ch)/2,w,h:ch};
+}
+GlamRec.montar({
+  contenedor:document.getElementById('recSlot'),
+  clase:'recbtn',
+  nombre:'floralis',
+  manual:false,
+  alIniciar(){RK=Math.min(3,Math.max(1,1350/recorte45(W,H).h));resize();},
+  alTerminar(){RK=1;resize();},
+  dibujar(c,w,h){const r=recorte45(W,H);c.drawImage(cv,r.x*RK,r.y*RK,r.w*RK,r.h*RK,0,0,w,h);}
+});
 </script>
 </body>
 </html>
