@@ -16,6 +16,11 @@
        dibujar(ctx, W, H) { ...pinta el viewport en ctx a W×H... },
        ancho, alto  // opcional: tamaño del video (por defecto 1080×1350)
        aspecto      // opcional: ancho/alto del contenido (por defecto 0,8 = 4:5)
+       etiqueta     // opcional: texto del botón (por defecto '● GRABAR')
+       fuente: 'pestaña', elemento()   // opcional: en vez de dibujar, graba
+                    // lo que se ve en pantalla dentro de ese elemento (p. ej.
+                    // el lienzo con sus ventanas), con la captura de la
+                    // pestaña de Chrome/Edge recortada a él.
        alIniciar(), alTerminar()   // opcionales (p. ej. subir resolución)
        zonaCursor()  // opcional: elemento cuyo recorte 4:5 central es lo que
                      // se graba; el cursor (manito) se dibuja en el video
@@ -222,6 +227,9 @@
   function montar(op) {
     var W = op.ancho || 1080, H = op.alto || 1350, ASP = op.aspecto || 0.8;
     var TAM = W + '×' + H;
+    var ETQ = op.etiqueta || '● GRABAR';
+    var esPantalla = op.fuente === 'pestaña';
+    var captura = null;   // { stream, video } mientras se graba la pestaña
     if (!document.getElementById('g-rec-css')) {
       var st = document.createElement('style');
       st.id = 'g-rec-css';
@@ -237,7 +245,7 @@
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = (op.clase || '') + ' g-rec__btn';
-    btn.textContent = '● GRABAR';
+    btn.textContent = ETQ;
     var dl = document.createElement('button');
     dl.type = 'button';
     dl.className = (op.clase || '') + ' g-rec__dl';
@@ -245,7 +253,7 @@
     dl.hidden = true;
     var info = document.createElement('div');
     info.className = 'g-rec__info';
-    info.textContent = 'post IG · ' + TAM;
+    info.textContent = esPantalla ? 'lienzo + ventanas' : 'post IG · ' + TAM;
     fila.appendChild(btn);
     fila.appendChild(dl);
     caja.appendChild(fila);
@@ -266,6 +274,12 @@
     if (!tieneWebc && (!formato || !HTMLCanvasElement.prototype.captureStream)) {
       btn.disabled = true;
       info.textContent = 'este navegador no permite grabar';
+      return { frame: function () {}, grabando: function () { return false; } };
+    }
+    var puedePestana = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && window.CropTarget);
+    if (esPantalla && !puedePestana) {
+      btn.disabled = true;
+      info.textContent = 'solo en chrome o edge de escritorio';
       return { frame: function () {}, grabando: function () { return false; } };
     }
 
@@ -308,7 +322,7 @@
         if (i >= codecs.length) { listo = true; if (!formato) { btn.disabled = true; info.textContent = 'este navegador no permite grabar'; } return; }
         var c = codecs[i++];
         VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: BITRATE, framerate: FPS })
-          .then(function (r) { if (r && r.supported) { webc = { codec: c }; listo = true; info.textContent = 'post IG · ' + TAM + ' · 60 fps'; } else probar(); })
+          .then(function (r) { if (r && r.supported) { webc = { codec: c }; listo = true; info.textContent = esPantalla ? 'lienzo + ventanas · 60 fps' : 'post IG · ' + TAM + ' · 60 fps'; } else probar(); })
           .catch(probar);
       }
       probar();
@@ -345,6 +359,16 @@
 
     function pintar() {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (esPantalla) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+        if (captura && captura.video.readyState >= 2) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(captura.video, 0, 0, W, H);
+        }
+        return;
+      }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
       ctx.filter = 'none';
@@ -430,8 +454,55 @@
       if (!op.manual) raf = requestAnimationFrame(bucle);
     }
 
+    // Captura de la pestaña recortada al elemento. Se pide en el mismo
+    // click (el navegador lo exige) y el usuario elige "esta pestaña".
+    function pedirCaptura() {
+      var el = op.elemento && op.elemento();
+      if (!el) return Promise.reject(new Error('sin elemento'));
+      return navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: FPS, max: FPS }, cursor: 'always', displaySurface: 'browser' },
+        audio: false,
+        preferCurrentTab: true,
+        selfBrowserSurface: 'include',
+        surfaceSwitching: 'exclude',
+      }).then(function (st) {
+        var tr = st.getVideoTracks()[0];
+        return CropTarget.fromElement(el).then(function (ct) { return tr.cropTo(ct); }).then(function () {
+          var v = document.createElement('video');
+          v.muted = true; v.playsInline = true; v.srcObject = st;
+          return v.play().then(function () {
+            return new Promise(function (ok) {
+              (function esperar() { if (v.videoWidth) ok(); else requestAnimationFrame(esperar); })();
+            });
+          }).then(function () {
+            // lado mayor a 1440 px (cabe en H.264 nivel 4.2 a 60 fps)
+            var k = 1440 / Math.max(v.videoWidth, v.videoHeight);
+            W = Math.round(v.videoWidth * k / 2) * 2;
+            H = Math.round(v.videoHeight * k / 2) * 2;
+            TAM = W + '×' + H;
+            lienzo.width = W; lienzo.height = H;
+            tr.addEventListener('ended', function () { detener(); });
+            captura = { stream: st, video: v };
+          });
+        }).catch(function (e) { st.getTracks().forEach(function (t) { t.stop(); }); throw e; });
+      });
+    }
+    function soltarCaptura() {
+      if (!captura) return;
+      captura.stream.getTracks().forEach(function (t) { t.stop(); });
+      captura.video.srcObject = null;
+      captura = null;
+    }
+
     function empezar() {
       if (!listo) return;
+      if (esPantalla && !captura) {
+        btn.disabled = true;
+        info.textContent = 'elige "esta pestaña" para grabar…';
+        pedirCaptura().then(function () { btn.disabled = false; empezar(); })
+          .catch(function () { btn.disabled = false; soltarCaptura(); info.textContent = 'grabación cancelada'; });
+        return;
+      }
       if (url) { URL.revokeObjectURL(url); url = null; }
       dl.hidden = true;
       partes = [];
@@ -488,8 +559,9 @@
       cancelAnimationFrame(raf);
       clearInterval(reloj);
       if (op.alTerminar) { try { op.alTerminar(); } catch (e) { /* nada */ } }
+      soltarCaptura();
       btn.classList.remove('grabando', 'on');
-      btn.textContent = '● GRABAR';
+      btn.textContent = ETQ;
       info.textContent = 'procesando…';
       if (encoder) {
         var enc = encoder, mx = muxer;

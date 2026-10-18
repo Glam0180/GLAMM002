@@ -24,7 +24,7 @@ export default function YummyExperience() {
         title="Yummy"
         /* Necesario para que getUserMedia funcione dentro del iframe
            (control por manos), igual que en Daisy. */
-        allow="camera; microphone"
+        allow="camera; microphone; display-capture"
         allowFullScreen
       />
     </div>

@@ -757,17 +757,17 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
 
             <div class="y-sec">chapas</div>
             <div class="y-row">
-              <div class="y-lab"><span>Cantidad</span><output id="countOut">20</output></div>
-              <input id="count" type="range" min="1" max="60" step="1" value="20">
+              <div class="y-lab"><span>Cantidad</span><output id="countOut">9</output></div>
+              <input id="count" type="range" min="1" max="60" step="1" value="9">
             </div>
             <div class="y-row">
-              <div class="y-lab"><span>Tamaño</span><output id="sizeOut">1.00×</output></div>
-              <input id="size" type="range" min="0.4" max="5" step="0.05" value="1">
+              <div class="y-lab"><span>Tamaño</span><output id="sizeOut">3.00×</output></div>
+              <input id="size" type="range" min="0.4" max="5" step="0.05" value="3">
             </div>
             <div class="y-btns">
               <button type="button" class="cam-btn" id="shake">Agitar</button>
               <button type="button" class="cam-btn" id="reset">Reiniciar</button>
-              <button type="button" class="cam-btn full" id="grav" aria-pressed="true">Gravedad: sí</button>
+              <button type="button" class="cam-btn full" id="grav" aria-pressed="false">Gravedad: no</button>
             </div>
 
             <div class="y-sec">diseños</div>
@@ -808,21 +808,29 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             </div>
             <div class="y-row">
               <div class="y-lab"><span>Texto</span></div>
-              <input id="tickTxt" class="y-txt" type="text" value="VONDE" maxlength="16" spellcheck="false">
+              <input id="tickTxt" class="y-txt" type="text" value="YUMMY" maxlength="16" spellcheck="false">
             </div>
             <div class="y-row">
               <div class="y-lab"><span>Velocidad</span><output id="tickSpdOut">90</output></div>
               <input id="tickSpd" type="range" min="0" max="400" step="5" value="90">
             </div>
 
+            <div class="y-row">
+              <div class="y-lab"><span>Día / noche</span><output id="tkTemaOut">0%</output></div>
+              <input id="tkTema" type="range" min="0" max="1" step="0.01" value="0">
+            </div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn full" id="tkTemaMouse" aria-pressed="false">Color con el mouse: no</button>
+            </div>
+
             <div class="y-sec">estética</div>
             <div class="y-row">
               <div class="y-lab"><span>Blur</span><output id="tkBlurOut">1.00×</output></div>
-              <input id="tkBlur" type="range" min="0" max="2.5" step="0.05" value="1">
+              <input id="tkBlur" type="range" min="0" max="2.5" step="0.05" value="1.65">
             </div>
             <div class="y-row">
               <div class="y-lab"><span>Glow</span><output id="tkGlowOut">1.00×</output></div>
-              <input id="tkGlow" type="range" min="0" max="3" step="0.05" value="1">
+              <input id="tkGlow" type="range" min="0" max="3" step="0.05" value="1.6">
             </div>
             <div class="y-row">
               <div class="y-lab"><span>Niebla entre capas</span><output id="tkFogOut">16%</output></div>
@@ -855,7 +863,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div class="y-btns">
               <button type="button" class="cam-btn full" id="tkReset">Restablecer estética</button>
             </div>
-            <div class="y-hint">mueve el mouse izquierda → derecha: día → noche</div>
+            <div class="y-hint">el color del ticker queda fijo; elígelo con día / noche</div>
           </div>
         </div>
       </div>
@@ -878,7 +886,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
           <li>arrastra las chapas y lánzalas</li>
           <li>rueda sobre una chapa: la gira; con shift, la vuelca</li>
           <li>doble clic: la voltea</li>
-          <li>mueve el mouse de izquierda a derecha: de día a noche</li>
+          <li>elige el color del ticker con día / noche en TICKER</li>
           <li>carga hasta 5 diseños para imprimirlos en las tapas</li>
         </ol>
       </div>
@@ -892,7 +900,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
 (function(){
 'use strict';
 const $ = (id) => document.getElementById(id);
-const W=1080, H=1440, COUNT=20;
+const W=1080, H=1440, COUNT=9;
 const stage=$('yumStage');
 
 // Casita y cerrar: vuelven siempre al inicio del sitio.
@@ -955,8 +963,8 @@ const bg=(()=>{
   ];
   // Estética (sliders). blur/trazo/tamaño/espaciado reconstruyen las capas;
   // el resto se aplica en cada cuadro.
-  const EST={blur:1, glow:1, fog:0.16, layers:4, stroke:1, size:1, track:-0.09, shadow:1, vig:1};
-  let text='VONDE', speed=90, mode='ticker', masks=null, comp=null, lastKey='';
+  const EST={blur:1.65, glow:1.6, fog:0.16, layers:4, stroke:1, size:1, track:-0.09, shadow:1, vig:1};
+  let text='YUMMY', speed=90, mode='ticker', masks=null, comp=null, lastKey='';
   const mk=(w,h)=>{const c=document.createElement('canvas'); c.width=w; c.height=h; return c;};
   function blurInto(src,px){
     const c=mk(src.width,src.height), x=c.getContext('2d');
@@ -1017,16 +1025,19 @@ const bg=(()=>{
     });
   }
   let tx=0, ty=0.5, mx=0, my=0.5, off=0;
+  // Color del ticker: fijo (slider día/noche) salvo que se active el mouse.
+  let temaMouse=false, temaValor=0, th=0;
   addEventListener('pointermove',e=>{const r=stage.getBoundingClientRect();
     tx=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)); ty=Math.min(1,Math.max(0,(e.clientY-r.top)/r.height));},{passive:true});
   function frame(dt){
     if(mode!=='ticker'||!masks) return;
     mx+=(tx-mx)*Math.min(1,dt*5); my+=(ty-my)*Math.min(1,dt*5);
-    const tq=Math.round(mx*64)/64;
-    const bgc=lerpColor(LIGHT.bg,NIGHT.bg,mx);
+    th+=((temaMouse?tx:temaValor)-th)*Math.min(1,dt*5);
+    const tq=Math.round(th*64)/64;
+    const bgc=lerpColor(LIGHT.bg,NIGHT.bg,th);
     const fil=lerpColor(LIGHT.fill,NIGHT.fill,tq), stk=lerpColor(LIGHT.stroke,NIGHT.stroke,tq), glw=lerpColor(LIGHT.glow,NIGHT.glow,tq);
     const key=tq+''; if(key!==lastKey){ lastKey=key; recolor(fil,stk,glw); }
-    const night=Math.min(1,Math.max(0,(mx-0.4)/0.6));
+    const night=Math.min(1,Math.max(0,(th-0.4)/0.6));
     off=(off+speed*dt)%SP;
     ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
     ctx.fillStyle=css(bgc); ctx.fillRect(0,0,W,H);
@@ -1061,7 +1072,7 @@ const bg=(()=>{
   let rbTimer=0;
   function rebuildSoon(){ clearTimeout(rbTimer); rbTimer=setTimeout(rebuild,120); }
   function setEst(k,v){ EST[k]=v; if(k==='blur'||k==='stroke'||k==='size'||k==='track') rebuildSoon(); else lastKey=''; }
-  return {frame,rebuild,setMode,setEst,EST,setText(v){text=(v||' ').toUpperCase(); rebuild();},setSpeed(v){speed=v;}};
+  return {frame,rebuild,setMode,setEst,EST,setTemaMouse(v){temaMouse=v;},setTema(v){temaValor=v;},setText(v){text=(v||' ').toUpperCase(); rebuild();},setSpeed(v){speed=v;}};
 })();
 bg.rebuild();
 if(document.fonts&&document.fonts.load) document.fonts.load('400px "Archivo Black"').then(()=>{ if(!document.fonts.check('400px "Arial Black"')) bg.rebuild(); }).catch(()=>{});
@@ -1181,7 +1192,8 @@ const linerGeo=new THREE.CircleGeometry(R*0.84,64); linerGeo.rotateX(Math.PI/2);
 
 /* ---------- física ---------- */
 const world=new CANNON.World();
-world.gravity.set(0,-30,0);
+let gravOn=false;
+world.gravity.set(0,0,0);   // sin gravedad por defecto (botón GRAVEDAD)
 world.broadphase=new CANNON.NaiveBroadphase();
 world.solver.iterations=14;
 world.allowSleep=true;
@@ -1201,11 +1213,11 @@ const backWall=wall([0,0,-ZF],null,0);
 wall([0,0, ZF],[0,1,0],Math.PI);
 function depthFor(sc){ backWall.position.z=ZF-Math.max(DEPTH,2*R*sc*1.25); }
 const caps=[];
-let S=1;
+let S=3;   // tamaño inicial de las chapas
 function makeBody(){
   const s=new CANNON.Cylinder(R*0.95*S,R*S,CAP_H*S,14);
   const q=new CANNON.Quaternion(); q.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
-  const b=new CANNON.Body({mass:S*S,material:mCap,linearDamping:0.06,angularDamping:0.12});
+  const b=new CANNON.Body({mass:S*S,material:mCap,linearDamping:gravOn?0.06:0.25,angularDamping:0.12});
   b.addShape(s,new CANNON.Vec3(),q);
   b.sleepSpeedLimit=0.15; b.sleepTimeLimit=0.6;
   world.addBody(b); return b;
@@ -1243,6 +1255,7 @@ function setSize(v){
   depthFor(S);
   caps.forEach(c=>c.b.wakeUp());
 }
+depthFor(S);
 for(let i=0;i<COUNT;i++) spawn(i);
 
 /* ---------- arrastrar ---------- */
@@ -1303,7 +1316,6 @@ function slider(id,fmt,fn){
 const veces=v=>v.toFixed(2)+'×', pct=v=>Math.round(v*100)+'%';
 
 /* ---------- controles de chapas ---------- */
-let gravOn=true;
 $('shake').onclick=()=>caps.forEach(c=>{c.b.wakeUp();
   c.b.velocity.set((Math.random()-.5)*14,8+Math.random()*12,(Math.random()-.5)*4);
   c.b.angularVelocity.set((Math.random()-.5)*20,(Math.random()-.5)*20,(Math.random()-.5)*20);});
@@ -1321,7 +1333,11 @@ const tt=$('tickTxt'); let ttTimer;
 tt.addEventListener('input',()=>{clearTimeout(ttTimer); ttTimer=setTimeout(()=>bg.setText(tt.value),180);});
 tt.addEventListener('keydown',e=>e.stopPropagation());
 slider('tickSpd',v=>String(v),v=>bg.setSpeed(v));
-const EST_DEF={blur:1,glow:1,fog:0.16,layers:4,stroke:1,size:1,track:-0.09,shadow:1,vig:1};
+const temaSl=slider('tkTema',pct,v=>bg.setTema(v));
+const tmb=$('tkTemaMouse');
+tmb.onclick=()=>{ const on=tmb.getAttribute('aria-pressed')!=='true'; tmb.setAttribute('aria-pressed',on);
+  tmb.textContent='Color con el mouse: '+(on?'sí':'no'); bg.setTemaMouse(on); temaSl.disabled=on; };
+const EST_DEF={blur:1.65,glow:1.6,fog:0.16,layers:4,stroke:1,size:1,track:-0.09,shadow:1,vig:1};
 const estSliders={
   blur:slider('tkBlur',veces,v=>bg.setEst('blur',v)),
   glow:slider('tkGlow',veces,v=>bg.setEst('glow',v)),
@@ -1362,6 +1378,8 @@ function loadFile(f,slot){
   if(!f.type.startsWith('image/')) return;
   const rd=new FileReader(); rd.onload=()=>{const im=new Image(); im.onload=()=>setDesign(slot,im); im.src=rd.result;}; rd.readAsDataURL(f);
 }
+// Diseño por defecto: el logo C8 en la ranura 1 (se puede quitar o reemplazar).
+(function(){ const im=new Image(); im.onload=()=>setDesign(0,im); im.src='/tools/yummy-media/diseno-c8.webp'; })();
 $('multi').onchange=e=>{ [...e.target.files].slice(0,5).forEach((f,i)=>loadFile(f,i)); e.target.value=''; };
 $('shuffle').onclick=redistribute;
 const fb=$('finish');
@@ -1427,6 +1445,17 @@ GlamRec.montar({
       c.restore();
     }
   },
+});
+
+/* ---------- GRABAR LIENZO + VENTANAS (captura de la pestaña, 60 fps) ---------- */
+GlamRec.montar({
+  contenedor: $('recSlot'),
+  clase: 'cam-btn',
+  nombre: 'yummy-ventanas',
+  etiqueta: '● LIENZO + VENTANAS',
+  fuente: 'pestaña',
+  elemento: () => $('frame'),
+  manual: false,
 });
 
 /* ---------- CHISPAS del click sostenido (las mismas de We Don't Belong) ---------- */
