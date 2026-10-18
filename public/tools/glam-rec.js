@@ -14,6 +14,8 @@
                    después de pintar (necesario con WebGL); false para
                    que el grabador tome cuadros solo,
        dibujar(ctx, W, H) { ...pinta el viewport en ctx a W×H... },
+       ancho, alto  // opcional: tamaño del video (por defecto 1080×1350)
+       aspecto      // opcional: ancho/alto del contenido (por defecto 0,8 = 4:5)
        alIniciar(), alTerminar()   // opcionales (p. ej. subir resolución)
        zonaCursor()  // opcional: elemento cuyo recorte 4:5 central es lo que
                      // se graba; el cursor (manito) se dibuja en el video
@@ -74,7 +76,7 @@
     return '#000';
   }
 
-  function medirVentana(win) {
+  function medirVentana(win, W, H, ASP) {
     var vista = win.ownerDocument.defaultView;
     var cs = function (e) { return vista.getComputedStyle(e); };
     var r = win.getBoundingClientRect();
@@ -87,15 +89,15 @@
     // 4:5 del viewport real: así la barra conserva su proporción aunque
     // la ventana en pantalla sea muy ancha.
     var cwDom = r.width - 2 * b, chDom = r.height - 2 * b - rb.height;
-    var vw = Math.max(1, Math.min(cwDom, chDom > 0 ? chDom * 0.8 : cwDom));
+    var vw = Math.max(1, Math.min(cwDom, chDom > 0 ? chDom * ASP : cwDom));
     // Margen para que el contenido quede justo en 4:5 y el margen
     // lateral y el vertical salgan parecidos.
-    var K = 2 * b + rb.height + 1.25 * vw;
+    var K = 2 * b + rb.height + vw / ASP;
     var q = K / (vw + 2 * b);
     var mh = q > 1.01 ? (W * q - H) / (2 * (q - 1)) : 48;
     mh = Math.max(24, Math.min(140, mh));
     var sc = (W - 2 * mh) / (vw + 2 * b);
-    var cw = vw * sc, ch = cw * 1.25;
+    var cw = vw * sc, ch = cw / ASP;
     var total = 2 * b * sc + rb.height * sc + ch;
     var mv = (H - total) / 2;
     var plan = {
@@ -150,7 +152,7 @@
     return plan;
   }
 
-  function pintarVentana(ctx, p) {
+  function pintarVentana(ctx, p, W, H) {
     ctx.fillStyle = p.fondo;
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = p.borde;
@@ -187,14 +189,14 @@
   var TAM_CURSOR = 24;   // px CSS en pantalla
 
   // Posición del puntero dentro del recorte 4:5 central de un elemento.
-  function mapa45(el, x, y) {
+  function mapa45(el, x, y, ASP) {
     var r = el === el.ownerDocument.documentElement
       ? { left: 0, top: 0, width: el.ownerDocument.defaultView.innerWidth, height: el.ownerDocument.defaultView.innerHeight }
       : el.getBoundingClientRect();
     if (!r.width || !r.height) return null;
     var cx = 0, cy = 0, cw = r.width, ch = r.height;
-    if (r.width / r.height > 0.8) { cw = r.height * 0.8; cx = (r.width - cw) / 2; }
-    else { ch = r.width / 0.8; cy = (r.height - ch) / 2; }
+    if (r.width / r.height > ASP) { cw = r.height * ASP; cx = (r.width - cw) / 2; }
+    else { ch = r.width / ASP; cy = (r.height - ch) / 2; }
     return { u: (x - r.left - cx) / cw, v: (y - r.top - cy) / ch, ancho: cw };
   }
 
@@ -218,6 +220,8 @@
     '@keyframes gRecLatido{to{opacity:.55;}}';
 
   function montar(op) {
+    var W = op.ancho || 1080, H = op.alto || 1350, ASP = op.aspecto || 0.8;
+    var TAM = W + '×' + H;
     if (!document.getElementById('g-rec-css')) {
       var st = document.createElement('style');
       st.id = 'g-rec-css';
@@ -241,7 +245,7 @@
     dl.hidden = true;
     var info = document.createElement('div');
     info.className = 'g-rec__info';
-    info.textContent = 'post IG · 1080×1350';
+    info.textContent = 'post IG · ' + TAM;
     fila.appendChild(btn);
     fila.appendChild(dl);
     caja.appendChild(fila);
@@ -304,7 +308,7 @@
         if (i >= codecs.length) { listo = true; if (!formato) { btn.disabled = true; info.textContent = 'este navegador no permite grabar'; } return; }
         var c = codecs[i++];
         VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: BITRATE, framerate: FPS })
-          .then(function (r) { if (r && r.supported) { webc = { codec: c }; listo = true; info.textContent = 'post IG · 1080×1350 · 60 fps'; } else probar(); })
+          .then(function (r) { if (r && r.supported) { webc = { codec: c }; listo = true; info.textContent = 'post IG · ' + TAM + ' · 60 fps'; } else probar(); })
           .catch(probar);
       }
       probar();
@@ -327,7 +331,7 @@
       if (!op.zonaCursor || !ptr.dentro) return;
       var z = op.zonaCursor();
       if (!z) return;
-      var m = mapa45(z, ptr.x, ptr.y);
+      var m = mapa45(z, ptr.x, ptr.y, ASP);
       if (!m || m.u < 0 || m.u > 1 || m.v < 0 || m.v > 1) return;
       var cur = ptr.presionado ? CURSOR.cerrada : CURSOR.apunta;
       if (!cur.img.complete || !cur.img.naturalWidth) return;
@@ -349,10 +353,10 @@
       var ahora = performance.now();
       if (op.ventana && ahora - planEn > 500) {
         planEn = ahora;
-        try { var w = op.ventana(); plan = w ? medirVentana(w) : null; } catch (e) { plan = null; }
+        try { var w = op.ventana(); plan = w ? medirVentana(w, W, H, ASP) : null; } catch (e) { plan = null; }
       }
       if (plan) {
-        pintarVentana(ctx, plan);
+        pintarVentana(ctx, plan, W, H);
         var c = plan.contenido;
         ctx.save();
         ctx.beginPath();
@@ -380,16 +384,23 @@
       var ahora = performance.now();
       var debidos = Math.floor((ahora - t0) / MS) + 1;
       if (debidos <= hechos) return;            // todavía no toca otro cuadro
-      // Si la pestaña estuvo oculta, no se rellena el hueco: se sigue
-      // desde aquí (el video no tendrá un tramo congelado).
-      if (debidos - hechos > 30) { t0 += (debidos - hechos - 1) * MS; debidos = hechos + 1; }
+      // Si la pestaña estuvo oculta (más de 2 s sin cuadros), no se rellena
+      // el hueco: se sigue desde aquí (el video no tendrá un tramo congelado).
+      if (debidos - hechos > FPS * 2) { t0 += (debidos - hechos - 1) * MS; debidos = hechos + 1; }
       pintar();
       if (encoder) {
+        // Normalmente se entrega un cuadro por cada 1/60 s pendiente. Si el
+        // codificador va atrasado (equipo lento), en vez de apilar copias
+        // del mismo cuadro se entrega uno solo que dura todo el tramo: el
+        // video sigue en la rejilla de 60 fps y a tiempo real, sin colapsar.
+        var cola = encoder.encodeQueueSize || 0;
         while (hechos < debidos) {
-          var vf = new VideoFrame(lienzo, { timestamp: Math.round(hechos * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
-          try { encoder.encode(vf, { keyFrame: hechos % (FPS * 2) === 0 }); } catch (e) { fallo = true; }
+          var tramo = cola > 3 ? debidos - hechos : 1;
+          var vf = new VideoFrame(lienzo, { timestamp: Math.round(hechos * 1e6 / FPS), duration: Math.round(tramo * 1e6 / FPS) });
+          try { encoder.encode(vf, { keyFrame: hechos === 0 || Math.floor(hechos / (FPS * 2)) !== Math.floor((hechos + tramo - 1) / (FPS * 2)) || (hechos % (FPS * 2) === 0) }); } catch (e) { fallo = true; console.warn('[glam-rec] encode:', e && e.message); }
           vf.close();
-          hechos++;
+          hechos += tramo;
+          cola++;
         }
       } else {
         if (pista && pista.requestFrame) pista.requestFrame();
@@ -414,7 +425,7 @@
       btn.disabled = false;
       btn.classList.add('grabando', 'on');
       btn.textContent = '■ DETENER 00:00';
-      info.textContent = 'grabando · 1080×1350 · 60 fps';
+      info.textContent = 'grabando · ' + TAM + ' · 60 fps';
       reloj = setInterval(function () { btn.textContent = '■ DETENER ' + tiempo(performance.now() - t0); }, 250);
       if (!op.manual) raf = requestAnimationFrame(bucle);
     }
@@ -438,7 +449,7 @@
             // el muxer de ESTA grabación (no la variable compartida, que
             // se suelta al detener mientras aún llegan los últimos cuadros)
             output: function (chunk, meta) { mx.addVideoChunk(chunk, meta); },
-            error: function () { fallo = true; },
+            error: function (e) { fallo = true; console.warn('[glam-rec] codificador:', e && e.message); },
           });
           var conf = { codec: webc.codec, width: W, height: H, bitrate: BITRATE, framerate: FPS };
           if (/^avc/.test(webc.codec)) conf.avc = { format: 'avc' };

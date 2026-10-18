@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <script src="/tools/glam-invert.js"></script>
+  <script src="/tools/glam-rec.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
+  <title>STUDIO GLAM — YUMMY</title>
+  <style>
+/* Tema alterno (switch): fondo #00E9B4, ventanas #E64CDF, líneas y texto negros.
+   --g-red = color de acento (líneas, texto, barras); --g-black = superficie.
+   En las barras de título se vuelve a cruzar el par para que queden
+   magenta con texto negro. */
+:root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb))}
+:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red-dark:#CC0000}
+html.glam-alt{--g-red-rgb:0,0,0;--g-black-rgb:230,76,223;--g-red-dark:#3a3a3a}
+html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red-rgb:230,76,223;--g-black-rgb:0,0,0;--g-red-dark:#b93ab3}
+html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{background:#00E9B4}
+
+    /* Space Mono — mismo design system que CANICAS.3D */
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+    }
+
+    :root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar) {
+      --red: var(--g-red);
+      --red-dark: var(--g-red-dark);
+      --red-dim: rgba(var(--g-red-rgb), 0.55);
+      --red-faint: rgba(var(--g-red-rgb), 0.18);
+      --red-ghost: rgba(var(--g-red-rgb), 0.10);
+      --black: var(--g-black);
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--black);
+      font-family: 'Space Mono', monospace;
+      border: 1px solid var(--red);
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(var(--g-red-rgb), 0.55) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 128px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .2;
+      mix-blend-mode: overlay;
+    }
+
+    ::selection {
+      background: var(--black);
+      color: var(--red);
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--red); }
+    ::-webkit-scrollbar-thumb { background: var(--black); }
+
+    /* ───────── MASTER BAR ───────── */
+    #master-bar {
+      position: fixed;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      height: 28px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    #master-bar .slz {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+    }
+
+    #master-bar .dot5 {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .mhouse {
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #master-bar .mtitle {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--black);
+      text-transform: uppercase;
+    }
+
+    #master-bar .msep {
+      color: rgba(var(--g-black-rgb), .3);
+      font-size: 9px;
+    }
+
+    #master-bar .msub {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .55);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #master-bar .mright {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mctrl {
+      width: 20px;
+      height: 16px;
+      background: var(--black);
+      border: 1px solid rgba(var(--g-red-rgb), .25);
+      color: var(--red);
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mctrl:hover { background: var(--red-dark); }
+    .mctrl--close:hover { background: var(--red-dark); }
+
+    /* ───────── STAGE / FRAME ───────── */
+    #stage {
+      position: fixed;
+      top: 32px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    /* En fila, como canicas-3d: viewport a la izquierda y sidebar a la
+       derecha. El ancho/alto exactos los fija fitStage() para que el
+       canvas llene su ventana sin dejar franjas negras. */
+    #frame {
+      width: min(calc(100vw - 72px), 1180px);
+      height: min(calc(100vh - 72px), 900px);
+      background: var(--black);
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      gap: 5px;
+      position: relative;
+    }
+
+    /* Ventana del viewport: su ancho lo fija fitStage a partir del canvas,
+       asi que el canvas la llena de borde a borde. */
+    #viewport {
+      flex: none;
+      min-width: 0;
+    }
+
+    /* La barra de titulo lleva un border-bottom negro de 2px. Sobre el
+       panel negro del sidebar no se nota, pero aqui cae justo entre la
+       barra y la ilustracion y se lee como una linea negra separandolas.
+       Se quita solo en el viewport. */
+    #sidebar {
+      width: 210px;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: 0;
+    }
+    #sidebar > .win { flex: 1; min-height: 0; }
+
+    /* ───────── COMPONENTE VENTANA ───────── */
+    .win {
+      background: var(--black);
+      border: 2px solid var(--red);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .win__bar {
+      height: 22px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .win__bar .slz {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+    }
+
+    .win__bar-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .win__bar-title {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--black);
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win__bar-sub {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .win__bar-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .win__ctrl {
+      width: 16px;
+      height: 13px;
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 7px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .win__ctrl:hover {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    /* ───────── COMPOSICIÓN DAISY (canvas 1080×1350 + panel) ───────── */
+    .daisy-main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Zona donde vive el canvas 1080×1350 — se centra y se ajusta por JS
+       (fitStage) manteniendo siempre la proporción 4:5, sin deformarse. */
+    .daisy-canvas-wrap {
+      flex: 1;
+      display: block;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    /* La ilustracion va a ras de la ventana: pegada a la barra de titulo
+       arriba y al borde de .win por los otros tres lados. El unico trazo
+       visible es el de la propia ventana.
+       Ocupa el hueco ENTERO en vez de ser una caja de tamano fijo
+       centrada dentro de el: al centrarla, cualquier sobrante de
+       redondeo se repartia mitad arriba y mitad abajo y aparecia como un
+       hueco sobre la ilustracion. Quien mantiene la proporcion 4:5 es
+       fitStage, dimensionando la ventana; el canvas solo la rellena. */
+    .daisy-canvas {
+      position: relative;
+      background: var(--g-black);
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    .daisy-canvas video,
+    .daisy-canvas canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Orden de capas (de abajo hacia arriba):
+       1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
+       2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
+       3) #variasCanvas → varias flores con alfa, SIEMPRE visible
+       4) #stemCanvas   → el tallo, se dibuja y se arrastra
+       5) #unoCanvas    → la flor grande, anclada por su CENTRO a la
+                          punta del tallo, asi que se mueve con el.
+                          Tallo y flor van por ENCIMA del resto del arte
+       6) #handsCanvas  → esqueleto de las manos y medidor del pinch
+
+       UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
+       secuencia termina su ciclo parando en el frame 0, que es la imagen
+       estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
+    #bg1Canvas    { z-index: 1; }
+    #bg2Canvas    { z-index: 2; opacity: 0; }
+    #variasCanvas { z-index: 3; }
+    #stemCanvas   { z-index: 4; }
+    #unoCanvas    { z-index: 5; }
+    /* UI de las manos: va encima de todo y no intercepta el raton */
+    #handsCanvas  { z-index: 6; pointer-events: none; }
+
+    .daisy-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--black);
+      color: var(--red-dim);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 20px;
+      transition: opacity .4s ease;
+    }
+
+    /* ───────── PANEL DE CONTROL LATERAL ───────── */
+    /* Ya no es una columna dentro del viewport: ahora es el cuerpo de su
+       propia ventana en el sidebar, asi que ni ancho fijo ni borde
+       izquierdo separandola del canvas. */
+    .daisy-panel {
+      flex: 1;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .daisy-btn {
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 10px 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .daisy-btn:hover:not(:disabled) {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    .daisy-btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .daisy-status {
+      font-size: 9px;
+      line-height: 1.5;
+      letter-spacing: .03em;
+      color: var(--red-dim);
+    }
+
+    .daisy-meter-label {
+      font-size: 8px;
+      letter-spacing: .1em;
+      color: var(--red-dim);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .daisy-meter-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(var(--g-red-rgb), .12);
+      border: 1px solid var(--red-faint);
+    }
+
+    .daisy-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--red);
+      transition: width .08s linear;
+    }
+
+    /* ───────── CAMARA (control por manos) ───────── */
+    .cam-wrap { display: flex; flex-direction: column; gap: 7px; }
+    .cam-btn {
+      font-size: 8px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--red); background: var(--g-black); border: 1px solid var(--red);
+      padding: 5px 6px; cursor: pointer;
+    }
+    .cam-btn:hover, .cam-btn.on { background: var(--red); color: var(--g-black); }
+    .cam-box {
+      display: none; position: relative; width: 100%; aspect-ratio: 4 / 3;
+      border: 1px solid var(--red-faint); overflow: hidden; background: var(--g-black);
+    }
+    .cam-box video, .cam-box canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      /* espejo: mover la mano a la derecha lleva la flor a la derecha.
+         El overlay lleva el mismo espejo que el video, asi se dibuja con
+         las coordenadas del detector sin invertirlas a mano. */
+      transform: scaleX(-1); display: block;
+    }
+    .cam-ayuda {
+      font-size: 7px; line-height: 1.7; letter-spacing: .06em;
+      color: var(--red-dim); text-transform: uppercase;
+    }
+
+
+
+    /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
+    @media (max-width: 768px) {
+      html, body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      #stage {
+        position: relative;
+        top: 32px;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        height: auto;
+        min-height: calc(100vh - 32px);
+        padding: 10px;
+      }
+
+      #frame {
+        width: 100%;
+        height: auto;
+        min-height: calc(100vh - 52px);
+        padding: 10px;
+        flex-direction: column;
+      }
+
+      /* en mobile el viewport y el sidebar se apilan a ancho completo */
+      #viewport, #sidebar { width: 100% !important; flex: none; }
+
+      .daisy-main {
+        flex-direction: column;
+        overflow: visible;
+      }
+
+      .daisy-canvas-wrap {
+        flex: none;
+        padding: 0;
+      }
+
+      /* En desktop el alto sale de height:100% sobre un hueco que
+         fitStage ya dimensiono. Aqui fitStage no corre y el padre no
+         tiene alto propio en la pila vertical (colapsaba a 0), asi que
+         se fija por ancho y el aspect-ratio 4:5 deriva el alto. */
+      .daisy-canvas {
+        width: 100%;
+        height: auto;
+        /* proporcion del arte YA recortado (SRC_H - ART_CROP_TOP) */
+        aspect-ratio: 810 / 995;
+      }
+
+      .daisy-panel {
+        width: 100%;
+      }
+
+    }
+    /* ───────── INFO PANEL (arrastrable, minimizable, cerrable) ─────────
+       Vive fuera de #daisyCanvas: su área de arrastre está acotada a
+       .win pero SIN poder entrar nunca al rectángulo del canvas. */
+    .ip {
+      position: absolute;
+      top: 30px;
+      left: 10px;
+      width: min(240px, calc(100% - 16px));
+      background: var(--g-black);
+      border: 2px solid var(--red);
+      z-index: 40;
+      box-shadow: 0 6px 18px rgba(var(--g-black-rgb), .5);
+      user-select: none;
+    }
+
+    .ip__bar {
+      height: 20px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      cursor: grab;
+      touch-action: none;
+    }
+    .ip__bar:active { cursor: grabbing; }
+
+    .ip__slz { font-size: 8px; font-weight: 700; color: rgba(var(--g-black-rgb), .5); }
+    .ip__dot { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
+    .ip__title {
+      font-size: 9px; font-weight: 700; letter-spacing: .1em;
+      color: var(--black); text-transform: lowercase;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ip__ctrls { display: flex; gap: 4px; margin-left: auto; }
+    .ip__ctrl {
+      width: 15px; height: 13px; background: var(--black);
+      border: 1px solid rgba(var(--g-red-rgb), .4); color: var(--red);
+      font-size: 8px; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; cursor: pointer;
+    }
+    .ip__ctrl:hover { background: var(--red); color: var(--black); }
+
+    .ip__body { padding: 9px 11px 11px; max-height: 220px; overflow-y: auto; }
+    .ip__desc {
+      font-size: 9px; line-height: 1.5; letter-spacing: .04em;
+      color: var(--red); text-transform: lowercase; margin-bottom: 7px;
+    }
+    .ip__steps { list-style: none; counter-reset: ip-step; display: flex; flex-direction: column; gap: 5px; }
+    .ip__steps li {
+      counter-increment: ip-step; font-size: 8px; line-height: 1.5;
+      letter-spacing: .04em; color: var(--red-dim); text-transform: lowercase;
+      display: flex; gap: 6px;
+    }
+    .ip__steps li::before { content: counter(ip-step) "."; color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+    /* Burbuja unificada: tanto minimizar como cerrar colapsan aquí */
+    .ip-bubble {
+      position: absolute; width: 26px; height: 26px;
+      background: var(--g-black); border: 2px solid var(--red); color: var(--red);
+      font-size: 13px; font-weight: 700; cursor: pointer; z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(var(--g-black-rgb), .5);
+    }
+    .ip-bubble:hover { background: var(--red); color: var(--black); }
+
+    @media (max-width: 640px) {
+      .ip { width: min(72vw, 210px); }
+      .ip__body { max-height: 160px; }
+    }
+  </style>
+  <style>
+    /* ═════════ YUMMY ═════════ */
+    #yumStage {
+      position: relative;
+      overflow: hidden;
+      background: #00ff00;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      /* manito pixel art: dedo apuntando; al agarrar, pinch */
+      cursor: url(/tools/cursor-point.png) 9 1, pointer;
+    }
+    #yumStage.grabbing { cursor: url(/tools/cursor-pinch.png) 9 5, pointer; }
+    #yumStage canvas {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+    /* ruido sutil encima de todo el lienzo (no intercepta el mouse) */
+    #yumNoise {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      z-index: 3;
+      background-repeat: repeat;
+    }
+
+    /* ── controles en las ventanas de propiedades ── */
+    #sidebar { width: 226px; }
+    .y-panel { gap: 10px; padding: 12px 12px 14px; }
+    .y-sec {
+      font-size: 8px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--red); display: flex; align-items: center; gap: 6px;
+    }
+    .y-sec::after { content: ''; flex: 1; height: 1px; background: var(--red-faint); }
+    .y-row { display: flex; flex-direction: column; gap: 5px; }
+    .y-lab {
+      font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--red-dim);
+      display: flex; justify-content: space-between; gap: 6px;
+    }
+    .y-lab output { color: var(--red); font-variant-numeric: tabular-nums; }
+    .y-panel input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 3px; margin: 3px 0; outline: none; cursor: pointer;
+      background: linear-gradient(to right, var(--red) var(--val, 50%), rgba(var(--g-red-rgb), .2) var(--val, 50%));
+    }
+    .y-panel input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 9px; height: 9px;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-thumb {
+      width: 9px; height: 9px; border-radius: 0;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-track { height: 3px; background: rgba(var(--g-red-rgb), .2); }
+    .y-txt {
+      width: 100%; font: inherit; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--red); background: var(--black); border: 1px solid var(--red-faint); padding: 5px 6px; outline: none;
+    }
+    .y-txt:focus { border-color: var(--red); }
+    .y-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .y-btns .cam-btn { width: 100%; }
+    .y-btns .full { grid-column: 1 / -1; }
+    .cam-btn[aria-pressed="true"] { background: var(--red); color: var(--g-black); }
+    .y-slots { display: flex; justify-content: space-between; gap: 4px; }
+    .y-slotwrap { position: relative; }
+    .y-slot {
+      width: 34px; height: 34px; border-radius: 50%; border: 1px dashed var(--red-dim);
+      display: grid; place-items: center; overflow: hidden; cursor: pointer;
+      color: var(--red-dim); font-size: 12px; background: var(--black);
+    }
+    .y-slot:hover, .y-slot.over { border-style: solid; border-color: var(--red); color: var(--red); }
+    .y-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .y-slotwrap .x {
+      position: absolute; top: -3px; right: -3px; width: 13px; height: 13px; padding: 0;
+      border: 1px solid var(--red); background: var(--black); color: var(--red);
+      font: 700 8px/11px 'Space Mono', monospace; cursor: pointer; display: none;
+    }
+    .y-slotwrap.lleno:hover .x { display: block; }
+    .y-hint { font-size: 7px; line-height: 1.7; letter-spacing: .06em; color: var(--red-dim); text-transform: uppercase; }
+
+    @media (max-width: 768px) {
+      /* el lienzo de Yummy es 1080×1440 (3:4) */
+      .daisy-canvas { aspect-ratio: 1080 / 1440; }
+      #sidebar { flex-direction: column; }
+      #sidebar > .win { flex: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Barra madre fija superior -->
+  <div id="master-bar">
+    <span class="slz">///</span>
+    <div class="dot5"></div>
+    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button" aria-label="Volver al inicio" title="Volver al inicio">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+    <span class="mtitle">STUDIO GLAM</span>
+    <span class="msep">—</span>
+    <span class="msub">YUMMY</span>
+    <div class="mright">
+      <div class="mctrl">—</div>
+      <div class="mctrl">□</div>
+      <div class="mctrl mctrl--close" id="mclose" role="button" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</div>
+    </div>
+    <span class="slz">///</span>
+  </div>
+
+  <!-- Stage centrado -->
+  <div id="stage">
+    <div id="frame">
+      <div class="win" id="viewport">
+        <div class="win__bar">
+          <span class="slz">///</span>
+          <div class="win__bar-dot"></div>
+          <span class="win__bar-title">VIEWPORT.YUMMY</span>
+          <div class="win__bar-controls">
+            <div class="win__ctrl">—</div>
+            <div class="win__ctrl">□</div>
+            <div class="win__ctrl" id="wclose" role="button" aria-label="Cerrar" title="Cerrar">✕</div>
+          </div>
+        </div>
+
+        <div class="daisy-main">
+          <div class="daisy-canvas-wrap">
+            <!-- Lienzo 1080×1440: ticker (2D) + chapas (Three.js) + ruido -->
+            <div class="daisy-canvas" id="yumStage" aria-label="Lienzo 1080 por 1440 con chapas cromadas">
+              <div id="yumNoise"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar: ventanas de propiedades -->
+      <div id="sidebar">
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">PROPIEDADES</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">—</div>
+              <div class="win__ctrl">□</div>
+            </div>
+          </div>
+          <div class="daisy-panel y-panel">
+            <div class="y-sec">grabar</div>
+            <div class="cam-wrap" id="recSlot"></div>
+
+            <div class="y-sec">chapas</div>
+            <div class="y-row">
+              <div class="y-lab"><span>Cantidad</span><output id="countOut">20</output></div>
+              <input id="count" type="range" min="1" max="60" step="1" value="20">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Tamaño</span><output id="sizeOut">1.00×</output></div>
+              <input id="size" type="range" min="0.4" max="5" step="0.05" value="1">
+            </div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="shake">Agitar</button>
+              <button type="button" class="cam-btn" id="reset">Reiniciar</button>
+              <button type="button" class="cam-btn full" id="grav" aria-pressed="true">Gravedad: sí</button>
+            </div>
+
+            <div class="y-sec">diseños</div>
+            <div class="y-slots" id="slots"></div>
+            <div class="y-btns">
+              <label class="cam-btn" for="multi" style="text-align:center">Cargar 5…</label>
+              <input id="multi" type="file" accept="image/*" multiple hidden>
+              <button type="button" class="cam-btn" id="shuffle">Repartir</button>
+              <button type="button" class="cam-btn full" id="finish" aria-pressed="false">Acabado: tinta</button>
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Área del diseño</span><output id="dscaleOut">86%</output></div>
+              <input id="dscale" type="range" min="0.5" max="1" step="0.01" value="0.86">
+            </div>
+
+            <div class="y-sec">lienzo</div>
+            <div class="y-row">
+              <div class="y-lab"><span>Ruido</span><output id="noiseOut">35%</output></div>
+              <input id="noise" type="range" min="0" max="1" step="0.01" value="0.35">
+            </div>
+
+          </div>
+        </div>
+
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">TICKER</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">—</div>
+              <div class="win__ctrl">□</div>
+            </div>
+          </div>
+          <div class="daisy-panel y-panel">
+            <div class="y-btns">
+              <button type="button" class="cam-btn full" id="bgmode" aria-pressed="true">Fondo: ticker</button>
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Texto</span></div>
+              <input id="tickTxt" class="y-txt" type="text" value="VONDE" maxlength="16" spellcheck="false">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Velocidad</span><output id="tickSpdOut">90</output></div>
+              <input id="tickSpd" type="range" min="0" max="400" step="5" value="90">
+            </div>
+
+            <div class="y-sec">estética</div>
+            <div class="y-row">
+              <div class="y-lab"><span>Blur</span><output id="tkBlurOut">1.00×</output></div>
+              <input id="tkBlur" type="range" min="0" max="2.5" step="0.05" value="1">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Glow</span><output id="tkGlowOut">1.00×</output></div>
+              <input id="tkGlow" type="range" min="0" max="3" step="0.05" value="1">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Niebla entre capas</span><output id="tkFogOut">16%</output></div>
+              <input id="tkFog" type="range" min="0" max="0.5" step="0.01" value="0.16">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Capas</span><output id="tkLayersOut">4</output></div>
+              <input id="tkLayers" type="range" min="1" max="4" step="1" value="4">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Grosor del trazo</span><output id="tkStrokeOut">1.00×</output></div>
+              <input id="tkStroke" type="range" min="0" max="4" step="0.05" value="1">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Tamaño del texto</span><output id="tkSizeOut">1.00×</output></div>
+              <input id="tkSize" type="range" min="0.5" max="1.6" step="0.01" value="1">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Espaciado</span><output id="tkTrackOut">-0.09</output></div>
+              <input id="tkTrack" type="range" min="-0.25" max="0.2" step="0.01" value="-0.09">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Sombra (noche)</span><output id="tkShadowOut">1.00×</output></div>
+              <input id="tkShadow" type="range" min="0" max="2" step="0.05" value="1">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Viñeta</span><output id="tkVigOut">1.00×</output></div>
+              <input id="tkVig" type="range" min="0" max="2" step="0.05" value="1">
+            </div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn full" id="tkReset">Restablecer estética</button>
+            </div>
+            <div class="y-hint">mueve el mouse izquierda → derecha: día → noche</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel de instrucciones flotante, fuera de la ventana. -->
+    <div class="ip" id="infoPanel">
+      <div class="ip__bar" id="infoPanelBar">
+        <span class="ip__slz">///</span>
+        <span class="ip__dot"></span>
+        <span class="ip__title">cómo usar — yummy</span>
+        <div class="ip__ctrls">
+          <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
+          <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
+        </div>
+      </div>
+      <div class="ip__body" id="infoBody">
+        <p class="ip__desc">chapas cromadas con física sobre un ticker infinito.</p>
+        <ol class="ip__steps">
+          <li>arrastra las chapas y lánzalas</li>
+          <li>rueda sobre una chapa: la gira; con shift, la vuelca</li>
+          <li>doble clic: la voltea</li>
+          <li>mueve el mouse de izquierda a derecha: de día a noche</li>
+          <li>carga hasta 5 diseños para imprimirlos en las tapas</li>
+        </ol>
+      </div>
+    </div>
+    <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+  <script>
+(function(){
+'use strict';
+const $ = (id) => document.getElementById(id);
+const W=1080, H=1440, COUNT=20;
+const stage=$('yumStage');
+
+// Casita y cerrar: vuelven siempre al inicio del sitio.
+function goHome(){ try{ if(window.top&&window.top!==window) window.top.location.href='/'; else window.location.href='/'; }catch(e){ window.location.href='/'; } }
+$('mhouse').addEventListener('click',goHome);
+$('mclose').addEventListener('click',goHome);
+$('wclose').addEventListener('click',goHome);
+
+/* ─────────── TAMAÑO DEL LIENZO (1080×1440, mismo sistema que Daisy) ─────────── */
+const frameEl=$('frame'), viewportEl=$('viewport'), sidebarEl=$('sidebar');
+const winBarEl=document.querySelector('#viewport .win__bar');
+function fitStage(){
+  frameEl.style.width=''; frameEl.style.height=''; viewportEl.style.width='';
+  if(window.matchMedia('(max-width: 768px)').matches){ ajustarRuido(); return; }
+  const stageBox=$('stage').getBoundingClientRect();
+  const framePad=20, winBorder=2, gap=5, sidebarW=sidebarEl.offsetWidth;
+  const chromeW=winBorder*2, chromeH=winBarEl.offsetHeight+winBorder*2;
+  const maxW=stageBox.width-8-framePad*2-gap-sidebarW-chromeW;
+  const maxH=stageBox.height-8-framePad*2-chromeH;
+  const ratio=W/H;
+  let h=maxH, w=h*ratio; if(w>maxW){ w=maxW; h=w/ratio; }
+  w=Math.max(120,Math.floor(w)); h=Math.max(160,Math.floor(h));
+  viewportEl.style.width=(w+chromeW)+'px';
+  frameEl.style.width=(w+chromeW+gap+sidebarW+framePad*2)+'px';
+  frameEl.style.height=(h+chromeH+framePad*2)+'px';
+  ajustarRuido();
+}
+addEventListener('resize',fitStage);
+
+/* ─────────── RENDER ─────────── */
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true,premultipliedAlpha:false});
+renderer.setPixelRatio(1);
+renderer.setSize(W,H,false);
+renderer.setClearColor(0x00ff00,0);
+renderer.outputEncoding=THREE.sRGBEncoding;
+
+/* ================= FONDO: ticker infinito con desenfoque, glow y tema día/noche ================= */
+const bgCv=document.createElement('canvas'); bgCv.width=W; bgCv.height=H;
+stage.insertBefore(bgCv,$('yumNoise'));
+stage.insertBefore(renderer.domElement,$('yumNoise'));
+const bg=(()=>{
+  const ctx=bgCv.getContext('2d');
+  const hasFilter=(()=>{try{const c=document.createElement('canvas');c.width=c.height=9;const x=c.getContext('2d');
+    x.filter='blur(2px)';x.fillStyle='#fff';x.fillRect(4,4,1,1);return x.getImageData(1,4,1,1).data[3]>0;}catch(e){return false;}})();
+  const LIGHT={bg:[92,255,26], fill:[92,255,26], stroke:[22,88,0],    glow:[210,255,170]};
+  const NIGHT={bg:[3,5,3],     fill:[6,10,6],    stroke:[190,225,180], glow:[255,255,255]};
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const lerpColor=(A,B,t)=>A.map((v,i)=>Math.round(lerp(v,B[i],t)));
+  const css=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  const FONT='"Arial Black", "Archivo Black", Arial, sans-serif';
+  const F=400, PAD=150, CY=H/2;
+  let FS=F, SP=F*0.58;
+  const LAYERS=[
+    {scale:1.00, blur:8,  op:1.00, fillA:0.86, stroke:2,   gain:4},
+    {scale:1.05, blur:16, op:0.60, fillA:0.70, stroke:2.5, gain:5},
+    {scale:1.11, blur:26, op:0.40, fillA:0.60, stroke:3,   gain:6},
+    {scale:1.18, blur:38, op:0.26, fillA:0.50, stroke:3.5, gain:7},
+  ];
+  // Estética (sliders). blur/trazo/tamaño/espaciado reconstruyen las capas;
+  // el resto se aplica en cada cuadro.
+  const EST={blur:1, glow:1, fog:0.16, layers:4, stroke:1, size:1, track:-0.09, shadow:1, vig:1};
+  let text='VONDE', speed=90, mode='ticker', masks=null, comp=null, lastKey='';
+  const mk=(w,h)=>{const c=document.createElement('canvas'); c.width=w; c.height=h; return c;};
+  function blurInto(src,px){
+    const c=mk(src.width,src.height), x=c.getContext('2d');
+    if(px<=0.05){ x.drawImage(src,0,0); return c; }
+    if(hasFilter){ x.filter=`blur(${px}px)`; x.drawImage(src,0,0); }
+    else { x.shadowColor='#fff'; x.shadowBlur=px*2; x.shadowOffsetX=src.width+50; x.drawImage(src,-(src.width+50),0); }
+    return c;
+  }
+  function boost(c,gain){ const o=mk(c.width,c.height),x=o.getContext('2d'); for(let i=0;i<gain;i++) x.drawImage(c,0,0); return o; }
+  function tile(L,glowBlur){
+    const s=L.scale, fs=FS*s, tw=Math.ceil(W*s*1.25+PAD*2), th=Math.ceil(fs*0.92+PAD*2);
+    const font=`900 ${fs}px ${FONT}`;
+    const probe=mk(1,1).getContext('2d'); probe.font=font;
+    const chars=[...text], ws=chars.map(c=>probe.measureText(c).width), tr=EST.track*fs;
+    const total=ws.reduce((a,b)=>a+b,0)+tr*(chars.length-1);
+    const cap=probe.measureText(text).actualBoundingBoxAscent||fs*0.72;
+    const xs=[]; {let x=-total/2; ws.forEach(w=>{xs.push(x); x+=w+tr;});}
+    const ctxFor=()=>{const c=mk(tw,th),x=c.getContext('2d'); x.font=font; x.textAlign='left'; x.lineJoin='round';
+      x.setTransform(1,0,0,1,tw/2,PAD+cap); return [c,x];};
+    const [fill,fx]=ctxFor(); fx.fillStyle='#fff'; chars.forEach((c,i)=>fx.fillText(c,xs[i],0));
+    const [stroke,sxx]=ctxFor(); sxx.strokeStyle='#fff'; sxx.fillStyle='#fff'; sxx.lineWidth=Math.max(0.01,L.stroke*s*EST.stroke);
+    chars.forEach((c,i)=>{ sxx.globalCompositeOperation='destination-out'; sxx.fillText(c,xs[i],0);
+      sxx.globalCompositeOperation='source-over'; if(EST.stroke>0) sxx.strokeText(c,xs[i],0); });
+    const b=EST.blur;
+    const t={tw,th,cap,fill:blurInto(fill,L.blur*0.45*b),stroke:boost(blurInto(stroke,L.blur*b),L.gain),shadow:blurInto(fill,(L.blur+30)*Math.max(0.3,b))};
+    if(glowBlur){ t.glow=boost(blurInto(stroke,glowBlur),3); t.glow2=boost(blurInto(stroke,glowBlur*2.6),3); }
+    return t;
+  }
+  function tintOf(mask,color){const c=mk(mask.width,mask.height),x=c.getContext('2d');
+    x.drawImage(mask,0,0); x.globalCompositeOperation='source-in'; x.fillStyle=color; x.fillRect(0,0,c.width,c.height); return c;}
+  function rebuild(){
+    const p=mk(1,1).getContext('2d'); p.font=`900 ${F}px ${FONT}`;
+    const ref=[...'VONDE'], tot=ref.reduce((a,c)=>a+p.measureText(c).width,0)+(-0.09)*F*(ref.length-1);
+    FS=F*(W*1.16)/Math.max(1,tot)*EST.size; SP=FS*0.58;
+    masks=LAYERS.map((L,i)=>tile(L,i===0?22:0));
+    comp=LAYERS.map((L,i)=>{
+      const P=SP*L.scale, n=Math.ceil(H/P)+3, t=masks[i];
+      const h=Math.ceil(n*P+t.th);
+      return {P,n,h,layer:mk(t.tw,h),glow:null,shadow:bake(t,P,n,h,tintOf(t.shadow,'#000'),1)};
+    });
+    lastKey='';
+  }
+  function bake(t,P,n,h,img,alpha,into){
+    const c=into||mk(t.tw,h), x=c.getContext('2d'); if(into) x.clearRect(0,0,c.width,c.height);
+    x.globalAlpha=alpha; for(let k=0;k<n;k++) x.drawImage(img,0,k*P); x.globalAlpha=1; return c;
+  }
+  function recolor(fil,stk,glw){
+    LAYERS.forEach((L,i)=>{
+      const t=masks[i], C=comp[i], x=C.layer.getContext('2d');
+      const f=tintOf(t.fill,css(fil)), s=tintOf(t.stroke,css(stk));
+      x.clearRect(0,0,C.layer.width,C.layer.height);
+      for(let k=0;k<C.n;k++){ x.globalAlpha=L.fillA; x.drawImage(f,0,k*C.P); x.globalAlpha=1; if(EST.stroke>0) x.drawImage(s,0,k*C.P); }
+      if(i===0){
+        const g=mk(t.tw,t.th), gx=g.getContext('2d');
+        gx.globalAlpha=0.45; gx.drawImage(tintOf(t.glow2,css(glw)),0,0); gx.globalAlpha=0.8; gx.globalCompositeOperation='lighter'; gx.drawImage(tintOf(t.glow,css(glw)),0,0);
+        C.glow=bake(t,C.P,C.n,C.h,g,1,C.glow);
+      }
+    });
+  }
+  let tx=0, ty=0.5, mx=0, my=0.5, off=0;
+  addEventListener('pointermove',e=>{const r=stage.getBoundingClientRect();
+    tx=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)); ty=Math.min(1,Math.max(0,(e.clientY-r.top)/r.height));},{passive:true});
+  function frame(dt){
+    if(mode!=='ticker'||!masks) return;
+    mx+=(tx-mx)*Math.min(1,dt*5); my+=(ty-my)*Math.min(1,dt*5);
+    const tq=Math.round(mx*64)/64;
+    const bgc=lerpColor(LIGHT.bg,NIGHT.bg,mx);
+    const fil=lerpColor(LIGHT.fill,NIGHT.fill,tq), stk=lerpColor(LIGHT.stroke,NIGHT.stroke,tq), glw=lerpColor(LIGHT.glow,NIGHT.glow,tq);
+    const key=tq+''; if(key!==lastKey){ lastKey=key; recolor(fil,stk,glw); }
+    const night=Math.min(1,Math.max(0,(mx-0.4)/0.6));
+    off=(off+speed*dt)%SP;
+    ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
+    ctx.fillStyle=css(bgc); ctx.fillRect(0,0,W,H);
+    const shX=(mx-0.5)*-70, shY=(my-0.5)*-70+16;
+    const nCapas=Math.max(1,Math.min(LAYERS.length,EST.layers|0));
+    for(let i=nCapas-1;i>=0;i--){
+      const L=LAYERS[i], C=comp[i], t=masks[i];
+      const Y=((off*L.scale + CY*(1-L.scale))%C.P+C.P)%C.P - C.P - PAD*1 - C.P;
+      const X=(W-t.tw)/2;
+      if(night>0 && i<nCapas-1 && EST.shadow>0){
+        const k=1+(nCapas-1-i)*0.35;
+        ctx.globalAlpha=Math.min(1,0.8*night*EST.shadow); ctx.drawImage(C.shadow,X+shX*k,Y+shY*k);
+      }
+      ctx.globalAlpha=L.op; ctx.drawImage(C.layer,X,Y);
+      if(i>0 && EST.fog>0){ ctx.globalAlpha=EST.fog; ctx.fillStyle=css(bgc); ctx.fillRect(0,0,W,H); }
+      if(i===0 && EST.glow>0){
+        ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=Math.min(1,0.32*night*EST.glow); ctx.drawImage(C.glow,X,Y);
+        ctx.globalCompositeOperation='screen';  ctx.globalAlpha=Math.min(1,(0.06+0.22*night)*EST.glow); ctx.drawImage(C.glow,X,Y);
+        ctx.globalAlpha=Math.min(1,(0.05+0.12*night)*EST.glow); ctx.drawImage(C.layer,X,Y);
+        ctx.globalCompositeOperation='source-over';
+      }
+    }
+    ctx.globalAlpha=1;
+    if(EST.vig>0){
+      const v=EST.vig, g=ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,css(bgc,Math.min(1,0.5*v))); g.addColorStop(0.2,css(bgc,0)); g.addColorStop(0.8,css(bgc,0)); g.addColorStop(1,css(bgc,Math.min(1,0.55*v)));
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    }
+  }
+  function setMode(m){ mode=m; if(m!=='ticker'){ ctx.fillStyle='#00ff00'; ctx.fillRect(0,0,W,H);} }
+  // Los cambios que reconstruyen capas se agrupan para no rehacerlas en cada paso del slider.
+  let rbTimer=0;
+  function rebuildSoon(){ clearTimeout(rbTimer); rbTimer=setTimeout(rebuild,120); }
+  function setEst(k,v){ EST[k]=v; if(k==='blur'||k==='stroke'||k==='size'||k==='track') rebuildSoon(); else lastKey=''; }
+  return {frame,rebuild,setMode,setEst,EST,setText(v){text=(v||' ').toUpperCase(); rebuild();},setSpeed(v){speed=v;}};
+})();
+bg.rebuild();
+if(document.fonts&&document.fonts.load) document.fonts.load('400px "Archivo Black"').then(()=>{ if(!document.fonts.check('400px "Arial Black"')) bg.rebuild(); }).catch(()=>{});
+
+const scene=new THREE.Scene();
+const HALF_W=5.4, HALF_H=7.2, DEPTH=2.2, ZF=DEPTH/2;
+const FOV=20;
+const camZ=HALF_H/Math.tan(THREE.MathUtils.degToRad(FOV/2))+ZF;
+const camera=new THREE.PerspectiveCamera(FOV,W/H,0.1,200);
+camera.position.set(0,0,camZ);
+
+const tex=new THREE.TextureLoader().load('/tools/yummy-media/matcap.jpg');
+tex.encoding=THREE.sRGBEncoding;
+const chrome=new THREE.MeshMatcapMaterial({matcap:tex,side:THREE.DoubleSide});
+const liner=new THREE.MeshMatcapMaterial({matcap:tex,color:0xb4b4b4});
+
+/* ---------- diseños impresos en la tapa ---------- */
+const finish={value:0};
+const designScale={value:0.86};
+function designMaterial(texture){
+  const m=new THREE.MeshMatcapMaterial({matcap:tex,map:texture,side:THREE.DoubleSide});
+  m.onBeforeCompile=sh=>{
+    sh.uniforms.uFinish=finish; sh.uniforms.uScale=designScale;
+    sh.fragmentShader=sh.fragmentShader
+      .replace('#include <common>','#include <common>\nuniform float uFinish; uniform float uScale;')
+      .replace('#include <map_fragment>','')
+      .replace('vec3 outgoingLight = diffuseColor.rgb * matcapColor.rgb;',`
+vec3 outgoingLight = diffuseColor.rgb * matcapColor.rgb;
+{
+  vec2 c = vUv - 0.5; float d = length(c);
+  float aa = fwidth(d)*1.5;
+  float disc = (1.0 - smoothstep(0.5*uScale - aa, 0.5*uScale + aa, d));
+  vec4 ink = mapTexelToLinear(texture2D(map, c/uScale + 0.5));
+  float a = ink.a * disc;
+  float lum = dot(matcapColor.rgb, vec3(0.299,0.587,0.114));
+  vec3 printed = ink.rgb * (0.40 + 0.75*lum) + 0.28*pow(lum,9.0)*matcapColor.rgb;
+  vec3 metal   = ink.rgb * matcapColor.rgb * 1.35 + 0.25*pow(lum,4.0);
+  outgoingLight = mix(outgoingLight, mix(printed, metal, uFinish), a);
+}`);
+  };
+  return m;
+}
+const designs=[null,null,null,null,null];
+function textureFromImage(img){
+  const S=1024, cv=document.createElement('canvas'); cv.width=cv.height=S;
+  const cx=cv.getContext('2d');
+  const k=Math.max(S/img.width,S/img.height);
+  const w=img.width*k,h=img.height*k; cx.drawImage(img,(S-w)/2,(S-h)/2,w,h);
+  const t=new THREE.CanvasTexture(cv); t.encoding=THREE.sRGBEncoding;
+  t.anisotropy=renderer.capabilities.getMaxAnisotropy(); t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;
+  return {t,url:cv.toDataURL('image/png')};
+}
+function setDesign(slot,img){
+  const old=designs[slot]; if(old){old.tex.dispose();old.mat.dispose();}
+  const {t,url}=textureFromImage(img);
+  designs[slot]={tex:t,mat:designMaterial(t),url};
+  drawSlot(slot); redistribute();
+}
+function clearDesign(slot){const d=designs[slot]; if(!d) return; d.tex.dispose(); d.mat.dispose(); designs[slot]=null; drawSlot(slot); redistribute();}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+function redistribute(){
+  const loaded=designs.map((d,i)=>d?i:-1).filter(i=>i>=0);
+  if(!loaded.length){ caps.forEach(c=>applyDesign(c,-1)); return; }
+  let list=[]; while(list.length<caps.length) list.push(...shuffle(loaded.slice()));
+  list=shuffle(list.slice(0,caps.length));
+  caps.forEach((c,i)=>applyDesign(c,list[i]));
+}
+function leastUsed(){
+  const loaded=designs.map((d,i)=>d?i:-1).filter(i=>i>=0); if(!loaded.length) return -1;
+  const cnt={}; loaded.forEach(i=>cnt[i]=0); caps.forEach(c=>{if(c.design in cnt) cnt[c.design]++;});
+  const min=Math.min(...loaded.map(i=>cnt[i])); return shuffle(loaded.filter(i=>cnt[i]===min))[0];
+}
+function applyDesign(c,i){ c.design=i; c.g.children[0].material = i>=0&&designs[i] ? designs[i].mat : chrome; }
+
+/* ---------- geometría de chapa (corona 21 pliegues) ---------- */
+const R=0.82, CAP_H=0.36, FLUTES=21;
+function capGeometry(){
+  const segT=FLUTES*18;
+  const prof=[];
+  const Rt=R*0.86, rc=R*0.1, top=CAP_H;
+  for(let i=0;i<=24;i++){const t=i/24, r=Rt*t; prof.push([r, top+0.06*(1-t*t) - 0.015*Math.max(0,(t-0.88)/0.12), 0]);}
+  for(let i=1;i<=12;i++){const a=i/12*Math.PI/2; prof.push([Rt+Math.sin(a)*rc, top-rc+Math.cos(a)*rc, 0]);}
+  const r0=Rt+rc, y0=top-rc;
+  for(let i=1;i<=22;i++){const t=i/22; prof.push([r0+0.10*R*Math.pow(t,1.6), y0-(y0)*t, Math.pow(t,0.9)]);}
+  const last=prof[prof.length-1];
+  prof.push([last[0]+0.03, 0.005, 1]);
+  const rows=prof.length, cols=segT+1;
+  const pos=new Float32Array(rows*cols*3), uv=new Float32Array(rows*cols*2), idx=[];
+  for(let j=0;j<rows;j++){
+    const [r,y,w]=prof[j];
+    for(let i=0;i<cols;i++){
+      const th=i/segT*Math.PI*2;
+      const cw=Math.cos(th*FLUTES); const wave=Math.sign(cw)*Math.pow(Math.abs(cw),0.6);
+      const rr=r + w*(0.075*R*wave);
+      const yy=y + w*0.03*(wave*0.5+0.5)*(j===rows-1?1:0.6);
+      const k=(j*cols+i)*3;
+      pos[k]=Math.cos(th)*rr; pos[k+1]=yy-CAP_H/2; pos[k+2]=Math.sin(th)*rr;
+      const ku=(j*cols+i)*2; uv[ku]=0.5+pos[k]/(2*Rt); uv[ku+1]=0.5-pos[k+2]/(2*Rt);
+    }
+  }
+  for(let j=0;j<rows-1;j++)for(let i=0;i<segT;i++){
+    const a=j*cols+i,b=a+1,c=a+cols,d=c+1; if(j>0) idx.push(a,c,b); idx.push(b,c,d);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  g.setIndex(idx); g.computeVertexNormals();
+  const n=g.attributes.normal;
+  for(let j=0;j<rows;j++){const a=j*cols,b=a+segT;
+    const x=(n.getX(a)+n.getX(b))/2,y=(n.getY(a)+n.getY(b))/2,z=(n.getZ(a)+n.getZ(b))/2;
+    n.setXYZ(a,x,y,z);n.setXYZ(b,x,y,z);}
+  n.needsUpdate=true;
+  return g;
+}
+const capGeo=capGeometry();
+const linerGeo=new THREE.CircleGeometry(R*0.84,64); linerGeo.rotateX(Math.PI/2); linerGeo.translate(0,CAP_H/2-0.03,0);
+
+/* ---------- física ---------- */
+const world=new CANNON.World();
+world.gravity.set(0,-30,0);
+world.broadphase=new CANNON.NaiveBroadphase();
+world.solver.iterations=14;
+world.allowSleep=true;
+const mCap=new CANNON.Material('cap'), mWall=new CANNON.Material('wall');
+world.addContactMaterial(new CANNON.ContactMaterial(mCap,mCap,{friction:0.25,restitution:0.35}));
+world.addContactMaterial(new CANNON.ContactMaterial(mCap,mWall,{friction:0.3,restitution:0.4}));
+function wall(pos,axis,angle){
+  const b=new CANNON.Body({mass:0,material:mWall}); b.addShape(new CANNON.Plane());
+  b.position.set(...pos); if(axis) b.quaternion.setFromAxisAngle(new CANNON.Vec3(...axis),angle);
+  world.addBody(b); return b;
+}
+wall([0,-HALF_H,0],[1,0,0],-Math.PI/2);
+wall([0, HALF_H,0],[1,0,0], Math.PI/2);
+wall([-HALF_W,0,0],[0,1,0], Math.PI/2);
+wall([ HALF_W,0,0],[0,1,0],-Math.PI/2);
+const backWall=wall([0,0,-ZF],null,0);
+wall([0,0, ZF],[0,1,0],Math.PI);
+function depthFor(sc){ backWall.position.z=ZF-Math.max(DEPTH,2*R*sc*1.25); }
+const caps=[];
+let S=1;
+function makeBody(){
+  const s=new CANNON.Cylinder(R*0.95*S,R*S,CAP_H*S,14);
+  const q=new CANNON.Quaternion(); q.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
+  const b=new CANNON.Body({mass:S*S,material:mCap,linearDamping:0.06,angularDamping:0.12});
+  b.addShape(s,new CANNON.Vec3(),q);
+  b.sleepSpeedLimit=0.15; b.sleepTimeLimit=0.6;
+  world.addBody(b); return b;
+}
+function spawn(i){
+  const g=new THREE.Group();
+  g.add(new THREE.Mesh(capGeo,chrome));
+  g.add(new THREE.Mesh(linerGeo,liner));
+  g.scale.setScalar(S);
+  scene.add(g);
+  const c={b:makeBody(),g,design:-1}; caps.push(c); place(c,i); applyDesign(c,leastUsed()); return c;
+}
+function removeCap(c){ world.removeBody(c.b); scene.remove(c.g); }
+function place(c,i){
+  const d=2*R*S*1.15, cols=Math.max(1,Math.floor((2*HALF_W-0.4)/d));
+  const col=i%cols,row=Math.floor(i/cols);
+  const x0=-((cols-1)*d)/2;
+  const y=HALF_H-R*S-0.2-row*d;
+  c.b.position.set(x0+col*d+(Math.random()-.5)*0.2*S, Math.max(y,-HALF_H+R*S+0.2)+ (y<-HALF_H+R*S?Math.random()*2:0), (Math.random()-.5)*0.6);
+  const qa=new CANNON.Quaternion(); qa.setFromAxisAngle(new CANNON.Vec3(1,0,0),Math.PI/2+(Math.random()-.5)*0.6);
+  const qb=new CANNON.Quaternion(); qb.setFromAxisAngle(new CANNON.Vec3(0,0,1),(Math.random()-.5)*0.8);
+  c.b.quaternion.copy(qb.mult(qa));
+  c.b.velocity.set(0,0,0); c.b.angularVelocity.set((Math.random()-.5)*4,(Math.random()-.5)*4,(Math.random()-.5)*4);
+  c.b.wakeUp();
+}
+function setCount(n){ while(caps.length>n) removeCap(caps.pop()); while(caps.length<n) spawn(caps.length); }
+function setSize(v){
+  S=v;
+  for(const c of caps){
+    const old=c.b, nb=makeBody();
+    nb.position.copy(old.position); nb.quaternion.copy(old.quaternion);
+    nb.velocity.copy(old.velocity); nb.angularVelocity.copy(old.angularVelocity);
+    world.removeBody(old); c.b=nb; c.g.scale.setScalar(S);
+  }
+  depthFor(S);
+  caps.forEach(c=>c.b.wakeUp());
+}
+for(let i=0;i<COUNT;i++) spawn(i);
+
+/* ---------- arrastrar ---------- */
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+const jointBody=new CANNON.Body({mass:0}); jointBody.collisionFilterGroup=0; jointBody.collisionFilterMask=0; world.addBody(jointBody);
+let drag=null;
+const meshes=()=>caps.map(c=>c.g.children[0]);
+function setNdc(e){const r=stage.getBoundingClientRect(); ndc.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);}
+function pointOnPlane(z){
+  ray.setFromCamera(ndc,camera);
+  const p=new THREE.Vector3(); ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,0,1),-z),p);
+  p.x=THREE.MathUtils.clamp(p.x,-HALF_W+0.2,HALF_W-0.2); p.y=THREE.MathUtils.clamp(p.y,-HALF_H+0.2,HALF_H-0.2);
+  return p;
+}
+function pick(e){
+  setNdc(e); ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObjects(meshes(),false)[0]; if(!hit) return null;
+  return {c:caps.find(c=>c.g.children[0]===hit.object),p:hit.point};
+}
+stage.addEventListener('pointerdown',e=>{
+  const h=pick(e); if(!h) return;
+  stage.setPointerCapture(e.pointerId); stage.classList.add('grabbing');
+  const b=h.c.b; b.wakeUp();
+  const local=b.pointToLocalFrame(new CANNON.Vec3(h.p.x,h.p.y,h.p.z));
+  jointBody.position.set(h.p.x,h.p.y,h.p.z);
+  const con=new CANNON.PointToPointConstraint(b,local,jointBody,new CANNON.Vec3(),90*b.mass);
+  world.addConstraint(con);
+  b.angularDamping=0.5;
+  drag={c:h.c,con,z:h.p.z};
+});
+stage.addEventListener('pointermove',e=>{
+  if(!drag) return; setNdc(e);
+  const p=pointOnPlane(drag.z); jointBody.position.set(p.x,p.y,p.z);
+});
+function release(){ if(!drag) return; world.removeConstraint(drag.con); drag.c.b.angularDamping=0.12; drag=null; stage.classList.remove('grabbing'); }
+stage.addEventListener('pointerup',release); stage.addEventListener('pointercancel',release);
+stage.addEventListener('wheel',e=>{
+  e.preventDefault();
+  let c=drag&&drag.c; if(!c){const h=pick(e); c=h&&h.c;} if(!c) return;
+  c.b.wakeUp();
+  const k=-e.deltaY*0.02, w=c.b.angularVelocity;
+  if(e.shiftKey) w.x+=k; else w.y+=k;
+  w.z+=e.deltaX*0.02;
+},{passive:false});
+stage.addEventListener('dblclick',e=>{
+  const h=pick(e); if(!h) return; const b=h.c.b; b.wakeUp();
+  b.velocity.y+=9; b.angularVelocity.set((Math.random()<.5?-1:1)*16,(Math.random()-.5)*4,0);
+});
+
+/* ---------- sliders: valor visible + relleno de la barra ---------- */
+function relleno(el){ const v=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--val',v+'%'); }
+function slider(id,fmt,fn){
+  const el=$(id), out=$(id+'Out');
+  const upd=()=>{ relleno(el); if(out) out.textContent=fmt(+el.value); fn(+el.value); };
+  el.addEventListener('input',upd); relleno(el); if(out) out.textContent=fmt(+el.value);
+  return el;
+}
+const veces=v=>v.toFixed(2)+'×', pct=v=>Math.round(v*100)+'%';
+
+/* ---------- controles de chapas ---------- */
+let gravOn=true;
+$('shake').onclick=()=>caps.forEach(c=>{c.b.wakeUp();
+  c.b.velocity.set((Math.random()-.5)*14,8+Math.random()*12,(Math.random()-.5)*4);
+  c.b.angularVelocity.set((Math.random()-.5)*20,(Math.random()-.5)*20,(Math.random()-.5)*20);});
+$('reset').onclick=()=>{release();caps.forEach((c,i)=>place(c,i));};
+const gb=$('grav');
+gb.onclick=()=>{gravOn=!gravOn; gb.setAttribute('aria-pressed',gravOn); gb.textContent='Gravedad: '+(gravOn?'sí':'no'); world.gravity.set(0,gravOn?-30:0,0);
+  caps.forEach(c=>{c.b.wakeUp(); c.b.linearDamping=gravOn?0.06:0.25; if(!gravOn) c.b.velocity.y+=Math.random()*3;});};
+slider('count',v=>String(v),v=>{release(); setCount(v);});
+slider('size',veces,v=>{release(); setSize(v);});
+
+/* ---------- controles del ticker ---------- */
+const bm=$('bgmode');
+bm.onclick=()=>{const on=bm.getAttribute('aria-pressed')!=='true'; bm.setAttribute('aria-pressed',on); bm.textContent='Fondo: '+(on?'ticker':'croma'); bg.setMode(on?'ticker':'croma');};
+const tt=$('tickTxt'); let ttTimer;
+tt.addEventListener('input',()=>{clearTimeout(ttTimer); ttTimer=setTimeout(()=>bg.setText(tt.value),180);});
+tt.addEventListener('keydown',e=>e.stopPropagation());
+slider('tickSpd',v=>String(v),v=>bg.setSpeed(v));
+const EST_DEF={blur:1,glow:1,fog:0.16,layers:4,stroke:1,size:1,track:-0.09,shadow:1,vig:1};
+const estSliders={
+  blur:slider('tkBlur',veces,v=>bg.setEst('blur',v)),
+  glow:slider('tkGlow',veces,v=>bg.setEst('glow',v)),
+  fog:slider('tkFog',pct,v=>bg.setEst('fog',v)),
+  layers:slider('tkLayers',v=>String(v),v=>bg.setEst('layers',v)),
+  stroke:slider('tkStroke',veces,v=>bg.setEst('stroke',v)),
+  size:slider('tkSize',veces,v=>bg.setEst('size',v)),
+  track:slider('tkTrack',v=>v.toFixed(2),v=>bg.setEst('track',v)),
+  shadow:slider('tkShadow',veces,v=>bg.setEst('shadow',v)),
+  vig:slider('tkVig',veces,v=>bg.setEst('vig',v)),
+};
+$('tkReset').onclick=()=>{
+  for(const k in EST_DEF){ const el=estSliders[k]; el.value=EST_DEF[k]; el.dispatchEvent(new Event('input')); }
+};
+
+/* ---------- ranuras de diseño (vacías por defecto: chapas cromadas lisas) ---------- */
+const slotsEl=$('slots');
+const slotEls=[], slotWraps=[];
+for(let i=0;i<5;i++){
+  const wrap=document.createElement('div'); wrap.className='y-slotwrap';
+  const btn=document.createElement('label'); btn.className='y-slot'; btn.htmlFor='f'+i; btn.title='Diseño '+(i+1)+': clic o suelta una imagen';
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.id='f'+i; inp.hidden=true;
+  const x=document.createElement('button'); x.type='button'; x.className='x'; x.textContent='×'; x.title='Quitar diseño '+(i+1);
+  x.onclick=e=>{e.preventDefault(); clearDesign(i);};
+  inp.onchange=()=>{ if(inp.files[0]) loadFile(inp.files[0],i); inp.value=''; };
+  btn.addEventListener('dragover',e=>{e.preventDefault();btn.classList.add('over');});
+  btn.addEventListener('dragleave',()=>btn.classList.remove('over'));
+  btn.addEventListener('drop',e=>{e.preventDefault();btn.classList.remove('over'); const f=e.dataTransfer.files[0]; if(f) loadFile(f,i);});
+  wrap.append(btn,inp,x); slotsEl.append(wrap); slotEls.push(btn); slotWraps.push(wrap);
+  btn.textContent='+';
+}
+function drawSlot(i){
+  const d=designs[i], el=slotEls[i]; if(!el) return;
+  el.innerHTML = d ? `<img alt="Diseño ${i+1}" src="${d.url}">` : '+';
+  slotWraps[i].classList.toggle('lleno',!!d);
+}
+function loadFile(f,slot){
+  if(!f.type.startsWith('image/')) return;
+  const rd=new FileReader(); rd.onload=()=>{const im=new Image(); im.onload=()=>setDesign(slot,im); im.src=rd.result;}; rd.readAsDataURL(f);
+}
+$('multi').onchange=e=>{ [...e.target.files].slice(0,5).forEach((f,i)=>loadFile(f,i)); e.target.value=''; };
+$('shuffle').onclick=redistribute;
+const fb=$('finish');
+fb.onclick=()=>{finish.value=finish.value?0:1; fb.setAttribute('aria-pressed',!!finish.value); fb.textContent='Acabado: '+(finish.value?'metalizado':'tinta');};
+slider('dscale',pct,v=>{designScale.value=v;});
+stage.addEventListener('dragover',e=>e.preventDefault());
+stage.addEventListener('drop',e=>{e.preventDefault(); const free=designs.map((d,i)=>!d?i:-1).filter(i=>i>=0);
+  [...e.dataTransfer.files].filter(f=>f.type.startsWith('image/')).slice(0,5).forEach((f,k)=>loadFile(f,free[k]!==undefined?free[k]:k));});
+
+/* ---------- RUIDO sutil encima de todo el lienzo ---------- */
+// Grano monocromo en modo superposición. Se mueve a ~24 cuadros por
+// segundo (como película) cambiando el desfase de una misma textura.
+const ruidoEl=$('yumNoise');
+const RUIDO_TAM=256;
+const ruidoCv=document.createElement('canvas'); ruidoCv.width=ruidoCv.height=RUIDO_TAM;
+(function(){
+  const x=ruidoCv.getContext('2d'), im=x.createImageData(RUIDO_TAM,RUIDO_TAM), d=im.data;
+  for(let i=0;i<d.length;i+=4){ const v=Math.random()*255|0; d[i]=d[i+1]=d[i+2]=v; d[i+3]=255; }
+  x.putImageData(im,0,0);
+})();
+ruidoEl.style.backgroundImage=`url(${ruidoCv.toDataURL('image/png')})`;
+let ruido=0.35, ruidoX=0, ruidoY=0, ruidoT=0;
+function ajustarRuido(){
+  const k=(stage.getBoundingClientRect().width||W)/W;   // grano medido en px del lienzo 1080
+  ruidoEl.style.backgroundSize=(RUIDO_TAM*k)+'px '+(RUIDO_TAM*k)+'px';
+  ruidoEl._k=k;
+}
+function moverRuido(dt){
+  ruidoT+=dt; if(ruidoT<1/24) return; ruidoT=0;
+  ruidoX=Math.random()*RUIDO_TAM|0; ruidoY=Math.random()*RUIDO_TAM|0;
+  const k=ruidoEl._k||1;
+  ruidoEl.style.backgroundPosition=(-ruidoX*k)+'px '+(-ruidoY*k)+'px';
+}
+// La opacidad visible es el valor del slider × 0,35: al 35 % (por defecto) queda sutil.
+const RUIDO_MAX=0.35;
+slider('noise',pct,v=>{ ruido=v; ruidoEl.style.opacity=String(v*RUIDO_MAX); });
+ruidoEl.style.opacity=String(ruido*RUIDO_MAX);
+
+/* ---------- GRABAR (post IG 1080×1440, 60 fps) ---------- */
+let patronCtx=null, patron=null;
+GlamRec.montar({
+  contenedor: $('recSlot'),
+  clase: 'cam-btn',
+  nombre: 'yummy',
+  manual: false,
+  ancho: 1080, alto: 1440, aspecto: 1080/1440,
+  ventana: () => $('viewport'),
+  zonaCursor: () => stage,
+  dibujar(c, w, h) {
+    c.drawImage(bgCv,0,0,w,h);
+    c.drawImage(renderer.domElement,0,0,w,h);
+    if(ruido>0){
+      if(patronCtx!==c){ patronCtx=c; patron=c.createPattern(ruidoCv,'repeat'); }
+      const k=w/W;
+      c.save();
+      c.globalCompositeOperation='overlay';
+      c.globalAlpha=ruido*RUIDO_MAX;
+      c.scale(k,k);
+      c.translate(-ruidoX,-ruidoY);
+      c.fillStyle=patron;
+      c.fillRect(ruidoX,ruidoY,W,H);
+      c.restore();
+    }
+  },
+});
+
+/* ---------- loop ---------- */
+let last=performance.now();
+(function tick(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  bg.frame(dt);
+  moverRuido(dt);
+  world.step(1/120,dt,6);
+  for(const c of caps){const v=c.b.velocity,l=v.norm(); if(l>45) v.scale(45/l,v); const w=c.b.angularVelocity,a=w.norm(); if(a>40) w.scale(40/a,w);}
+  for(const c of caps){ c.g.position.copy(c.b.position); c.g.quaternion.copy(c.b.quaternion); }
+  renderer.render(scene,camera);
+  requestAnimationFrame(tick);
+})(last);
+
+fitStage();
+addEventListener('load',fitStage);
+
+/* ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ─────────── */
+    (function setupInfoPanel() {
+      const panel = $('infoPanel');
+      const bar = $('infoPanelBar');
+      const minBtn = $('infoMin');
+      const closeBtn = $('infoClose');
+      const bubble = $('infoBubble');
+      const bounds = $('stage');
+      const exclusionEl = $('frame');
+
+      function defaultPos() {
+        const b = bounds.getBoundingClientRect();
+        const c = exclusionEl.getBoundingClientRect();
+        const ex = { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height };
+        const pw = panel.offsetWidth, ph = panel.offsetHeight;
+        const roomRight = b.width - (ex.x + ex.w);
+        const roomBelow = b.height - (ex.y + ex.h);
+        if (roomRight >= pw + 14) return { x: ex.x + ex.w + 8, y: ex.y + 8 };
+        if (roomBelow >= ph + 14) return { x: 8, y: ex.y + ex.h + 8 };
+        return { x: 8, y: 8 };
+      }
+      function placeAt(pos) { panel.style.left = pos.x + 'px'; panel.style.top = pos.y + 'px'; }
+      function placeBubbleAt(pos) { bubble.style.left = pos.x + 'px'; bubble.style.top = pos.y + 'px'; }
+
+      let userMoved = false;
+      function resetToDefault() { if (!userMoved) placeAt(defaultPos()); }
+
+      let dragging = false, offsetX = 0, offsetY = 0;
+      function getPoint(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
+      function onDown(e) {
+        if (e.target === minBtn || e.target === closeBtn) return;
+        const p = getPoint(e);
+        const rect = panel.getBoundingClientRect();
+        dragging = true;
+        userMoved = true;
+        offsetX = p.clientX - rect.left;
+        offsetY = p.clientY - rect.top;
+      }
+      function onMove(e) {
+        if (!dragging) return;
+        const p = getPoint(e);
+        const b = bounds.getBoundingClientRect();
+        placeAt({ x: p.clientX - b.left - offsetX, y: p.clientY - b.top - offsetY });
+        if (e.cancelable) e.preventDefault();
+      }
+      function onUp() { dragging = false; }
+
+      bar.addEventListener('mousedown', onDown);
+      bar.addEventListener('touchstart', onDown, { passive: true });
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchend', onUp);
+
+      function collapseToBubble() {
+        const rect = panel.getBoundingClientRect();
+        const b = bounds.getBoundingClientRect();
+        placeBubbleAt({ x: rect.left - b.left, y: rect.top - b.top });
+        panel.style.display = 'none';
+        bubble.style.display = 'flex';
+      }
+      minBtn.addEventListener('click', collapseToBubble);
+      closeBtn.addEventListener('click', collapseToBubble);
+      bubble.addEventListener('click', () => {
+        const bRect = bubble.getBoundingClientRect();
+        const bnd = bounds.getBoundingClientRect();
+        placeAt({ x: bRect.left - bnd.left, y: bRect.top - bnd.top });
+        bubble.style.display = 'none';
+        panel.style.display = '';
+      });
+
+      window.addEventListener('resize', resetToDefault);
+      requestAnimationFrame(() => requestAnimationFrame(resetToDefault));
+      // En el celular el panel taparía el lienzo: arranca como burbuja "?".
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          placeBubbleAt({ x: 8, y: 8 });
+          panel.style.display = 'none';
+          bubble.style.display = 'flex';
+        }));
+      }
+    })();
+
+})();
+  </script>
+
+</body>
+
+</html>

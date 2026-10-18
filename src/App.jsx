@@ -6,6 +6,7 @@ import Floralis from '@pages/tools/Floralis'
 import Canicas3D from '@pages/tools/Canicas3D'
 import Daisy from '@pages/tools/Daisy'
 import WeDontBelong from '@pages/tools/WeDontBelong'
+import Yummy from '@pages/tools/Yummy'
 import TipografiaAdaptativa from '@pages/tools/TipografiaAdaptativa'
 import PosterGenerativo from '@pages/tools/PosterGenerativo'
 import FaceTracking from '@pages/tools/FaceTracking'
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="tools/canicas-3d" element={<Canicas3D />} />
         <Route path="tools/daisy" element={<Daisy />} />
         <Route path="tools/we-dont-belong" element={<WeDontBelong />} />
+        <Route path="tools/yummy" element={<Yummy />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="tools/floralis" element={<Floralis />} />

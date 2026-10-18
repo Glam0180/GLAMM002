@@ -12,6 +12,18 @@ export const TOOLS = [
     thumbnail: '/tool-thumbnails/we-dont-belong.webp',
   },
   {
+    id: 'yummy',
+    slug: 'yummy',
+    name: 'Yummy',
+    description: 'Chapas cromadas con física sobre un ticker infinito de día a noche.',
+    category: 'interaction',
+    status: 'live',
+    tech: ['Three.js', 'Cannon.js', 'Canvas API'],
+    path: '/tools/yummy',
+    index: '009',
+    // Sin portada todavía: se muestra el placeholder del sistema.
+  },
+  {
     id: 'floralis',
     slug: 'floralis',
     name: 'Floralis',
