@@ -253,7 +253,7 @@
     dl.hidden = true;
     var info = document.createElement('div');
     info.className = 'g-rec__info';
-    info.textContent = esPantalla ? 'lienzo + ventanas' : 'post IG · ' + TAM;
+    info.textContent = esPantalla ? (op.info || 'pantalla') : 'post IG · ' + TAM;
     fila.appendChild(btn);
     fila.appendChild(dl);
     caja.appendChild(fila);
@@ -276,10 +276,10 @@
       info.textContent = 'este navegador no permite grabar';
       return { frame: function () {}, grabando: function () { return false; } };
     }
-    var puedePestana = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && window.CropTarget);
+    var puedePestana = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && (window.CropTarget || !op.elemento));
     if (esPantalla && !puedePestana) {
       btn.disabled = true;
-      info.textContent = 'solo en chrome o edge de escritorio';
+      info.textContent = 'solo en navegadores de escritorio';
       return { frame: function () {}, grabando: function () { return false; } };
     }
 
@@ -322,7 +322,7 @@
         if (i >= codecs.length) { listo = true; if (!formato) { btn.disabled = true; info.textContent = 'este navegador no permite grabar'; } return; }
         var c = codecs[i++];
         VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: BITRATE, framerate: FPS })
-          .then(function (r) { if (r && r.supported) { webc = { codec: c }; listo = true; info.textContent = esPantalla ? 'lienzo + ventanas · 60 fps' : 'post IG · ' + TAM + ' · 60 fps'; } else probar(); })
+          .then(function (r) { if (r && r.supported) { webc = { codec: c }; listo = true; info.textContent = esPantalla ? (op.info || 'pantalla') + ' · 60 fps' : 'post IG · ' + TAM + ' · 60 fps'; } else probar(); })
           .catch(probar);
       }
       probar();
@@ -331,7 +331,7 @@
     // Puntero: se sigue siempre (también fuera de la grabación) para que
     // el primer cuadro ya tenga la manito en su sitio.
     var ptr = { x: 0, y: 0, dentro: false, presionado: false };
-    if (op.zonaCursor) {
+    if (op.zonaCursor || esPantalla) {
       var vista = window;
       vista.addEventListener('pointermove', function (e) { ptr.x = e.clientX; ptr.y = e.clientY; ptr.dentro = true; }, true);
       vista.addEventListener('pointerdown', function (e) { ptr.x = e.clientX; ptr.y = e.clientY; ptr.dentro = true; ptr.presionado = true; }, true);
@@ -357,6 +357,24 @@
       c.restore();
     }
 
+    // La captura de pestaña no trae el puntero: se dibuja la manito en la
+    // posición del mouse (dedo apuntando; pinch mientras se presiona).
+    function pintarCursorPantalla() {
+      if (!ptr.dentro || !captura) return;
+      var el = op.elemento ? op.elemento() : null;
+      var r = el ? el.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+      if (!r.width || !r.height) return;
+      var u = (ptr.x - r.left) / r.width, v = (ptr.y - r.top) / r.height;
+      if (u < 0 || u > 1 || v < 0 || v > 1) return;
+      var cur = ptr.presionado ? CURSOR.cerrada : CURSOR.apunta;
+      if (!cur.img.complete || !cur.img.naturalWidth) return;
+      var s = W / r.width;
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(cur.img, Math.round(u * W - cur.hx * s), Math.round(v * H - cur.hy * s), Math.round(TAM_CURSOR * s), Math.round(TAM_CURSOR * s));
+      ctx.restore();
+    }
+
     function pintar() {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       if (esPantalla) {
@@ -367,6 +385,7 @@
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(captura.video, 0, 0, W, H);
         }
+        pintarCursorPantalla();
         return;
       }
       ctx.globalAlpha = 1;
@@ -457,8 +476,8 @@
     // Captura de la pestaña recortada al elemento. Se pide en el mismo
     // click (el navegador lo exige) y el usuario elige "esta pestaña".
     function pedirCaptura() {
-      var el = op.elemento && op.elemento();
-      if (!el) return Promise.reject(new Error('sin elemento'));
+      // sin elemento = la pestaña completa (sin recorte)
+      var el = op.elemento ? op.elemento() : null;
       return navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: { ideal: FPS, max: FPS }, cursor: 'always', displaySurface: 'browser' },
         audio: false,
@@ -467,7 +486,10 @@
         surfaceSwitching: 'exclude',
       }).then(function (st) {
         var tr = st.getVideoTracks()[0];
-        return CropTarget.fromElement(el).then(function (ct) { return tr.cropTo(ct); }).then(function () {
+        var recorte = el && window.CropTarget
+          ? CropTarget.fromElement(el).then(function (ct) { return tr.cropTo(ct); })
+          : Promise.resolve();
+        return recorte.then(function () {
           var v = document.createElement('video');
           v.muted = true; v.playsInline = true; v.srcObject = st;
           return v.play().then(function () {
@@ -475,10 +497,16 @@
               (function esperar() { if (v.videoWidth) ok(); else requestAnimationFrame(esperar); })();
             });
           }).then(function () {
-            // lado mayor a 1440 px (cabe en H.264 nivel 4.2 a 60 fps)
-            var k = 1440 / Math.max(v.videoWidth, v.videoHeight);
-            W = Math.round(v.videoWidth * k / 2) * 2;
-            H = Math.round(v.videoHeight * k / 2) * 2;
+            // Lado mayor hasta 1920 px, sin pasar del límite de H.264
+            // nivel 4.2 (8704 macrobloques por cuadro a 60 fps).
+            var lado = el ? 1440 : 1920;
+            var k = lado / Math.max(v.videoWidth, v.videoHeight);
+            for (;;) {
+              W = Math.round(v.videoWidth * k / 2) * 2;
+              H = Math.round(v.videoHeight * k / 2) * 2;
+              if (Math.ceil(W / 16) * Math.ceil(H / 16) <= 8704) break;
+              k *= 0.98;
+            }
             TAM = W + '×' + H;
             lienzo.width = W; lienzo.height = H;
             tr.addEventListener('ended', function () { detener(); });

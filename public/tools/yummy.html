@@ -1447,14 +1447,14 @@ GlamRec.montar({
   },
 });
 
-/* ---------- GRABAR LIENZO + VENTANAS (captura de la pestaña, 60 fps) ---------- */
+/* ---------- GRABAR TODA LA VENTANA (captura de la pestaña completa, 60 fps) ---------- */
 GlamRec.montar({
   contenedor: $('recSlot'),
   clase: 'cam-btn',
-  nombre: 'yummy-ventanas',
-  etiqueta: '● LIENZO + VENTANAS',
-  fuente: 'pestaña',
-  elemento: () => $('frame'),
+  nombre: 'yummy-pantalla',
+  etiqueta: '● TODA LA VENTANA',
+  info: 'toda la ventana',
+  fuente: 'pestaña',   // sin elemento: graba la pestaña completa
   manual: false,
 });
 
