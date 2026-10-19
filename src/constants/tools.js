@@ -21,7 +21,7 @@ export const TOOLS = [
     tech: ['Three.js', 'Cannon.js', 'Canvas API'],
     path: '/tools/yummy',
     index: '009',
-    // Sin portada todavía: se muestra el placeholder del sistema.
+    thumbnail: '/tool-thumbnails/yummy.webp',
   },
   {
     id: 'floralis',
