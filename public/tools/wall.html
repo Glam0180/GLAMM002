@@ -727,50 +727,22 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
           <div class="daisy-panel y-panel">
             <div class="y-sec">herramienta</div>
             <div class="y-btns tres">
-              <button type="button" class="cam-btn" data-t="grab" aria-pressed="true">Arrancar</button>
-              <button type="button" class="cam-btn" data-t="cut" aria-pressed="false">Cortar</button>
-              <button type="button" class="cam-btn" data-t="pin" aria-pressed="false">Chinche</button>
+              <button type="button" class="cam-btn" data-t="grab" aria-pressed="true">Grab</button>
+              <button type="button" class="cam-btn" data-t="cut" aria-pressed="false">Cut</button>
+              <button type="button" class="cam-btn" data-t="pin" aria-pressed="false">Pin</button>
             </div>
-
             <div class="y-sec">tela</div>
             <div class="y-btns">
-              <button type="button" class="cam-btn" id="bReset">Reiniciar</button>
+              <button type="button" class="cam-btn" id="bReset">Reset</button>
               <button type="button" class="cam-btn" id="bPause" aria-pressed="false">Pausa</button>
-              <button type="button" class="cam-btn" id="bTop">Sujetar arriba</button>
-              <button type="button" class="cam-btn" id="bDrop">Soltar todo</button>
-              <label class="cam-btn full" for="fTex" style="text-align:center">Cargar textura a la tela…</label>
+              <button type="button" class="cam-btn" id="bDrop">Soltar pines</button>
+              <button type="button" class="cam-btn" id="bRepin">Re-pinar</button>
+              <label class="cam-btn full" for="fTex" style="text-align:center">Cargar tela (textura)…</label>
             </div>
-
             <div class="y-sec">grabar</div>
             <div class="cam-wrap" id="recSlot"></div>
-            <div class="y-sec">papel</div>
-            <div class="y-row">
-              <div class="y-lab"><span>Gravedad</span><output id="gOut"></output></div>
-              <input id="g" type="range" min="0" max="1.6" step="0.02">
-            </div>
-            <div class="y-row">
-              <div class="y-lab"><span>Curvatura al despegar</span><output id="curlOut"></output></div>
-              <input id="curl" type="range" min="0" max="1" step="0.01">
-            </div>
-            <div class="y-row">
-              <div class="y-lab"><span>Holgura</span><output id="slackOut"></output></div>
-              <input id="slack" type="range" min="1" max="1.2" step="0.005">
-            </div>
-
-            <div class="y-sec">viento</div>
-            <div class="y-row">
-              <div class="y-lab"><span>Lateral</span><output id="wxOut"></output></div>
-              <input id="wx" type="range" min="-3" max="3" step="0.1">
-            </div>
-            <div class="y-row">
-              <div class="y-lab"><span>Hacia afuera</span><output id="wzOut"></output></div>
-              <input id="wz" type="range" min="-3" max="3" step="0.1">
-            </div>
-            <div class="y-row">
-              <div class="y-lab"><span>Ráfagas</span><output id="gustOut"></output></div>
-              <input id="gust" type="range" min="0" max="4" step="0.1">
-            </div>
-
+            <div class="y-sec">física</div>
+            <div id="sl" style="display:flex;flex-direction:column;gap:10px"></div>
           </div>
         </div>
 
@@ -785,6 +757,9 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             </div>
           </div>
           <div class="daisy-panel y-panel">
+            <div class="y-sec">anclas</div>
+            <div class="y-hint">● P1 · P2 = pines (arriba, sostienen la tela). ◆ D3 · D4 = dirección y perspectiva (abajo). arrástralos sobre la foto.</div>
+            <div class="y-btns" id="chk"></div>
             <div class="y-sec">imágenes</div>
             <div class="y-btns">
               <label class="cam-btn" for="fBg" style="text-align:center">Fondo…</label>
@@ -793,38 +768,11 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
               <input id="fTex" type="file" accept="image/*" hidden>
               <button type="button" class="cam-btn full" id="bOrig">Muro original</button>
             </div>
-
-            <div class="y-sec">luz y perspectiva</div>
-            <div class="y-row">
-              <div class="y-lab"><span>Sombra</span><output id="shadowOut"></output></div>
-              <input id="shadow" type="range" min="0" max="1" step="0.01">
-            </div>
-            <div class="y-row">
-              <div class="y-lab"><span>Desenfoque sombra</span><output id="blurOut"></output></div>
-              <input id="blur" type="range" min="0" max="30" step="0.5">
-            </div>
-            <div class="y-row">
-              <div class="y-lab"><span>Pliegues</span><output id="shadeOut"></output></div>
-              <input id="shade" type="range" min="0" max="1.5" step="0.05">
-            </div>
-            <div class="y-row">
-              <div class="y-lab"><span>Profundidad</span><output id="depthOut"></output></div>
-              <input id="depth" type="range" min="0" max="3" step="0.05">
-            </div>
-            <div class="y-row">
-              <div class="y-lab"><span>Ojo de pez</span><output id="fishOut"></output></div>
-              <input id="fish" type="range" min="0" max="0.5" step="0.005">
-            </div>
-            <div class="y-row">
-              <div class="y-lab"><span>Detalle de la malla</span><output id="gridOut"></output></div>
-              <input id="grid" type="range" min="20" max="64" step="2">
-            </div>
+            <div class="y-sec">salida</div>
             <div class="y-btns">
-              <button type="button" class="cam-btn" id="bGuides" aria-pressed="false">Anclas</button>
-              <button type="button" class="cam-btn" id="bMesh" aria-pressed="false">Malla</button>
-              <button type="button" class="cam-btn full" id="bExp">Exportar PNG</button>
+              <button type="button" class="cam-btn" id="bExp">Exportar PNG</button>
+              <button type="button" class="cam-btn" id="bCopy">Copiar anclas</button>
             </div>
-            <div class="y-hint">con «anclas» activo arrastra P1 · P2 · D3 · D4 para encajar la tela en otra foto</div>
           </div>
         </div>
       </div>
@@ -844,11 +792,11 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
       <div class="ip__body" id="infoBody">
         <p class="ip__desc">un póster de papel pegado al muro, con física de tela.</p>
         <ol class="ip__steps">
-          <li>arrancar: agarra el papel y jálalo; cuelga solo de arriba</li>
-          <li>arrastrar nunca rompe la tela</li>
-          <li>cortar: arrastra para rajarlo con cuchilla</li>
-          <li>chinche: clava o quita un punto</li>
-          <li>«cargar textura» pone tu imagen en la tela</li>
+          <li>grab: agarra la tela y arrástrala</li>
+          <li>cut: arrastra para cortarla</li>
+          <li>pin: fija o suelta un punto</li>
+          <li>con «ver anclas» mueve P1 · P2 · D3 · D4 sobre la foto</li>
+          <li>carga tu propia tela o tu propio fondo</li>
         </ol>
       </div>
     </div>
@@ -858,519 +806,228 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
   <script>
 (function(){
 'use strict';
-const $ = (id) => document.getElementById(id);
-const IW=1080, IH=1440;            // lienzo 1080×1440
+const $=i=>document.getElementById(i);
 const stage=$('wallStage');
-
-// Casita y cerrar: vuelven siempre al inicio del sitio.
 function goHome(){ try{ if(window.top&&window.top!==window) window.top.location.href='/'; else window.location.href='/'; }catch(e){ window.location.href='/'; } }
-$('mhouse').addEventListener('click',goHome);
-$('mclose').addEventListener('click',goHome);
-$('wclose').addEventListener('click',goHome);
+$('mhouse').addEventListener('click',goHome); $('mclose').addEventListener('click',goHome); $('wclose').addEventListener('click',goHome);
 
-/* ─────────── TAMAÑO DEL LIENZO (1080×1440, mismo sistema que Yummy) ─────────── */
-const frameEl=$('frame'), viewportEl=$('viewport'), sidebarEl=$('sidebar');
-const winBarEl=document.querySelector('#viewport .win__bar');
-let sc=1;   // px de pantalla por px de lienzo
-function fitStage(){
-  frameEl.style.width=''; frameEl.style.height=''; viewportEl.style.width='';
-  if(!window.matchMedia('(max-width: 768px)').matches){
-    const stageBox=$('stage').getBoundingClientRect();
-    const framePad=20, winBorder=2, gap=5, sidebarW=sidebarEl.offsetWidth;
-    const chromeW=winBorder*2, chromeH=winBarEl.offsetHeight+winBorder*2;
-    const maxW=stageBox.width-8-framePad*2-gap-sidebarW-chromeW;
-    const maxH=stageBox.height-8-framePad*2-chromeH;
-    const ratio=IW/IH;
-    let h=maxH, w=h*ratio; if(w>maxW){ w=maxW; h=w/ratio; }
-    w=Math.max(120,Math.floor(w)); h=Math.max(160,Math.floor(h));
-    viewportEl.style.width=(w+chromeW)+'px';
-    frameEl.style.width=(w+chromeW+gap+sidebarW+framePad*2)+'px';
-    frameEl.style.height=(h+chromeH+framePad*2)+'px';
-  }
-  sc=(stage.clientWidth||IW)/IW;
-  setSh();
-}
-addEventListener('resize',fitStage);
+/* ═══ Motor de «tela · anclas en perspectiva» (Verlet + homografía), en lienzo 1080×1440 ═══ */
+const P={g:.55,d:.985,sub:9,grid:35,wx:-.2,wz:-.2,gust:0,slack:1,depth:.9,shade:.95,fish:.3,shadow:.8,blur:0};
+const O={pinEdge:false,pinBottom:false,shear:true,guides:true,mesh:false};
+const IW=1080,IH=1440; let sc=1,tool='grab',paused=false,frame=0,SW=1080,SH=1350;
+let A=[{x:322,y:212},{x:1022,y:358},{x:1222,y:1378},{x:330,y:1608}]; // TL,TR,BR,BL
+let gt=null,BX=[0,0,1],JX=[1,0],JY=[0,1],FS=1,cen=[0,0],H,Hi,nodes=[],edges=[],eR=[],eD=[],grab=null,drag=-1,prev=null,trail=[],bgImg=null,scr=[];
+const csh=$('csh'),cbg=$('cbg'),cgl=$('cgl'),cov=$('cov'),cfx=$('cfx');
+[cbg,csh,cgl,cfx,cov].forEach(c=>{c.width=IW;c.height=IH;});
 
-/* ─────────── PARÁMETROS ─────────── */
-const DEF={ g:.5, d:.985, sub:8, grid:44, wx:0, wz:0, gust:0, slack:1, depth:.9, shade:.9,
-            fish:.3, shadow:.55, blur:5, glue:.35, tear:2.1, curl:.35 };
-const P=Object.assign({},DEF);
-const O={ shear:true, guides:false, mesh:false };
-// Anclas que encajan la tela con el póster de la foto original (ojo de pez 0,3)
-const A0=[{x:177.5,y:137.6},{x:769.6,y:256.8},{x:929.1,y:1133.9},{x:279.0,y:1378.9}]; // TL,TR,BR,BL
-let A=A0.map(p=>({x:p.x,y:p.y}));
-let SW=972, SH=1350;               // tela en reposo (espacio plano)
-let tool='grab', paused=false, frame=0;
+// ── UI generada (con el estilo de las ventanas GLAM) ──
+function relleno(el){ const v=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--val',v+'%'); }
+[['pinEdge','Pinar borde sup.'],['pinBottom','Pinar esq. inf.'],['shear','Anti-colapso'],['guides','Ver anclas'],['mesh','Ver malla']].forEach(([k,l])=>{
+  const b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.textContent=l; b.setAttribute('aria-pressed',O[k]);
+  b.onclick=()=>{ O[k]=!O[k]; b.setAttribute('aria-pressed',O[k]); if(k==='pinEdge'||k==='pinBottom') applyPins(); };
+  $('chk').appendChild(b); });
+[['g','Gravedad',0,3,.05],['d','Damping',.9,1,.001],['sub','Substeps',1,16,1],['grid','Grid',10,50,5],['slack','Holgura',1,1.25,.01],['wx','Viento X',-3,3,.1],['wz','Viento Z',-3,3,.1],['gust','Ráfagas',0,4,.1],['depth','Profundidad',0,3,.1],['shade','Pliegues',0,1.5,.05],['fish','Ojo de pez',0,.6,.01],['shadow','Sombra muro',0,1,.05],['blur','Desenfoque',0,40,1]].forEach(([k,l,mn,mx,st])=>{
+  const r=document.createElement('div'); r.className='y-row';
+  r.innerHTML=`<div class="y-lab"><span>${l}</span><output>${P[k]}</output></div><input type="range" min="${mn}" max="${mx}" step="${st}" value="${P[k]}">`;
+  const inp=r.querySelector('input'), out=r.querySelector('output'); relleno(inp);
+  inp.oninput=e=>{ P[k]=+e.target.value; out.textContent=P[k]; relleno(inp); if(k==='grid')build(); if(k==='fish')upd(); setSh(); };
+  $('sl').appendChild(r); });
+document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ tool=b.dataset.t; document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  stage.classList.toggle('t-cut',tool==='cut'); stage.classList.toggle('t-pin',tool==='pin'); });
+const readImg=(f,cb)=>{if(!f)return;const r=new FileReader();r.onload=e=>{const im=new Image();im.onload=()=>cb(im);im.src=e.target.result;};r.readAsDataURL(f);};
+$('fBg').onchange=e=>{readImg(e.target.files[0],im=>{bgImg=im;drawBg();});e.target.value='';};
+$('fTex').onchange=e=>{readImg(e.target.files[0],setTex);e.target.value='';};
+$('bReset').onclick=()=>build();
+$('bPause').onclick=e=>{paused=!paused;e.currentTarget.textContent=paused?'Reanudar':'Pausa';e.currentTarget.setAttribute('aria-pressed',paused);};
+$('bDrop').onclick=()=>nodes.forEach(n=>{n.pin=false;n.custom=false;});
+$('bRepin').onclick=()=>{nodes.forEach(n=>n.custom=false);applyPins();};
+$('bCopy').onclick=()=>navigator.clipboard&&navigator.clipboard.writeText(JSON.stringify(A.map(p=>({x:Math.round(p.x),y:Math.round(p.y)}))));
+$('bOrig').onclick=()=>cargarOriginal();
+function componer(x,w,h){ x.drawImage(cbg,0,0,w,h); x.save(); if(P.blur>0) x.filter=`blur(${P.blur*w/IW}px)`; x.globalAlpha=P.shadow; x.globalCompositeOperation='multiply'; x.drawImage(csh,0,0,w,h); x.restore();
+  x.drawImage(cgl,0,0,w,h); x.drawImage(cfx,0,0,w,h); if(O.guides||O.mesh) x.drawImage(cov,0,0,w,h); }
+$('bExp').onclick=()=>{const c=document.createElement('canvas');c.width=IW;c.height=IH;componer(c.getContext('2d'),IW,IH);
+  c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='wall.png';a.click();});};
 
-const cbg=$('cbg'), csh=$('csh'), cgl=$('cgl'), cfx=$('cfx'), cov=$('cov');
-[cbg,csh,cgl,cfx,cov].forEach(c=>{ c.width=IW; c.height=IH; });
-const xbg=cbg.getContext('2d'), xsh=csh.getContext('2d'), xfx=cfx.getContext('2d'), xov=cov.getContext('2d');
-
-/* ─────────── HOMOGRAFÍA + OJO DE PEZ ─────────── */
-let H=null, Hi=null, BX=[0,0,1], JX=[1,0], JY=[0,1], FS=1, cen=[0,0];
-function homog(s,d){ const M=[]; for(let i=0;i<4;i++){ const {x,y}=s[i],{x:u,y:v}=d[i];
-    M.push([x,y,1,0,0,0,-u*x,-u*y,u],[0,0,0,x,y,1,-v*x,-v*y,v]); }
-  for(let c=0;c<8;c++){ let m=c; for(let r=c+1;r<8;r++) if(Math.abs(M[r][c])>Math.abs(M[m][c])) m=r; [M[c],M[m]]=[M[m],M[c]];
-    for(let r=0;r<8;r++){ if(r===c) continue; const f=M[r][c]/M[c][c]; for(let k=c;k<9;k++) M[r][k]-=f*M[c][k]; } }
-  return M.map((r,i)=>r[8]/r[i]); }
-const proj=(h,x,y)=>{ const w=h[6]*x+h[7]*y+1; return [(h[0]*x+h[1]*y+h[2])/w,(h[3]*x+h[4]*y+h[5])/w]; };
-const R2=(IW*IW+IH*IH)/4;
-// radio distorsionado en función del radio limpio (barril + cola lineal); es monótona
-function rmap(r){ const k=P.fish, lim=R2/(3*k+1e-4); if(r*r<=lim) return r*(1-k*r*r/R2);
-  const rl=Math.sqrt(lim); return rl*(1-k*lim/R2)+(r-rl)*.35; }
-function dist(x,y){ const dx=x-IW/2, dy=y-IH/2, r=Math.hypot(dx,dy); if(r<1e-9) return [x,y]; const s=rmap(r)/r; return [IW/2+dx*s, IH/2+dy*s]; }
-// inversa por bisección (estable aunque el ojo de pez sea fuerte)
-function undist(x,y){ const dx=x-IW/2, dy=y-IH/2, d=Math.hypot(dx,dy); if(d<1e-9) return {x,y};
-  let lo=0, hi=d*4+10; while(rmap(hi)<d) hi*=2;
-  for(let i=0;i<40;i++){ const m=(lo+hi)/2; if(rmap(m)<d) lo=m; else hi=m; }
-  const s=(lo+hi)/2/d; return {x:IW/2+dx*s, y:IH/2+dy*s}; }
-function sp3(x,y,z){ const qx=Math.min(Math.max(x,BX[0]),BX[2]), qy=Math.min(Math.max(y,BX[1]),SH), ex=x-qx, ey=y-qy,
-    p=proj(H,qx,qy), f=Math.max(.3,Math.min(3,1+z*P.depth/1200));
-  return dist(cen[0]+(p[0]-cen[0])*f+ex*JX[0]+(ey>0?0:ey*JY[0]), cen[1]+(p[1]-cen[1])*f+ex*JX[1]+(ey>0?ey*FS:ey*JY[1])); }
-// punto de pantalla → plano de la tela, a la altura z
-function toSim(m,z){ const u=undist(m.x,m.y), f=Math.max(.3,Math.min(3,1+(z||0)*P.depth/1200));
-  return proj(Hi, cen[0]+(u.x-cen[0])/f, cen[1]+(u.y-cen[1])/f); }
-function outline(){ const pts=[], C=[[0,0],[SW,0],[SW,SH],[0,SH]];
-  for(let s=0;s<4;s++){ const a=C[s], b=C[(s+1)%4]; for(let i=0;i<24;i++){ const t=i/24, q=proj(H,a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t); pts.push(dist(q[0],q[1])); } }
-  return pts; }
-function upd(){
-  const R=[{x:0,y:0},{x:SW,y:0},{x:SW,y:SH},{x:0,y:SH}], Au=A.map(p=>undist(p.x,p.y));
-  H=homog(R,Au); Hi=homog(Au,R);
-  let f=.6; const ok=f=>[[-f*SW,-f*SH],[(1+f)*SW,-f*SH],[(1+f)*SW,SH],[-f*SW,SH]].every(q=>H[6]*q[0]+H[7]*q[1]+1>.25);
-  while(f>0&&!ok(f)) f-=.05; f=Math.max(f,0); BX=[-f*SW,-f*SH,(1+f)*SW];
+// ── Homografía rect(SW×SH) ↔ cuadrilátero de anclas ──
+function homog(s,d){const M=[];for(let i=0;i<4;i++){const{x,y}=s[i],{x:u,y:v}=d[i];
+  M.push([x,y,1,0,0,0,-u*x,-u*y,u],[0,0,0,x,y,1,-v*x,-v*y,v]);}
+  for(let c=0;c<8;c++){let m=c;for(let r=c+1;r<8;r++)if(Math.abs(M[r][c])>Math.abs(M[m][c]))m=r;[M[c],M[m]]=[M[m],M[c]];
+    for(let r=0;r<8;r++){if(r===c)continue;const f=M[r][c]/M[c][c];for(let k=c;k<9;k++)M[r][k]-=f*M[c][k];}}
+  return M.map((r,i)=>r[8]/r[i]);}
+const proj=(h,x,y)=>{const w=h[6]*x+h[7]*y+1;return[(h[0]*x+h[1]*y+h[2])/w,(h[3]*x+h[4]*y+h[5])/w];};
+const RD=()=>Math.hypot(IW,IH)/2;
+function dist(x,y){const dx=x-IW/2,dy=y-IH/2,R2=RD()**2,k=P.fish,r2=dx*dx+dy*dy,lim=R2/(3*k+1e-4);
+  if(r2<=lim){const f=1-k*r2/R2;return[IW/2+dx*f,IH/2+dy*f];}
+  const r=Math.sqrt(r2),rl=Math.sqrt(lim),s=(rl*(1-k*lim/R2)+(r-rl)*.35)/r;return[IW/2+dx*s,IH/2+dy*s];}
+function sp3(x,y,z){const qx=Math.min(Math.max(x,BX[0]),BX[2]),qy=Math.min(Math.max(y,BX[1]),SH),ex=x-qx,ey=y-qy,p=proj(H,qx,qy),f=Math.max(.3,Math.min(3,1+z*P.depth/1200));
+  return dist(cen[0]+(p[0]-cen[0])*f+ex*JX[0]+(ey>0?0:ey*JY[0]),cen[1]+(p[1]-cen[1])*f+ex*JX[1]+(ey>0?ey*FS:ey*JY[1]));}
+// inversa del ojo de pez por bisección (estable con distorsión fuerte)
+function rmap(r){const k=P.fish,R2=RD()**2,lim=R2/(3*k+1e-4);if(r*r<=lim)return r*(1-k*r*r/R2);const rl=Math.sqrt(lim);return rl*(1-k*lim/R2)+(r-rl)*.35;}
+function undist(x,y){const dx=x-IW/2,dy=y-IH/2,d=Math.hypot(dx,dy);if(d<1e-9)return{x,y};let lo=0,hi=d*4+10;while(rmap(hi)<d)hi*=2;
+  for(let i=0;i<40;i++){const m=(lo+hi)/2;if(rmap(m)<d)lo=m;else hi=m;}const s=(lo+hi)/2/d;return{x:IW/2+dx*s,y:IH/2+dy*s};}
+function outline(){const pts=[],C=[[0,0],[SW,0],[SW,SH],[0,SH]];for(let s=0;s<4;s++){const a=C[s],b=C[(s+1)%4];for(let i=0;i<24;i++){const t=i/24,q=proj(H,a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t);pts.push(dist(q[0],q[1]));}}return pts;}
+function upd(){const R=[{x:0,y:0},{x:SW,y:0},{x:SW,y:SH},{x:0,y:SH}],Au=A.map(p=>undist(p.x,p.y));H=homog(R,Au);Hi=homog(Au,R);{let f=.6;const ok=f=>[[-f*SW,-f*SH],[(1+f)*SW,-f*SH],[(1+f)*SW,SH],[-f*SW,SH]].every(q=>H[6]*q[0]+H[7]*q[1]+1>.25);
+  while(f>0&&!ok(f))f-=.05;f=Math.max(f,0);BX=[-f*SW,-f*SH,(1+f)*SW];
   JX=[(Au[1].x-Au[0].x+Au[2].x-Au[3].x)/2/SW,(Au[1].y-Au[0].y+Au[2].y-Au[3].y)/2/SW];
-  JY=[(Au[3].x-Au[0].x+Au[2].x-Au[1].x)/2/SH,(Au[3].y-Au[0].y+Au[2].y-Au[1].y)/2/SH];
-  FS=(Math.hypot(A[3].x-A[0].x,A[3].y-A[0].y)+Math.hypot(A[2].x-A[1].x,A[2].y-A[1].y))/2/SH;
-  cen=[Au.reduce((s,p)=>s+p.x,0)/4, Au.reduce((s,p)=>s+p.y,0)/4];
-}
+  JY=[(Au[3].x-Au[0].x+Au[2].x-Au[1].x)/2/SH,(Au[3].y-Au[0].y+Au[2].y-Au[1].y)/2/SH];}
+  FS=(Math.hypot(A[3].x-A[0].x,A[3].y-A[0].y)+Math.hypot(A[2].x-A[1].x,A[2].y-A[1].y))/2/SH;cen=[Au.reduce((s,p)=>s+p.x,0)/4,Au.reduce((s,p)=>s+p.y,0)/4];}
 
-/* ─────────── ALFA DE LA TELA (para saber dónde hay papel) ─────────── */
-const AMW=120, AMH=160; let alphaMap=null;
-function buildAlpha(src){
-  const c=document.createElement('canvas'); c.width=AMW; c.height=AMH; const x=c.getContext('2d');
-  x.drawImage(src,0,0,AMW,AMH); const d=x.getImageData(0,0,AMW,AMH).data;
-  alphaMap=new Float32Array(AMW*AMH); for(let i=0;i<alphaMap.length;i++) alphaMap[i]=d[i*4+3]/255;
-}
-function alphaAt(u,v){ if(!alphaMap) return 1; const x=Math.min(AMW-1,Math.max(0,u*AMW|0)), y=Math.min(AMH-1,Math.max(0,v*AMH|0)); return alphaMap[x+y*AMW]; }
-
-/* ─────────── TELA VERLET ───────────
-   Cada nodo puede estar: pegado (GLU) al muro en su lugar de reposo,
-   clavado (PIN, chinche) o libre. Al tirar, los nodos pegados se despegan
-   cuando el borde que los une a la parte libre se estira más que el
-   pegamento; si se estira más que la resistencia, el papel se rasga.
-   Todo en arreglos tipados para que vaya fluido. */
-let NX=0, NY=0, NN=0, NE=0;
-let X,Y,Z,PX,PY,PZ,UU,VV,GI,GJ,PIN,CUS,GLU,HARD,IM,nA;
-let EA,EB,ER,EON,ESH, eR,eD,eG;
-let vb, ib, vis1, vis2, scr=[];
-let grab=null, prevCut=null, trail=[], dragA=-1;
-function build(glued=true){
-  NX=P.grid|0; NY=Math.max(2,Math.round(NX*SH/SW));
-  const w=NX+1, sx=SW/NX, sy=SH/NY; NN=w*(NY+1);
-  X=new Float32Array(NN); Y=new Float32Array(NN); Z=new Float32Array(NN);
-  PX=new Float32Array(NN); PY=new Float32Array(NN); PZ=new Float32Array(NN);
-  UU=new Float32Array(NN); VV=new Float32Array(NN); GI=new Int16Array(NN); GJ=new Int16Array(NN);
-  PIN=new Uint8Array(NN); CUS=new Uint8Array(NN); GLU=new Uint8Array(NN); HARD=new Uint8Array(NN); IM=new Float32Array(NN); nA=new Float32Array(NN);
-  grab=null;
-  for(let j=0;j<=NY;j++) for(let i=0;i<=NX;i++){ const k=i+j*w;
-    X[k]=PX[k]=i*sx; Y[k]=PY[k]=j*sy; Z[k]=PZ[k]=0;
-    UU[k]=i/NX; VV[k]=j/NY; GI[k]=i; GJ[k]=j; GLU[k]=0; nA[k]=alphaAt(UU[k],VV[k]); }
-  const cap=2*NN+2*NX*NY; EA=new Int32Array(cap); EB=new Int32Array(cap); ER=new Float32Array(cap); EON=new Uint8Array(cap); ESH=new Uint8Array(cap);
-  eR=new Int32Array(NN).fill(-1); eD=new Int32Array(NN).fill(-1); eG=new Int32Array(NX*NY);
-  NE=0;
-  const add=(a,b,sh)=>{ EA[NE]=a; EB[NE]=b; ER[NE]=Math.hypot(X[a]-X[b],Y[a]-Y[b]); EON[NE]=1; ESH[NE]=sh; return NE++; };
-  for(let j=0;j<=NY;j++) for(let i=0;i<=NX;i++){ const k=i+j*w; if(i<NX) eR[k]=add(k,k+1,0); if(j<NY) eD[k]=add(k,k+w,0); }
-  // diagonales: b–cc (la que parte cada celda en dos triángulos) y a–d
-  for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){ const k=i+j*w; eG[i+j*NX]=add(k+1,k+w,1); add(k,k+w+1,1); }
-  vb=new Float32Array(NN*6); for(let k=0;k<NN;k++){ vb[k*6+3]=UU[k]; vb[k*6+4]=VV[k]; }
-  ib=new Uint32Array(NX*NY*6); vis1=new Uint8Array(NX*NY); vis2=new Uint8Array(NX*NY);
-  scr=new Array(NN); for(let k=0;k<NN;k++) scr[k]=[0,0];
-  gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER,vbuf); gl.bufferData(gl.ARRAY_BUFFER,vb.byteLength,gl.DYNAMIC_DRAW);
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,ib.byteLength,gl.DYNAMIC_DRAW);
-  hangTop();
-}
-// nodo con papel más cercano a una esquina (u,v) de la tela
-function cornerNode(cu,cv){ let best=-1, bd=1e9;
-  for(let k=0;k<NN;k++){ if(nA[k]<.6) continue; const d=Math.hypot((UU[k]-cu)*SW,(VV[k]-cv)*SH); if(d<bd){ bd=d; best=k; } }
-  return best; }
-function freeNode(k){ GLU[k]=0; PX[k]=X[k]; PY[k]=Y[k]; PZ[k]=Z[k]; }
-function hangFromCorners(){
-  for(let k=0;k<NN;k++){ freeNode(k); PIN[k]=0; CUS[k]=0; }
-  [cornerNode(0,0),cornerNode(1,0)].forEach(k=>{ if(k>=0){ PIN[k]=1; CUS[k]=1; } });
-}
-// sujeto solo por arriba: el primer nodo con papel de cada columna queda fijo
-function hangTop(){
-  for(let k=0;k<NN;k++){ freeNode(k); PIN[k]=0; CUS[k]=0; }
-  const w=NX+1;
-  for(let i=0;i<=NX;i++) PIN[i]=1;   // fila superior: de P1 a P2
-}
-function dropAll(){ for(let k=0;k<NN;k++){ if(GLU[k]) freeNode(k); PIN[k]=0; CUS[k]=0; } }
-function unglue(k){ if(GLU[k]) freeNode(k); }
-
+// ── Tela Verlet (espacio plano) ──
+let vb,ib,vao,vbuf,ibuf;
+function build(){
+  const N=P.grid|0,w=N+1,sx=SW/N,sy=SH/N;nodes=[];edges=[];eR=[];eD=[];grab=null;
+  for(let j=0;j<=N;j++)for(let i=0;i<=N;i++)nodes.push({x:i*sx,y:j*sy,z:(Math.random()-.5)*6*(j>0),oz:0,ox:i*sx,oy:j*sy,u:i/N,v:j/N,i,j,pin:false,custom:false});
+  const add=(a,b,sh)=>{const p=nodes[a],q=nodes[b];edges.push({a:p,b:q,r:Math.hypot(p.x-q.x,p.y-q.y),on:true,sh,ia:a,ib:b});return edges.length-1;};
+  for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){const k=i+j*w;eR[k]=i<N?add(k,k+1):-1;eD[k]=j<N?add(k,k+w):-1;}
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const k=i+j*w;add(k,k+w+1,true);add(k+1,k+w,true);}
+  vb=new Float32Array(nodes.length*6);nodes.forEach((n,k)=>{n.oz=n.z;vb[k*6+3]=n.u;vb[k*6+4]=n.v;});ib=new Uint32Array(N*N*6);
+  gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,vbuf);gl.bufferData(gl.ARRAY_BUFFER,vb.byteLength,gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,ib.byteLength,gl.DYNAMIC_DRAW);
+  applyPins();}
+function applyPins(){const N=P.grid|0;nodes.forEach(n=>{
+  const rule=(n.j===0&&(n.i===0||n.i===N||O.pinEdge))||(n.j===N&&O.pinBottom&&(n.i===0||n.i===N));
+  if(rule){n.x=n.ox=n.u*SW;n.y=n.oy=n.v*SH;n.z=n.oz=0;}n.pin=rule||n.custom;});}
 function step(){
-  frame++;
   const wd=P.wx+P.gust*Math.sin(frame*.04)*Math.cos(frame*.013);
-  // agarre: los nodos del centro van directo al cursor; los de alrededor, como resorte
-  if(grab){
-    grab.z+=(grab.zt-grab.z)*.12;
-    const t=toSim(grab.m,grab.z);
-    if(isFinite(t[0]+t[1])) grab.t=[Math.min(Math.max(t[0],BX[0]),BX[2]), Math.min(Math.max(t[1],BX[1]),2.2*SH)];
-    for(const g of grab.set){ if(g.w<1) continue; const k=g.k, tx=grab.t[0]+g.dx, ty=grab.t[1]+g.dy;
-      let dx=tx-X[k], dy=ty-Y[k]; const d=Math.hypot(dx,dy), q=d>40?40/d:1;
-      PX[k]=X[k]; PY[k]=Y[k]; PZ[k]=Z[k]; X[k]+=dx*q; Y[k]+=dy*q; Z[k]+=(grab.z-Z[k])*.3; }
-  }
-  for(let k=0;k<NN;k++) IM[k]=(PIN[k]|GLU[k]|HARD[k])?0:1;
-  const d=P.d, g=P.g, cz=P.curl*.09; let bad=false;
-  for(let k=0;k<NN;k++){ if(!IM[k]) continue;
-    let vx=(X[k]-PX[k])*d, vy=(Y[k]-PY[k])*d, vz=(Z[k]-PZ[k])*d; const sv=vx*vx+vy*vy+vz*vz; if(sv>8100){ const q=90/Math.sqrt(sv); vx*=q; vy*=q; vz*=q; }
-    PX[k]=X[k]; PY[k]=Y[k]; PZ[k]=Z[k];
-    const wz=(P.wz+P.gust*Math.sin(frame*.05+VV[k]*3+UU[k]*2))*.12*(.3+VV[k]);
-    X[k]+=vx+wd*.1; Y[k]+=vy+g;
-    // el papel despegado se curva hacia afuera del muro
-    let z=Z[k]+vz+wz+cz-Z[k]*.004; Z[k]=z<-500?-500:z>500?500:z;
-    if(!(Math.abs(X[k]+Y[k]+Z[k])<1e7)) bad=true;
-  }
-  if(bad){ build(true); return; }
-  if(grab) for(const g of grab.set){ if(g.w>=1) continue; const k=g.k; if(!IM[k]) continue;
-    const q=g.w*.35; X[k]+=(grab.t[0]+g.dx-X[k])*q; Y[k]+=(grab.t[1]+g.dy-Y[k])*q; Z[k]+=(grab.z*g.w-Z[k])*q; }
-  const slack=P.slack, shear=O.shear;
-  for(let s=0;s<P.sub;s++){
-    for(let e=0;e<NE;e++){ if(!EON[e]||(ESH[e]&&!shear)) continue;
-      const a=EA[e], b=EB[e], ma=IM[a], mb=IM[b], m=ma+mb; if(!m) continue;
-      const dx=X[b]-X[a], dy=Y[b]-Y[a], dz=Z[b]-Z[a], dd=Math.sqrt(dx*dx+dy*dy+dz*dz); if(dd<1e-3) continue;
-      const f=(ER[e]*slack-dd)/dd/m;
-      if(ma){ X[a]-=dx*f; Y[a]-=dy*f; Z[a]-=dz*f; }
-      if(mb){ X[b]+=dx*f; Y[b]+=dy*f; Z[b]+=dz*f; }
-    }
-  }
-  // muro: el papel no puede atravesarlo
-  for(let k=0;k<NN;k++) if(Z[k]<0) Z[k]=0;
-  // despegar o rasgar según cuánto se estiró cada borde.
-  // Si un lado está pegado, primero cede el pegamento (salvo pegamento casi total).
-  const peel=1.012+P.glue*.32, tear=P.tear, duro=P.glue>.85;
-  for(let e=0;e<NE;e++){ if(!EON[e]) continue;
-    const a=EA[e], b=EB[e]; if(GLU[a]&&GLU[b]) continue;
-    const dx=X[b]-X[a], dy=Y[b]-Y[a], dz=Z[b]-Z[a], s=Math.sqrt(dx*dx+dy*dy+dz*dz)/(ER[e]*slack);
-    if(GLU[a]!==GLU[b]){
-      if(s>peel&&!ESH[e]) unglue(GLU[a]?a:b);
-    }
-  }
-  strain();
-}
-// límite de estiramiento (que la tela no se vuelva chicle)
-function strain(){ const slack=P.slack*1.02;
-  for(let k=0;k<NN;k++) IM[k]=(PIN[k]|GLU[k]|HARD[k])?0:1;
-  for(let p=0;p<4;p++) for(let e=0;e<NE;e++){ if(!EON[e]||ESH[e]) continue;
-    const a=EA[e], b=EB[e], ma=IM[a], mb=IM[b], m=ma+mb; if(!m) continue;
-    const dx=X[b]-X[a], dy=Y[b]-Y[a], dz=Z[b]-Z[a], dd=Math.sqrt(dx*dx+dy*dy+dz*dz), mx=ER[e]*slack; if(dd<=mx||dd<1e-3) continue;
-    const f=(mx-dd)/dd/m;
-    if(ma){ X[a]-=dx*f; Y[a]-=dy*f; Z[a]-=dz*f; }
-    if(mb){ X[b]+=dx*f; Y[b]+=dy*f; Z[b]+=dz*f; } } }
+  if(grab&&gt){const dx=gt[0]-grab.x,dy=gt[1]-grab.y,d=Math.hypot(dx,dy),q=d>45?45/d:1;grab.x+=dx*q;grab.y+=dy*q;grab.ox=grab.x;grab.oy=grab.y;}
+  let bad=false;
+  for(const n of nodes){if(n.pin||n===grab)continue;
+    let vx=(n.x-n.ox)*P.d,vy=(n.y-n.oy)*P.d,vz=(n.z-n.oz)*P.d;const sv=Math.hypot(vx,vy,vz);if(sv>90){const q=90/sv;vx*=q;vy*=q;vz*=q;}n.ox=n.x;n.oy=n.y;n.oz=n.z;
+    const wz=(P.wz+P.gust*Math.sin(frame*.05+n.v*3+n.u*2))*.12*(.3+n.v);
+    n.x+=vx+wd*.1;n.y+=vy+P.g;n.z=Math.max(-500,Math.min(500,n.z+vz+wz-n.z*.004));if(!(Math.abs(n.x+n.y+n.z)<1e7))bad=true;}
+  if(bad){build();return;}
+  for(let s=0;s<P.sub;s++)for(const e of edges){if(!e.on||(e.sh&&!O.shear))continue;
+    const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,dz=e.b.z-e.a.z,d=Math.hypot(dx,dy,dz);if(d<1e-3)continue;const f=(e.r*P.slack-d)/d;
+    const m1=!e.a.pin&&e.a!==grab,m2=!e.b.pin&&e.b!==grab,k=m1&&m2?.5:1;
+    if(m1){e.a.x-=dx*f*k;e.a.y-=dy*f*k;e.a.z-=dz*f*k;}
+    if(m2){e.b.x+=dx*f*k;e.b.y+=dy*f*k;e.b.z+=dz*f*k;}}
+  strain();}
+function strain(){for(let p=0;p<6;p++)for(const e of edges){if(!e.on||e.sh)continue;
+  const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,dz=e.b.z-e.a.z,d=Math.hypot(dx,dy,dz),mx=e.r*P.slack*1.1;if(d<=mx||d<1e-3)continue;
+  const f=(mx-d)/d,m1=!e.a.pin&&e.a!==grab,m2=!e.b.pin&&e.b!==grab,k=m1&&m2?.5:1;
+  if(m1){e.a.x-=dx*f*k;e.a.y-=dy*f*k;e.a.z-=dz*f*k;}
+  if(m2){e.b.x+=dx*f*k;e.b.y+=dy*f*k;e.b.z+=dz*f*k;}}}
+function slice(x1,y1,x2,y2){for(const e of edges){if(!e.on)continue;
+  const d1x=x2-x1,d1y=y2-y1,d2x=e.b.x-e.a.x,d2y=e.b.y-e.a.y,den=d1x*d2y-d1y*d2x;if(Math.abs(den)<1e-4)continue;
+  const ox=e.a.x-x1,oy=e.a.y-y1,t=(ox*d2y-oy*d2x)/den,u=(ox*d1y-oy*d1x)/den;if(t>0&&t<1&&u>0&&u<1)e.on=false;}}
 
-/* corte con cuchilla, en pantalla: sirve aunque el papel esté doblado */
-function segX(p1,p2,a,b){ const d1x=p2.x-p1.x, d1y=p2.y-p1.y, d2x=b[0]-a[0], d2y=b[1]-a[1], den=d1x*d2y-d1y*d2x;
-  if(Math.abs(den)<1e-6) return false; const ox=a[0]-p1.x, oy=a[1]-p1.y, t=(ox*d2y-oy*d2x)/den, u=(ox*d1y-oy*d1x)/den;
-  return t>=0&&t<=1&&u>=0&&u<=1; }
-function slice(p1,p2){
-  const len=Math.hypot(p2.x-p1.x,p2.y-p1.y); if(len<.5) return;
-  const nx=-(p2.y-p1.y)/len, ny=(p2.x-p1.x)/len;     // normal del corte en pantalla
-  const minx=Math.min(p1.x,p2.x)-60, maxx=Math.max(p1.x,p2.x)+60, miny=Math.min(p1.y,p2.y)-60, maxy=Math.max(p1.y,p2.y)+60;
-  const tocados=new Set();
-  for(let e=0;e<NE;e++){ if(!EON[e]) continue; const a=scr[EA[e]], b=scr[EB[e]];
-    if(a[0]<minx&&b[0]<minx||a[0]>maxx&&b[0]>maxx||a[1]<miny&&b[1]<miny||a[1]>maxy&&b[1]>maxy) continue;
-    if(segX(p1,p2,a,b)){ EON[e]=0; tocados.add(EA[e]); tocados.add(EB[e]); } }
-  // la hoja levanta y separa un poco los bordes del corte
-  tocados.forEach(k=>{ if(PIN[k]) return;
-    if(GLU[k] && Math.random()>P.glue*.8) unglue(k);
-    if(GLU[k]) return;
-    const s=Math.sign((scr[k][0]-p1.x)*nx+(scr[k][1]-p1.y)*ny)||1;
-    const q=toSim({x:scr[k][0]+nx*s*3, y:scr[k][1]+ny*s*3}, Z[k]), o=toSim({x:scr[k][0],y:scr[k][1]}, Z[k]);
-    if(isFinite(q[0]+q[1]+o[0]+o[1])){ X[k]+=(q[0]-o[0]); Y[k]+=(q[1]-o[1]); }
-    Z[k]+=4+Math.random()*6; });
-}
-function nodeVisible(k){ const i=GI[k], j=GJ[k];
-  for(let c=0;c<4;c++){ const ci=i-(c&1), cj=j-(c>>1); if(ci<0||cj<0||ci>=NX||cj>=NY) continue; const q=ci+cj*NX; if(vis1[q]||vis2[q]) return true; }
-  return false; }
-// el nodo con papel más cercano en pantalla; ante empate, el que está más afuera del muro
-function nearestScreen(m,maxD){
-  let best=-1, bd=maxD*maxD;
-  for(let k=0;k<NN;k++){ if(nA[k]<.35) continue; const dx=scr[k][0]-m.x, dy=scr[k][1]-m.y, d=dx*dx+dy*dy-Z[k]*2;
-    if(d<bd && nodeVisible(k)){ bd=d; best=k; } }
-  return best; }
-
-/* ─────────── WEBGL ─────────── */
-const gl=cgl.getContext('webgl2',{premultipliedAlpha:true,preserveDrawingBuffer:true,antialias:true,depth:true});
-if(!gl){ xbg.fillStyle='#000'; xbg.fillRect(0,0,IW,IH); xbg.fillStyle='#fff'; xbg.font='28px monospace'; xbg.fillText('Este navegador no soporta WebGL2',60,100); throw new Error('sin WebGL2'); }
-const mk=(t,s)=>{ const o=gl.createShader(t); gl.shaderSource(o,s); gl.compileShader(o); if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(o)); return o; };
+// ── WebGL (textura con corrección de perspectiva vía w) ──
+const gl=cgl.getContext('webgl2',{premultipliedAlpha:true,preserveDrawingBuffer:true});
+if(!gl)alert('Tu navegador no soporta WebGL2');
+const sh=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o;};
 const pr=gl.createProgram();
-gl.attachShader(pr,mk(gl.VERTEX_SHADER,`#version 300 es
+gl.attachShader(pr,sh(gl.VERTEX_SHADER,`#version 300 es
 layout(location=0) in vec3 aP;layout(location=1) in vec2 aUV;layout(location=2) in float aS;
-uniform vec3 r0,r1,r2;uniform vec2 res,cn;uniform float kz,kd,fs,uSh;uniform vec4 bx;uniform vec2 jx,jy;out vec2 vUV;out float vS;
+uniform vec3 r0,r1,r2;uniform vec2 res,cn;uniform float kz,kd,fs;uniform vec4 bx;uniform vec2 jx,jy;out vec2 vUV;out float vS;
 void main(){vec2 qc=clamp(aP.xy,bx.xy,bx.zw);vec2 e=aP.xy-qc;vec3 p=vec3(qc,1.);float X=dot(r0,p),Y=dot(r1,p),W=dot(r2,p);
 vec2 s=cn+(vec2(X,Y)/W-cn)*clamp(1.+aP.z*kz,.3,3.);s+=e.x*jx+max(e.y,0.)*vec2(0.,fs)+min(e.y,0.)*jy;
 vec2 c0=res*.5;vec2 dd=s-c0;float rr=dot(res,res)*.25,r2=dot(dd,dd),lim=rr/(3.*kd+1e-4);
 if(r2<=lim){s=c0+dd*(1.-kd*r2/rr);}else{float r=sqrt(r2),rl=sqrt(lim);s=c0+dd/r*(rl*(1.-kd*lim/rr)+(r-rl)*.35);}
-s+=uSh*vec2(.55,.83)*(2.+max(aP.z,0.)*.8);
-vec2 n=vec2(s.x/res.x*2.-1.,1.-s.y/res.y*2.);float dz=-clamp(aP.z,0.,600.)/700.;
-gl_Position=vec4(n*W,dz*W*(1.-uSh),W);vUV=aUV;vS=aS;}`));
-gl.attachShader(pr,mk(gl.FRAGMENT_SHADER,`#version 300 es
-precision highp float;in vec2 vUV;in float vS;uniform sampler2D T;uniform float uSh,uFlip;uniform vec3 uBack;out vec4 o;
-void main(){vec4 c=texture(T,vUV);if(c.a<.02)discard;
-if(uSh>.5){o=vec4(vec3(.11,.06,.035)*c.a,c.a);return;}
-bool front=(gl_FrontFacing==(uFlip>.5));
-vec3 col=front?c.rgb:uBack*(.9+.1*dot(c.rgb,vec3(.333)));
-o=vec4(col*vS*c.a,c.a);}`));
-gl.linkProgram(pr); gl.useProgram(pr);
-const U={}; ['r0','r1','r2','res','cn','kz','kd','fs','bx','jx','jy','uSh','uFlip','uBack','T'].forEach(k=>U[k]=gl.getUniformLocation(pr,k));
-const vao=gl.createVertexArray(), vbuf=gl.createBuffer(), ibuf=gl.createBuffer();
-gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER,vbuf);
-gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,24,0);
-gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,2,gl.FLOAT,false,24,12);
-gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2,1,gl.FLOAT,false,24,20);
-gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
-let tex=null, back=[.80,.66,.50];
-function setTex(src){
-  tex=tex||gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tex);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src); gl.generateMipmap(gl.TEXTURE_2D);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-  const an=gl.getExtension('EXT_texture_filter_anisotropic'); if(an) gl.texParameterf(gl.TEXTURE_2D,an.TEXTURE_MAX_ANISOTROPY_EXT,8);
-  buildAlpha(src);
-  // color del reverso: el tono medio del papel, más claro y sin tinta
-  try{ const c=document.createElement('canvas'); c.width=c.height=8; const x=c.getContext('2d'); x.drawImage(src,0,0,8,8);
-    const d=x.getImageData(0,0,8,8).data; let r=0,g=0,b=0,n=0; for(let i=0;i<d.length;i+=4){ if(d[i+3]<200) continue; r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; }
-    if(n){ const m=v=>Math.min(1,v/n/255*1.05+.04); back=[m(r),m(g),m(b)]; } }catch(e){}
-  SW=SH*(src.naturalWidth||src.width)/(src.naturalHeight||src.height);
-}
-
-/* ─────────── RENDER ─────────── */
-let FLIP=0;
+vec2 n=vec2(s.x/res.x*2.-1.,1.-s.y/res.y*2.);gl_Position=vec4(n*W,0.,W);vUV=aUV;vS=aS;}`));
+gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,`#version 300 es
+precision mediump float;in vec2 vUV;in float vS;uniform sampler2D T;out vec4 o;
+void main(){vec4 c=texture(T,vUV);o=vec4(c.rgb*vS*c.a,c.a);}`));
+gl.linkProgram(pr);gl.useProgram(pr);
+vao=gl.createVertexArray();vbuf=gl.createBuffer();ibuf=gl.createBuffer();
+gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,vbuf);
+gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,24,0);
+gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,2,gl.FLOAT,false,24,12);
+gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,24,20);
+gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+let tex=null;
+function setTex(src){tex=tex||gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  const an=gl.getExtension('EXT_texture_filter_anisotropic');if(an)gl.texParameterf(gl.TEXTURE_2D,an.TEXTURE_MAX_ANISOTROPY_EXT,8);
+  SW=SH*(src.naturalWidth||src.width)/(src.naturalHeight||src.height);build();upd();}
 function render(){
-  const w=NX+1; let c=0; const shade=P.shade*.9;
-  // normales → sombreado de pliegues
-  for(let k=0;k<NN;k++){ const i=GI[k], j=GJ[k];
-    const l=i>0?k-1:k, r=i<NX?k+1:k, u=j>0?k-w:k, d=j<NY?k+w:k;
-    const ax=X[r]-X[l], ay=Y[r]-Y[l], az=Z[r]-Z[l], bx=X[d]-X[u], by=Y[d]-Y[u], bz=Z[d]-Z[u];
-    const nx=ay*bz-az*by, ny=az*bx-ax*bz, nz=ax*by-ay*bx, m=Math.hypot(nx,ny,nz)||1;
+  const N=P.grid|0;let c=0;const w=N+1;
+  nodes.forEach((n,k)=>{const l=nodes[n.i>0?k-1:k],r=nodes[n.i<N?k+1:k],u=nodes[n.j>0?k-w:k],d=nodes[n.j<N?k+w:k];
+    const ax=r.x-l.x,ay=r.y-l.y,az=r.z-l.z,bx=d.x-u.x,by=d.y-u.y,bz=d.z-u.z;
+    const nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx,m=Math.hypot(nx,ny,nz)||1;
     const dt=Math.abs((nx*-.4+ny*-.5+nz*.77)/m);
-    vb[k*6]=X[k]; vb[k*6+1]=Y[k]; vb[k*6+2]=Z[k]; vb[k*6+5]=Math.max(.3,1+(dt-.77)*shade);
-    const s=sp3(X[k],Y[k],Z[k]); scr[k][0]=s[0]; scr[k][1]=s[1];
-  }
-  for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){ const a=i+j*w, b=a+1, cc=a+w, d=cc+1, cell=i+j*NX, dg=EON[eG[cell]];
-    const t1=dg&&EON[eR[a]]&&EON[eD[a]], t2=dg&&EON[eD[b]]&&EON[eR[cc]];
-    vis1[cell]=t1?1:0; vis2[cell]=t2?1:0;
-    if(t1){ ib[c++]=a; ib[c++]=b; ib[c++]=cc; }
-    if(t2){ ib[c++]=b; ib[c++]=d; ib[c++]=cc; } }
-  gl.viewport(0,0,IW,IH); gl.useProgram(pr); gl.bindVertexArray(vao);
-  gl.bindBuffer(gl.ARRAY_BUFFER,vbuf); gl.bufferSubData(gl.ARRAY_BUFFER,0,vb);
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf); gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER,0,ib.subarray(0,c));
-  gl.uniform3f(U.r0,H[0],H[1],H[2]); gl.uniform3f(U.r1,H[3],H[4],H[5]); gl.uniform3f(U.r2,H[6],H[7],1);
-  gl.uniform2f(U.res,IW,IH); gl.uniform2f(U.cn,cen[0],cen[1]); gl.uniform1f(U.kz,P.depth/1200); gl.uniform1f(U.kd,P.fish); gl.uniform1f(U.fs,FS);
-  gl.uniform4f(U.bx,BX[0],BX[1],BX[2],SH); gl.uniform2f(U.jx,JX[0],JX[1]); gl.uniform2f(U.jy,JY[0],JY[1]);
-  gl.uniform1f(U.uFlip,FLIP); gl.uniform3f(U.uBack,back[0],back[1],back[2]);
-  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,tex); gl.uniform1i(U.T,0);
-  // 1) sombra sobre el muro → lienzo 2D (con multiply + desenfoque por CSS)
-  gl.disable(gl.DEPTH_TEST); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
-  if(P.shadow>0){ gl.uniform1f(U.uSh,1); gl.drawElements(gl.TRIANGLES,c,gl.UNSIGNED_INT,0); }
-  xsh.clearRect(0,0,IW,IH); if(P.shadow>0) xsh.drawImage(cgl,0,0);
-  // 2) la tela, con profundidad para que los pliegues se tapen bien
-  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-  gl.uniform1f(U.uSh,0); gl.drawElements(gl.TRIANGLES,c,gl.UNSIGNED_INT,0);
-  drawFx(); drawOv();
-}
+    vb[k*6]=n.x;vb[k*6+1]=n.y;vb[k*6+2]=n.z;vb[k*6+5]=Math.max(.3,1+(dt-.77)*.9*P.shade);
+    scr[k]=sp3(n.x,n.y,n.z);});
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=i+j*w,b=a+1,cc=a+w,d=cc+1;
+    if(edges[eR[a]].on&&edges[eD[a]].on){ib[c++]=a;ib[c++]=b;ib[c++]=cc;}
+    if(edges[eR[cc]].on&&edges[eD[b]].on){ib[c++]=b;ib[c++]=d;ib[c++]=cc;}}
+  gl.viewport(0,0,IW,IH);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(pr);gl.bindVertexArray(vao);
+  gl.bindBuffer(gl.ARRAY_BUFFER,vbuf);gl.bufferSubData(gl.ARRAY_BUFFER,0,vb);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf);gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER,0,ib.subarray(0,c));
+  gl.uniform3f(gl.getUniformLocation(pr,'r0'),H[0],H[1],H[2]);gl.uniform3f(gl.getUniformLocation(pr,'r1'),H[3],H[4],H[5]);
+  gl.uniform3f(gl.getUniformLocation(pr,'r2'),H[6],H[7],1);gl.uniform2f(gl.getUniformLocation(pr,'res'),IW,IH);gl.uniform2f(gl.getUniformLocation(pr,'cn'),cen[0],cen[1]);gl.uniform1f(gl.getUniformLocation(pr,'kz'),P.depth/1200);gl.uniform1f(gl.getUniformLocation(pr,'kd'),P.fish);gl.uniform1f(gl.getUniformLocation(pr,'fs'),FS);
+  gl.uniform4f(gl.getUniformLocation(pr,'bx'),BX[0],BX[1],BX[2],SH);gl.uniform2f(gl.getUniformLocation(pr,'jx'),JX[0],JX[1]);gl.uniform2f(gl.getUniformLocation(pr,'jy'),JY[0],JY[1]);
+  gl.bindTexture(gl.TEXTURE_2D,tex);gl.drawElements(gl.TRIANGLES,c,gl.UNSIGNED_INT,0);
+  const x=csh.getContext('2d');x.clearRect(0,0,IW,IH);x.fillStyle='#1a0e08';x.beginPath();
+  const ok=p=>Math.abs(p[0])<6000&&Math.abs(p[1])<6000;const sp=nodes.map((n,k)=>{const o=5+Math.max(n.z,0)*.8;return[scr[k][0]+.55*o,scr[k][1]+.83*o];});
+  for(let q=0;q<c;q+=3){let a=sp[ib[q]],b=sp[ib[q+1]],d=sp[ib[q+2]];if(!(ok(a)&&ok(b)&&ok(d)))continue;if((b[0]-a[0])*(d[1]-a[1])-(b[1]-a[1])*(d[0]-a[0])<0)[b,d]=[d,b];
+    x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.lineTo(d[0],d[1]);x.closePath();}
+  x.fill();drawOv();}
+function setSh(){csh.style.filter=`blur(${P.blur*sc}px)`;csh.style.opacity=P.shadow;}
 
-/* bordes rasgados: fibra clara del papel donde la tela se abrió */
-function hash(a,b){ let h=(a*374761393+b*668265263)|0; h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967295; }
-const segs=[];
-function drawFx(){
-  const x=xfx; x.clearRect(0,0,IW,IH);
-  // chinches
-  for(let k=0;k<NN;k++){ if(!CUS[k]||!PIN[k]) continue; const p=scr[k];
-    x.fillStyle='rgba(0,0,0,.35)'; x.beginPath(); x.arc(p[0]+3,p[1]+4,7,0,7); x.fill();
-    const g=x.createRadialGradient(p[0]-2,p[1]-2,1,p[0],p[1],7); g.addColorStop(0,'#ff8a80'); g.addColorStop(1,'#c4120a');
-    x.fillStyle=g; x.beginPath(); x.arc(p[0],p[1],6.5,0,7); x.fill(); }
-  trail.length=0;
-}
-function drawOv(){
-  const c=xov; c.clearRect(0,0,IW,IH);
-  if(O.mesh){ c.strokeStyle='rgba(255,255,255,.35)'; c.lineWidth=1; c.beginPath();
-    for(let e=0;e<NE;e++){ if(!EON[e]||ESH[e]) continue; const a=scr[EA[e]], b=scr[EB[e]]; c.moveTo(a[0],a[1]); c.lineTo(b[0],b[1]); } c.stroke(); }
-  if(!O.guides) return;
-  c.setLineDash([7,5]); c.strokeStyle='rgba(255,1,0,.9)'; c.lineWidth=1.5; c.beginPath();
-  outline().forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1])); c.closePath(); c.stroke(); c.setLineDash([]);
-  c.font='700 12px "Space Mono", monospace';
-  A.forEach((p,i)=>{ const top=i<2; c.fillStyle=top?'#ff0100':'#000'; c.strokeStyle='#fff'; c.lineWidth=1.5; c.beginPath();
-    if(top) c.arc(p.x,p.y,9,0,7); else { const r=11; c.moveTo(p.x,p.y-r); c.lineTo(p.x+r,p.y); c.lineTo(p.x,p.y+r); c.lineTo(p.x-r,p.y); c.closePath(); }
-    c.fill(); c.stroke(); c.fillStyle='#fff'; c.fillText((top?'P':'D')+(i+1),p.x+14,p.y-12); });
-}
-function setSh(){ csh.style.filter=`blur(${(P.blur*sc).toFixed(2)}px)`; csh.style.opacity=P.shadow; }
+// ── Fondo + overlay ──
+function drawBg(){const c=cbg.getContext('2d');c.clearRect(0,0,IW,IH);if(!bgImg)return;
+  const iw=bgImg.naturalWidth,ih=bgImg.naturalHeight,s=Math.max(IW/iw,IH/ih);c.drawImage(bgImg,(IW-iw*s)/2,(IH-ih*s)/2,iw*s,ih*s);}
+function drawOv(){const c=cov.getContext('2d'),k=1/sc;c.clearRect(0,0,IW,IH);c.lineWidth=k;
+  const f=cfx.getContext('2d');f.clearRect(0,0,IW,IH);
+  if(O.mesh){c.strokeStyle='rgba(255,255,255,.35)';c.beginPath();
+    nodes.forEach((n,q)=>{[eR[q],eD[q]].forEach(ei=>{if(ei<0)return;const e=edges[ei];if(!e.on)return;const a=scr[q],b=scr[e.ib];c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);});});c.stroke();}
+  nodes.forEach((n,q)=>{if(n.custom){f.fillStyle='#ff3b30';f.beginPath();f.arc(scr[q][0],scr[q][1],4*k,0,7);f.fill();}});
+  trail=trail.filter(t=>++t.a<24);
+  if(!O.guides)return;
+  c.setLineDash([7*k,5*k]);c.strokeStyle='rgba(255,1,0,.9)';c.lineWidth=1.5*k;c.beginPath();outline().forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.stroke();c.setLineDash([]);
+  c.font=`600 ${11*k}px "Space Mono", monospace`;
+  A.forEach((p,i)=>{const top=i<2;c.fillStyle=top?'#ff3b30':'#30a3ff';c.strokeStyle='#fff';c.lineWidth=1.5*k;c.beginPath();
+    if(top)c.arc(p.x,p.y,9*k,0,7);else{const r=11*k;c.moveTo(p.x,p.y-r);c.lineTo(p.x+r,p.y);c.lineTo(p.x,p.y+r);c.lineTo(p.x-r,p.y);c.closePath();}
+    c.fill();c.stroke();c.fillStyle='#fff';c.fillText((top?'P':'D')+(i+1),p.x+14*k,p.y-12*k);});}
 
-/* ─────────── FONDO ─────────── */
-let bgImg=null;
-function drawBg(){ xbg.clearRect(0,0,IW,IH); if(!bgImg) return;
-  const iw=bgImg.naturalWidth||bgImg.width, ih=bgImg.naturalHeight||bgImg.height, s=Math.max(IW/iw,IH/ih);
-  const w=iw*s, h=ih*s; xbg.drawImage(bgImg,(IW-w)/2,(IH-h)/2,w,h); }
+// ── Puntero ──
+const pt=e=>{const r=cov.getBoundingClientRect();return{x:Math.max(-.2*IW,Math.min(1.2*IW,(e.clientX-r.left)*IW/r.width)),y:Math.max(-.2*IH,Math.min(1.2*IH,(e.clientY-r.top)*IH/r.height))};};
+const toSim=m=>{const u=undist(m.x,m.y);return proj(Hi,u.x,u.y);};
+function nearest(s,mult,pinned){let b=mult*SW/(P.grid|0),r=null;nodes.forEach(n=>{if(n.pin&&!pinned)return;const d=Math.hypot(n.x-s[0],n.y-s[1]);if(d<b){b=d;r=n;}});return r;}
+cov.onpointerdown=e=>{try{cov.setPointerCapture(e.pointerId);}catch(_){}const m=pt(e);drag=-1;let b=26/sc;
+  if(O.guides)A.forEach((a,i)=>{const d=Math.hypot(a.x-m.x,a.y-m.y);if(d<b){b=d;drag=i;}});if(drag>=0)return;
+  const s=toSim(m);
+  if(tool==='grab'){grab=nearest(s,3);gt=grab&&[grab.x,grab.y];if(grab)stage.classList.add('grabbing');}
+  else if(tool==='cut')prev=s;
+  else{const n=nearest(s,1.5,true);if(n){n.custom=!n.pin;n.pin=n.custom;n.ox=n.x;n.oy=n.y;}}};
+cov.onpointermove=e=>{const m=pt(e);
+  if(drag>=0){A[drag]={x:m.x,y:m.y};upd();return;}
+  const s=toSim(m);if(!isFinite(s[0]+s[1]))return;
+  if(grab){s[0]=Math.min(Math.max(s[0],BX[0]),BX[2]);s[1]=Math.min(Math.max(s[1],BX[1]),1.8*SH);gt=[s[0],s[1]];}
+  else if(prev&&tool==='cut'){slice(prev[0],prev[1],s[0],s[1]);prev=s;}};
+cov.onpointerup=cov.onpointercancel=()=>{drag=-1;grab=null;prev=null;stage.classList.remove('grabbing');};
 
-/* ─────────── PUNTERO ─────────── */
-const pt=e=>{ const r=cov.getBoundingClientRect(); return { x:(e.clientX-r.left)*IW/r.width, y:(e.clientY-r.top)*IH/r.height }; };
-let cutId=0;
-cov.addEventListener('pointerdown',e=>{
-  try{ cov.setPointerCapture(e.pointerId); }catch(_){}
-  const m=pt(e); dragA=-1;
-  if(O.guides){ let b=26; A.forEach((a,i)=>{ const d=Math.hypot(a.x-m.x,a.y-m.y); if(d<b){ b=d; dragA=i; } }); if(dragA>=0) return; }
-  if(tool==='grab'){
-    const k0=nearestScreen(m,46); if(k0<0) return;
-    // agarra un puñado de papel: centro firme, borde suave (por topología de la malla)
-    const R=2.4*NX/44, set=[];
-    for(let k=0;k<NN;k++){ const d=Math.hypot(GI[k]-GI[k0],GJ[k]-GJ[k0]); if(d>R) continue;
-      const w=d<.75?1:Math.pow(1-(d-.75)/(R-.75),2); set.push({k,w,dx:X[k]-X[k0],dy:Y[k]-Y[k0]});
-      if(w>.3) unglue(k); if(w>=1) HARD[k]=1; }
-    grab={set,m,z:Z[k0],zt:70,t:[X[k0],Y[k0]]};
-    stage.classList.add('grabbing');
-  } else if(tool==='cut'){ prevCut=m; cutId++; trail.push({x:m.x,y:m.y,a:0,id:cutId}); }
-  else { const k=nearestScreen(m,30); if(k>=0){
-      if(CUS[k]&&PIN[k]){ CUS[k]=0; PIN[k]=0; }
-      else { CUS[k]=1; PIN[k]=1; unglue(k); } } }
-});
-cov.addEventListener('pointermove',e=>{
-  const m=pt(e);
-  if(dragA>=0){ A[dragA]={x:m.x,y:m.y}; upd(); return; }
-  if(grab){ grab.m=m; }
-  else if(prevCut&&tool==='cut'){ slice(prevCut,m); prevCut=m; trail.push({x:m.x,y:m.y,a:0,id:cutId}); }
-});
-function soltar(){ dragA=-1; prevCut=null;
-  if(grab){ grab.set.forEach(g=>{ HARD[g.k]=0; }); grab=null; }
-  stage.classList.remove('grabbing'); }
-cov.addEventListener('pointerup',soltar);
-cov.addEventListener('pointercancel',soltar);
-addEventListener('blur',soltar);
+/* ─── tamaño del lienzo en la ventana (mismo sistema que Yummy) ─── */
+const frameEl=$('frame'),viewportEl=$('viewport'),sidebarEl=$('sidebar'),winBarEl=document.querySelector('#viewport .win__bar');
+function fitStage(){
+  frameEl.style.width='';frameEl.style.height='';viewportEl.style.width='';
+  if(!window.matchMedia('(max-width: 768px)').matches){
+    const sb=$('stage').getBoundingClientRect(),pad=20,bw=2,gap=5,sw=sidebarEl.offsetWidth,cw=bw*2,ch=winBarEl.offsetHeight+bw*2;
+    const maxW=sb.width-8-pad*2-gap-sw-cw,maxH=sb.height-8-pad*2-ch;let h=maxH,w=h*IW/IH;if(w>maxW){w=maxW;h=w*IH/IW;}
+    w=Math.max(120,Math.floor(w));h=Math.max(160,Math.floor(h));
+    viewportEl.style.width=(w+cw)+'px';frameEl.style.width=(w+cw+gap+sw+pad*2)+'px';frameEl.style.height=(h+ch+pad*2)+'px';}
+  sc=(stage.clientWidth||IW)/IW;setSh();}
+addEventListener('resize',fitStage);
 
-/* ─────────── CONTROLES ─────────── */
-function relleno(el){ const v=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--val',v+'%'); }
-const SL={};
-function slider(id,fmt,fn){
-  const el=$(id), out=$(id+'Out');
-  const upd_=()=>{ relleno(el); if(out) out.textContent=fmt(+el.value); fn(+el.value); };
-  el.value=P[id]; el.addEventListener('input',upd_); relleno(el); if(out) out.textContent=fmt(+el.value);
-  SL[id]={el,upd:upd_}; return el;
-}
-const pct=v=>Math.round(v*100)+'%', x2=v=>v.toFixed(2)+'×', n1=v=>(+v).toFixed(1), n0=v=>String(Math.round(v));
-const set=k=>v=>{ P[k]=v; };
-slider('g',x2,set('g'));
-slider('curl',pct,set('curl'));
-slider('slack',v=>'+'+Math.round((v-1)*100)+'%',set('slack'));
-slider('wx',n1,set('wx'));
-slider('wz',n1,set('wz'));
-slider('gust',n1,set('gust'));
-slider('shadow',pct,v=>{ P.shadow=v; setSh(); });
-slider('blur',v=>v.toFixed(1)+'px',v=>{ P.blur=v; setSh(); });
-slider('shade',x2,set('shade'));
-slider('depth',x2,set('depth'));
-slider('fish',v=>v.toFixed(3),v=>{ P.fish=v; upd(); });
-slider('grid',n0,v=>{ P.grid=v; clearTimeout(slider._g); slider._g=setTimeout(()=>build(true),120); });
+/* ─── grabar (post IG 1080×1440, 60 fps) ─── */
+GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'wall',manual:false,ancho:1080,alto:1440,aspecto:1080/1440,
+  ventana:()=>$('viewport'),zonaCursor:()=>stage,dibujar(c,w,h){componer(c,w,h);}});
+GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'wall-pantalla',etiqueta:'● TODA LA VENTANA',info:'toda la ventana',fuente:'pestaña',manual:false});
 
-document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{
-  tool=b.dataset.t; document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
-  stage.classList.toggle('t-cut',tool==='cut'); stage.classList.toggle('t-pin',tool==='pin'); }));
-$('bReset').onclick=()=>build(true);
-$('bPause').onclick=e=>{ paused=!paused; e.currentTarget.setAttribute('aria-pressed',paused); e.currentTarget.textContent=paused?'Seguir':'Pausa'; };
-$('bTop').onclick=()=>hangTop();
-$('bDrop').onclick=()=>dropAll();
-const toggle=(id,k)=>{ const b=$(id); b.onclick=()=>{ O[k]=!O[k]; b.setAttribute('aria-pressed',O[k]); }; };
-toggle('bGuides','guides'); toggle('bMesh','mesh');
-
-const readImg=(f,cb)=>{ if(!f) return; const r=new FileReader(); r.onload=e=>{ const im=new Image(); im.onload=()=>cb(im); im.src=e.target.result; }; r.readAsDataURL(f); };
-$('fBg').onchange=e=>{ readImg(e.target.files[0],im=>{ bgImg=im; drawBg(); }); e.target.value=''; };
-// textura propia: se recorta a la forma y al lugar exactos del póster,
-// así la tela no cambia de tamaño ni de posición
-let posterImg=null, posterBox=null;
-function medirPoster(im){
-  const w=im.naturalWidth, h=im.naturalHeight, c=document.createElement('canvas'); c.width=w; c.height=h;
-  const x=c.getContext('2d'); x.drawImage(im,0,0); const d=x.getImageData(0,0,w,h).data;
-  let x0=w,y0=h,x1=0,y1=0; for(let y=0;y<h;y+=2) for(let i=0;i<w;i+=2) if(d[(y*w+i)*4+3]>128){ if(i<x0)x0=i; if(i>x1)x1=i; if(y<y0)y0=y; if(y>y1)y1=y; }
-  posterBox=[x0,y0,x1-x0+1,y1-y0+1];
-}
-function texturaUsuario(im){
-  // llena la tela entera, de ancla a ancla, sin deformarse (recorte tipo cover)
-  const tw=posterCrop?posterCrop.width:im.naturalWidth, th=posterCrop?posterCrop.height:im.naturalHeight;
-  const c=document.createElement('canvas'); c.width=tw; c.height=th; const x=c.getContext('2d');
-  const iw=im.naturalWidth||im.width, ih=im.naturalHeight||im.height, k=Math.max(tw/iw,th/ih);
-  x.drawImage(im,(tw-iw*k)/2,(th-ih*k)/2,iw*k,ih*k);
-  setTex(c); upd(); build(true);
-}
-$('fTex').onchange=e=>{ readImg(e.target.files[0],texturaUsuario); e.target.value=''; };
-$('bOrig').onclick=()=>cargarOriginal();
-
-/* ─────────── COMPONER (PNG y video) ─────────── */
-function componer(c,w,h){
-  c.drawImage(cbg,0,0,w,h);
-  if(P.shadow>0){ c.save(); c.globalAlpha=P.shadow; c.globalCompositeOperation='multiply';
-    if(P.blur>0) c.filter=`blur(${(P.blur*w/IW).toFixed(2)}px)`; c.drawImage(csh,0,0,w,h); c.restore(); }
-  c.drawImage(cgl,0,0,w,h);
-  c.drawImage(cfx,0,0,w,h);
-  if(O.guides||O.mesh) c.drawImage(cov,0,0,w,h);
-}
-$('bExp').onclick=()=>{ const c=document.createElement('canvas'); c.width=IW; c.height=IH; componer(c.getContext('2d'),IW,IH);
-  c.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='wall.png'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }); };
-
-/* ---------- GRABAR (post IG 1080×1440, 60 fps) ---------- */
-GlamRec.montar({
-  contenedor: $('recSlot'),
-  clase: 'cam-btn',
-  nombre: 'wall',
-  manual: false,
-  ancho: 1080, alto: 1440, aspecto: 1080/1440,
-  ventana: () => $('viewport'),
-  zonaCursor: () => stage,
-  dibujar(c,w,h){ componer(c,w,h); },
-});
-/* ---------- GRABAR TODA LA VENTANA (captura de la pestaña completa, 60 fps) ---------- */
-GlamRec.montar({
-  contenedor: $('recSlot'),
-  clase: 'cam-btn',
-  nombre: 'wall-pantalla',
-  etiqueta: '● TODA LA VENTANA',
-  info: 'toda la ventana',
-  fuente: 'pestaña',
-  manual: false,
-});
-
-/* ─────────── ARRANQUE ─────────── */
-const cargar=src=>new Promise((ok,ko)=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=ko; im.src=src; });
+/* ─── arranque: muro limpio + póster, anclas en las esquinas del póster ─── */
+const A_POSTER=[{x:193.7,y:221.4},{x:753.1,y:343.0},{x:884.9,y:1122.7},{x:327.3,y:1314.7}];
+const cargar=src=>new Promise((ok,ko)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=ko;im.src=src;});
 let listo=false;
-let posterCrop=null;
 async function cargarOriginal(){
   const [bgI,texI]=await Promise.all([cargar('/tools/wall-media/muro.webp'),cargar('/tools/wall-media/poster.webp')]);
-  bgImg=bgI; drawBg();
-  posterImg=texI; if(!posterBox) medirPoster(texI);
-  A=A0.map(p=>({x:p.x,y:p.y})); P.fish=DEF.fish; SL.fish.el.value=P.fish; SL.fish.upd();
-  setTex(texI); upd();
-  // la tela es exactamente el póster: las anclas caen en sus esquinas.
-  // Además va un poco más abajo y más corta que en la foto original.
-  const tw=texI.naturalWidth, th=texI.naturalHeight, [bx,by,bw,bh]=posterBox;
-  const L=x=>.07+.86*x, T=y=>.12+.84*y;
-  const u0=L(bx/tw), u1=L((bx+bw)/tw), v0=T(by/th), v1=T((by+bh)/th);
-  A=[[u0,v0],[u1,v0],[u1,v1],[u0,v1]].map(([u,v])=>{ const q=sp3(u*SW,v*SH,0); return {x:q[0],y:q[1]}; });
-  posterCrop=document.createElement('canvas'); posterCrop.width=bw; posterCrop.height=bh;
-  posterCrop.getContext('2d').drawImage(texI,bx,by,bw,bh,0,0,bw,bh);
-  setTex(posterCrop); upd(); build(true); listo=true;
-}
-let acc=0, last=performance.now();
-function loop(now){
-  let dt=(now-last)/1000; last=now; if(dt>.25) dt=.25;
-  if(listo){
-    if(!paused){ acc+=dt; let n=0; while(acc>=1/60 && n<4){ step(); acc-=1/60; n++; } if(n>=4) acc=0; }
-    render();
-  }
-  requestAnimationFrame(loop);
-}
-cargarOriginal().then(()=>{ fitStage(); });
-requestAnimationFrame(loop);
-fitStage();
-addEventListener('load',fitStage);
-window.__wall={P,O,step,render,slice,toSim,stats:()=>{let g=0,o=0;for(let k=0;k<NN;k++)g+=GLU[k];for(let e=0;e<NE;e++)o+=1-EON[e];return {NN,NE,glued:g,off:o};}};
+  bgImg=bgI;drawBg();A=A_POSTER.map(p=>({x:p.x,y:p.y}));setTex(texI);listo=true;}
+cargarOriginal().then(fitStage);
+(function loop(){if(listo){frame++;if(!paused)step();render();}requestAnimationFrame(loop);})();
+fitStage();addEventListener('load',fitStage);
+window.__wall={get A(){return A;},step,render};
 
 /* ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ─────────── */
     (function setupInfoPanel() {
