@@ -1327,7 +1327,11 @@ async function cargarOriginal(){
   const [bgI,texI]=await Promise.all([cargar('/tools/wall-media/muro.webp'),cargar('/tools/wall-media/poster.webp')]);
   bgImg=bgI; drawBg();
   A=A0.map(p=>({x:p.x,y:p.y})); P.fish=DEF.fish; SL.fish.el.value=P.fish; SL.fish.upd();
-  setTex(texI); upd(); build(true); listo=true;
+  setTex(texI); upd();
+  // póster un poco más abajo y más corto (misma proporción), sobre el mismo plano del muro
+  const x0=.07*SW, x1=.93*SW, y0=.12*SH, y1=.96*SH;
+  A=[[x0,y0],[x1,y0],[x1,y1],[x0,y1]].map(([x,y])=>{ const q=sp3(x,y,0); return {x:q[0],y:q[1]}; });
+  upd(); build(true); listo=true;
 }
 let acc=0, last=performance.now();
 function loop(now){
