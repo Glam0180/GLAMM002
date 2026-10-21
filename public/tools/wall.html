@@ -745,10 +745,6 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div class="cam-wrap" id="recSlot"></div>
             <div class="y-sec">papel</div>
             <div class="y-row">
-              <div class="y-lab"><span>Resistencia al rasgado</span><output id="tearOut"></output></div>
-              <input id="tear" type="range" min="1.25" max="4" step="0.05">
-            </div>
-            <div class="y-row">
               <div class="y-lab"><span>Gravedad</span><output id="gOut"></output></div>
               <input id="g" type="range" min="0" max="1.6" step="0.02">
             </div>
@@ -849,7 +845,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         <p class="ip__desc">un póster de papel pegado al muro, con física de tela.</p>
         <ol class="ip__steps">
           <li>arrancar: agarra el papel y jálalo; cuelga solo de arriba</li>
-          <li>tira fuerte y el papel se rasga</li>
+          <li>arrastrar nunca rompe la tela</li>
           <li>cortar: arrastra para rajarlo con cuchilla</li>
           <li>chinche: clava o quita un punto</li>
           <li>«cargar textura» pone tu imagen en la tela</li>
@@ -1057,13 +1053,13 @@ function step(){
     const a=EA[e], b=EB[e]; if(GLU[a]&&GLU[b]) continue;
     const dx=X[b]-X[a], dy=Y[b]-Y[a], dz=Z[b]-Z[a], s=Math.sqrt(dx*dx+dy*dy+dz*dz)/(ER[e]*slack);
     if(GLU[a]!==GLU[b]){
-      if(s>peel){ if(duro&&s>tear) EON[e]=0; else if(!ESH[e]) unglue(GLU[a]?a:b); }
-    } else if(s>tear) EON[e]=0;
+      if(s>peel&&!ESH[e]) unglue(GLU[a]?a:b);
+    }
   }
   strain();
 }
 // límite de estiramiento (que la tela no se vuelva chicle)
-function strain(){ const slack=P.slack*1.08;
+function strain(){ const slack=P.slack*1.02;
   for(let k=0;k<NN;k++) IM[k]=(PIN[k]|GLU[k]|HARD[k])?0:1;
   for(let p=0;p<4;p++) for(let e=0;e<NE;e++){ if(!EON[e]||ESH[e]) continue;
     const a=EA[e], b=EB[e], ma=IM[a], mb=IM[b], m=ma+mb; if(!m) continue;
@@ -1262,7 +1258,6 @@ function slider(id,fmt,fn){
 }
 const pct=v=>Math.round(v*100)+'%', x2=v=>v.toFixed(2)+'×', n1=v=>(+v).toFixed(1), n0=v=>String(Math.round(v));
 const set=k=>v=>{ P[k]=v; };
-slider('tear',x2,set('tear'));
 slider('g',x2,set('g'));
 slider('curl',pct,set('curl'));
 slider('slack',v=>'+'+Math.round((v-1)*100)+'%',set('slack'));
