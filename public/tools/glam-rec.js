@@ -227,6 +227,10 @@
   function montar(op) {
     var W = op.ancho || 1080, H = op.alto || 1350, ASP = op.aspecto || 0.8;
     var TAM = W + '×' + H;
+    // Bitrate proporcional al tamaño: 20 Mbps para 1080×1350 y más para
+    // videos más grandes (1080×1920 ≈ 28 Mbps), así no se pixela.
+    function br() { return Math.round(BITRATE * Math.max(1, (W * H) / (1080 * 1350))); }
+    var PRE = op.info || 'post IG';
     var ETQ = op.etiqueta || '● GRABAR';
     var esPantalla = op.fuente === 'pestaña';
     var captura = null;   // { stream, video } mientras se graba la pestaña
@@ -253,7 +257,7 @@
     dl.hidden = true;
     var info = document.createElement('div');
     info.className = 'g-rec__info';
-    info.textContent = esPantalla ? (op.info || 'pantalla') : 'post IG · ' + TAM;
+    info.textContent = esPantalla ? (op.info || 'pantalla') : PRE + ' · ' + TAM;
     fila.appendChild(btn);
     fila.appendChild(dl);
     caja.appendChild(fila);
@@ -321,8 +325,8 @@
       function probar() {
         if (i >= codecs.length) { listo = true; if (!formato) { btn.disabled = true; info.textContent = 'este navegador no permite grabar'; } return; }
         var c = codecs[i++];
-        VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: BITRATE, framerate: FPS })
-          .then(function (r) { if (r && r.supported) { webc = { codec: c }; listo = true; info.textContent = esPantalla ? (op.info || 'pantalla') + ' · 60 fps' : 'post IG · ' + TAM + ' · 60 fps'; } else probar(); })
+        VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: br(), framerate: FPS })
+          .then(function (r) { if (r && r.supported) { webc = { codec: c }; listo = true; info.textContent = esPantalla ? (op.info || 'pantalla') + ' · 60 fps' : PRE + ' · ' + TAM + ' · 60 fps'; } else probar(); })
           .catch(probar);
       }
       probar();
@@ -550,7 +554,9 @@
             output: function (chunk, meta) { mx.addVideoChunk(chunk, meta); },
             error: function (e) { fallo = true; console.warn('[glam-rec] codificador:', e && e.message); },
           });
-          var conf = { codec: webc.codec, width: W, height: H, bitrate: BITRATE, framerate: FPS };
+          var conf = { codec: webc.codec, width: W, height: H, bitrate: br(), framerate: FPS };
+          // calidad constante en vez de ahorrar bits en cuadros quietos
+          conf.bitrateMode = 'variable'; conf.latencyMode = 'quality';
           if (/^avc/.test(webc.codec)) conf.avc = { format: 'avc' };
           encoder.configure(conf);
           arrancarComun();
@@ -570,7 +576,7 @@
         pista = null;
       }
       try {
-        rec = new MediaRecorder(stream, { mimeType: formato.mime, videoBitsPerSecond: BITRATE });
+        rec = new MediaRecorder(stream, { mimeType: formato.mime, videoBitsPerSecond: br() });
       } catch (e) {
         info.textContent = 'no se pudo iniciar la grabación';
         return;
