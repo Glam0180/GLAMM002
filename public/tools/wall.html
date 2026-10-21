@@ -1003,7 +1003,7 @@ function hangFromCorners(){
 function hangTop(){
   for(let k=0;k<NN;k++){ freeNode(k); PIN[k]=0; CUS[k]=0; }
   const w=NX+1;
-  for(let i=0;i<=NX;i++) for(let j=0;j<=NY;j++){ const k=i+j*w; if(nA[k]>.5){ PIN[k]=1; break; } }
+  for(let i=0;i<=NX;i++) PIN[i]=1;   // fila superior: de P1 a P2
 }
 function dropAll(){ for(let k=0;k<NN;k++){ if(GLU[k]) freeNode(k); PIN[k]=0; CUS[k]=0; } }
 function unglue(k){ if(GLU[k]) freeNode(k); }
@@ -1293,11 +1293,11 @@ function medirPoster(im){
   posterBox=[x0,y0,x1-x0+1,y1-y0+1];
 }
 function texturaUsuario(im){
-  if(!posterImg){ setTex(im); upd(); build(true); return; }
-  const w=posterImg.naturalWidth, h=posterImg.naturalHeight, c=document.createElement('canvas'); c.width=w; c.height=h;
-  const x=c.getContext('2d'), [bx,by,bw,bh]=posterBox, iw=im.naturalWidth||im.width, ih=im.naturalHeight||im.height, k=Math.max(bw/iw,bh/ih);
-  x.drawImage(im,bx+(bw-iw*k)/2,by+(bh-ih*k)/2,iw*k,ih*k);
-  x.globalCompositeOperation='destination-in'; x.drawImage(posterImg,0,0);
+  // llena la tela entera, de ancla a ancla, sin deformarse (recorte tipo cover)
+  const tw=posterCrop?posterCrop.width:im.naturalWidth, th=posterCrop?posterCrop.height:im.naturalHeight;
+  const c=document.createElement('canvas'); c.width=tw; c.height=th; const x=c.getContext('2d');
+  const iw=im.naturalWidth||im.width, ih=im.naturalHeight||im.height, k=Math.max(tw/iw,th/ih);
+  x.drawImage(im,(tw-iw*k)/2,(th-ih*k)/2,iw*k,ih*k);
   setTex(c); upd(); build(true);
 }
 $('fTex').onchange=e=>{ readImg(e.target.files[0],texturaUsuario); e.target.value=''; };
@@ -1340,16 +1340,22 @@ GlamRec.montar({
 /* ─────────── ARRANQUE ─────────── */
 const cargar=src=>new Promise((ok,ko)=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=ko; im.src=src; });
 let listo=false;
+let posterCrop=null;
 async function cargarOriginal(){
   const [bgI,texI]=await Promise.all([cargar('/tools/wall-media/muro.webp'),cargar('/tools/wall-media/poster.webp')]);
   bgImg=bgI; drawBg();
   posterImg=texI; if(!posterBox) medirPoster(texI);
   A=A0.map(p=>({x:p.x,y:p.y})); P.fish=DEF.fish; SL.fish.el.value=P.fish; SL.fish.upd();
   setTex(texI); upd();
-  // póster un poco más abajo y más corto (misma proporción), sobre el mismo plano del muro
-  const x0=.07*SW, x1=.93*SW, y0=.12*SH, y1=.96*SH;
-  A=[[x0,y0],[x1,y0],[x1,y1],[x0,y1]].map(([x,y])=>{ const q=sp3(x,y,0); return {x:q[0],y:q[1]}; });
-  upd(); build(true); listo=true;
+  // la tela es exactamente el póster: las anclas caen en sus esquinas.
+  // Además va un poco más abajo y más corta que en la foto original.
+  const tw=texI.naturalWidth, th=texI.naturalHeight, [bx,by,bw,bh]=posterBox;
+  const L=x=>.07+.86*x, T=y=>.12+.84*y;
+  const u0=L(bx/tw), u1=L((bx+bw)/tw), v0=T(by/th), v1=T((by+bh)/th);
+  A=[[u0,v0],[u1,v0],[u1,v1],[u0,v1]].map(([u,v])=>{ const q=sp3(u*SW,v*SH,0); return {x:q[0],y:q[1]}; });
+  posterCrop=document.createElement('canvas'); posterCrop.width=bw; posterCrop.height=bh;
+  posterCrop.getContext('2d').drawImage(texI,bx,by,bw,bh,0,0,bw,bh);
+  setTex(posterCrop); upd(); build(true); listo=true;
 }
 let acc=0, last=performance.now();
 function loop(now){
