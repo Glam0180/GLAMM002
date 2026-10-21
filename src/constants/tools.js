@@ -12,6 +12,18 @@ export const TOOLS = [
     thumbnail: '/tool-thumbnails/we-dont-belong.webp',
   },
   {
+    id: 'wall',
+    slug: 'wall',
+    name: 'Wall',
+    description: 'Un póster de papel pegado al muro: arráncalo, rájalo y rásgalo con física de tela.',
+    category: 'interaction',
+    status: 'live',
+    tech: ['WebGL2', 'Verlet', 'Canvas API'],
+    path: '/tools/wall',
+    index: '010',
+    thumbnail: '/tool-thumbnails/wall.webp',
+  },
+  {
     id: 'yummy',
     slug: 'yummy',
     name: 'Yummy',

@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <script src="/tools/glam-invert.js"></script>
+  <script src="/tools/glam-rec.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
+  <title>STUDIO GLAM — WALL</title>
+  <style>
+/* Tema alterno (switch): fondo #00E9B4, ventanas #E64CDF, líneas y texto negros.
+   --g-red = color de acento (líneas, texto, barras); --g-black = superficie.
+   En las barras de título se vuelve a cruzar el par para que queden
+   magenta con texto negro. */
+:root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb))}
+:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red-dark:#CC0000}
+html.glam-alt{--g-red-rgb:0,0,0;--g-black-rgb:230,76,223;--g-red-dark:#3a3a3a}
+html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red-rgb:230,76,223;--g-black-rgb:0,0,0;--g-red-dark:#b93ab3}
+html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{background:#00E9B4}
+
+    /* Space Mono — mismo design system que CANICAS.3D */
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+    }
+
+    :root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar) {
+      --red: var(--g-red);
+      --red-dark: var(--g-red-dark);
+      --red-dim: rgba(var(--g-red-rgb), 0.55);
+      --red-faint: rgba(var(--g-red-rgb), 0.18);
+      --red-ghost: rgba(var(--g-red-rgb), 0.10);
+      --black: var(--g-black);
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--black);
+      font-family: 'Space Mono', monospace;
+      border: 1px solid var(--red);
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(var(--g-red-rgb), 0.55) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 128px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .2;
+      mix-blend-mode: overlay;
+    }
+
+    ::selection {
+      background: var(--black);
+      color: var(--red);
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--red); }
+    ::-webkit-scrollbar-thumb { background: var(--black); }
+
+    /* ───────── MASTER BAR ───────── */
+    #master-bar {
+      position: fixed;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      height: 28px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    #master-bar .slz {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+    }
+
+    #master-bar .dot5 {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .mhouse {
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #master-bar .mtitle {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--black);
+      text-transform: uppercase;
+    }
+
+    #master-bar .msep {
+      color: rgba(var(--g-black-rgb), .3);
+      font-size: 9px;
+    }
+
+    #master-bar .msub {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .55);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #master-bar .mright {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mctrl {
+      width: 20px;
+      height: 16px;
+      background: var(--black);
+      border: 1px solid rgba(var(--g-red-rgb), .25);
+      color: var(--red);
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mctrl:hover { background: var(--red-dark); }
+    .mctrl--close:hover { background: var(--red-dark); }
+
+    /* ───────── STAGE / FRAME ───────── */
+    #stage {
+      position: fixed;
+      top: 32px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    /* En fila, como canicas-3d: viewport a la izquierda y sidebar a la
+       derecha. El ancho/alto exactos los fija fitStage() para que el
+       canvas llene su ventana sin dejar franjas negras. */
+    #frame {
+      width: min(calc(100vw - 72px), 1180px);
+      height: min(calc(100vh - 72px), 900px);
+      background: var(--black);
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      gap: 5px;
+      position: relative;
+    }
+
+    /* Ventana del viewport: su ancho lo fija fitStage a partir del canvas,
+       asi que el canvas la llena de borde a borde. */
+    #viewport {
+      flex: none;
+      min-width: 0;
+    }
+
+    /* La barra de titulo lleva un border-bottom negro de 2px. Sobre el
+       panel negro del sidebar no se nota, pero aqui cae justo entre la
+       barra y la ilustracion y se lee como una linea negra separandolas.
+       Se quita solo en el viewport. */
+    #sidebar {
+      width: 210px;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: 0;
+    }
+    #sidebar > .win { flex: 1; min-height: 0; }
+
+    /* ───────── COMPONENTE VENTANA ───────── */
+    .win {
+      background: var(--black);
+      border: 2px solid var(--red);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .win__bar {
+      height: 22px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .win__bar .slz {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+    }
+
+    .win__bar-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .win__bar-title {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--black);
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win__bar-sub {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .win__bar-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .win__ctrl {
+      width: 16px;
+      height: 13px;
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 7px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .win__ctrl:hover {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    /* ───────── COMPOSICIÓN DAISY (canvas 1080×1350 + panel) ───────── */
+    .daisy-main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Zona donde vive el canvas 1080×1350 — se centra y se ajusta por JS
+       (fitStage) manteniendo siempre la proporción 4:5, sin deformarse. */
+    .daisy-canvas-wrap {
+      flex: 1;
+      display: block;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    /* La ilustracion va a ras de la ventana: pegada a la barra de titulo
+       arriba y al borde de .win por los otros tres lados. El unico trazo
+       visible es el de la propia ventana.
+       Ocupa el hueco ENTERO en vez de ser una caja de tamano fijo
+       centrada dentro de el: al centrarla, cualquier sobrante de
+       redondeo se repartia mitad arriba y mitad abajo y aparecia como un
+       hueco sobre la ilustracion. Quien mantiene la proporcion 4:5 es
+       fitStage, dimensionando la ventana; el canvas solo la rellena. */
+    .daisy-canvas {
+      position: relative;
+      background: var(--g-black);
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    .daisy-canvas video,
+    .daisy-canvas canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Orden de capas (de abajo hacia arriba):
+       1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
+       2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
+       3) #variasCanvas → varias flores con alfa, SIEMPRE visible
+       4) #stemCanvas   → el tallo, se dibuja y se arrastra
+       5) #unoCanvas    → la flor grande, anclada por su CENTRO a la
+                          punta del tallo, asi que se mueve con el.
+                          Tallo y flor van por ENCIMA del resto del arte
+       6) #handsCanvas  → esqueleto de las manos y medidor del pinch
+
+       UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
+       secuencia termina su ciclo parando en el frame 0, que es la imagen
+       estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
+    #bg1Canvas    { z-index: 1; }
+    #bg2Canvas    { z-index: 2; opacity: 0; }
+    #variasCanvas { z-index: 3; }
+    #stemCanvas   { z-index: 4; }
+    #unoCanvas    { z-index: 5; }
+    /* UI de las manos: va encima de todo y no intercepta el raton */
+    #handsCanvas  { z-index: 6; pointer-events: none; }
+
+    .daisy-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--black);
+      color: var(--red-dim);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 20px;
+      transition: opacity .4s ease;
+    }
+
+    /* ───────── PANEL DE CONTROL LATERAL ───────── */
+    /* Ya no es una columna dentro del viewport: ahora es el cuerpo de su
+       propia ventana en el sidebar, asi que ni ancho fijo ni borde
+       izquierdo separandola del canvas. */
+    .daisy-panel {
+      flex: 1;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .daisy-btn {
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 10px 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .daisy-btn:hover:not(:disabled) {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    .daisy-btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .daisy-status {
+      font-size: 9px;
+      line-height: 1.5;
+      letter-spacing: .03em;
+      color: var(--red-dim);
+    }
+
+    .daisy-meter-label {
+      font-size: 8px;
+      letter-spacing: .1em;
+      color: var(--red-dim);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .daisy-meter-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(var(--g-red-rgb), .12);
+      border: 1px solid var(--red-faint);
+    }
+
+    .daisy-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--red);
+      transition: width .08s linear;
+    }
+
+    /* ───────── CAMARA (control por manos) ───────── */
+    .cam-wrap { display: flex; flex-direction: column; gap: 7px; }
+    .cam-btn {
+      font-size: 8px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--red); background: var(--g-black); border: 1px solid var(--red);
+      padding: 5px 6px; cursor: pointer;
+    }
+    .cam-btn:hover, .cam-btn.on { background: var(--red); color: var(--g-black); }
+    .cam-box {
+      display: none; position: relative; width: 100%; aspect-ratio: 4 / 3;
+      border: 1px solid var(--red-faint); overflow: hidden; background: var(--g-black);
+    }
+    .cam-box video, .cam-box canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      /* espejo: mover la mano a la derecha lleva la flor a la derecha.
+         El overlay lleva el mismo espejo que el video, asi se dibuja con
+         las coordenadas del detector sin invertirlas a mano. */
+      transform: scaleX(-1); display: block;
+    }
+    .cam-ayuda {
+      font-size: 7px; line-height: 1.7; letter-spacing: .06em;
+      color: var(--red-dim); text-transform: uppercase;
+    }
+
+
+
+    /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
+    @media (max-width: 768px) {
+      html, body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      #stage {
+        position: relative;
+        top: 32px;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        height: auto;
+        min-height: calc(100vh - 32px);
+        padding: 10px;
+      }
+
+      #frame {
+        width: 100%;
+        height: auto;
+        min-height: calc(100vh - 52px);
+        padding: 10px;
+        flex-direction: column;
+      }
+
+      /* en mobile el viewport y el sidebar se apilan a ancho completo */
+      #viewport, #sidebar { width: 100% !important; flex: none; }
+
+      .daisy-main {
+        flex-direction: column;
+        overflow: visible;
+      }
+
+      .daisy-canvas-wrap {
+        flex: none;
+        padding: 0;
+      }
+
+      /* En desktop el alto sale de height:100% sobre un hueco que
+         fitStage ya dimensiono. Aqui fitStage no corre y el padre no
+         tiene alto propio en la pila vertical (colapsaba a 0), asi que
+         se fija por ancho y el aspect-ratio 4:5 deriva el alto. */
+      .daisy-canvas {
+        width: 100%;
+        height: auto;
+        /* proporcion del arte YA recortado (SRC_H - ART_CROP_TOP) */
+        aspect-ratio: 810 / 995;
+      }
+
+      .daisy-panel {
+        width: 100%;
+      }
+
+    }
+    /* ───────── INFO PANEL (arrastrable, minimizable, cerrable) ─────────
+       Vive fuera de #daisyCanvas: su área de arrastre está acotada a
+       .win pero SIN poder entrar nunca al rectángulo del canvas. */
+    .ip {
+      position: absolute;
+      top: 30px;
+      left: 10px;
+      width: min(240px, calc(100% - 16px));
+      background: var(--g-black);
+      border: 2px solid var(--red);
+      z-index: 40;
+      box-shadow: 0 6px 18px rgba(var(--g-black-rgb), .5);
+      user-select: none;
+    }
+
+    .ip__bar {
+      height: 20px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      cursor: grab;
+      touch-action: none;
+    }
+    .ip__bar:active { cursor: grabbing; }
+
+    .ip__slz { font-size: 8px; font-weight: 700; color: rgba(var(--g-black-rgb), .5); }
+    .ip__dot { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
+    .ip__title {
+      font-size: 9px; font-weight: 700; letter-spacing: .1em;
+      color: var(--black); text-transform: lowercase;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ip__ctrls { display: flex; gap: 4px; margin-left: auto; }
+    .ip__ctrl {
+      width: 15px; height: 13px; background: var(--black);
+      border: 1px solid rgba(var(--g-red-rgb), .4); color: var(--red);
+      font-size: 8px; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; cursor: pointer;
+    }
+    .ip__ctrl:hover { background: var(--red); color: var(--black); }
+
+    .ip__body { padding: 9px 11px 11px; max-height: 220px; overflow-y: auto; }
+    .ip__desc {
+      font-size: 9px; line-height: 1.5; letter-spacing: .04em;
+      color: var(--red); text-transform: lowercase; margin-bottom: 7px;
+    }
+    .ip__steps { list-style: none; counter-reset: ip-step; display: flex; flex-direction: column; gap: 5px; }
+    .ip__steps li {
+      counter-increment: ip-step; font-size: 8px; line-height: 1.5;
+      letter-spacing: .04em; color: var(--red-dim); text-transform: lowercase;
+      display: flex; gap: 6px;
+    }
+    .ip__steps li::before { content: counter(ip-step) "."; color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+    /* Burbuja unificada: tanto minimizar como cerrar colapsan aquí */
+    .ip-bubble {
+      position: absolute; width: 26px; height: 26px;
+      background: var(--g-black); border: 2px solid var(--red); color: var(--red);
+      font-size: 13px; font-weight: 700; cursor: pointer; z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(var(--g-black-rgb), .5);
+    }
+    .ip-bubble:hover { background: var(--red); color: var(--black); }
+
+    @media (max-width: 640px) {
+      .ip { width: min(72vw, 210px); }
+      .ip__body { max-height: 160px; }
+    }
+  </style>
+  <style>
+    /* ═════════ WALL ═════════ */
+    #wallStage {
+      position: relative;
+      overflow: hidden;
+      background: #6b3a24;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    #wallStage canvas {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      object-fit: fill;
+    }
+    /* sombra de la tela sobre el muro */
+    #csh { mix-blend-mode: multiply; pointer-events: none; }
+    #cgl, #cfx { pointer-events: none; }
+    /* manito pixel art: dedo apuntando; al agarrar, pinch */
+    #cov { cursor: url(/tools/cursor-point.png) 9 1, pointer; }
+    #wallStage.grabbing #cov { cursor: url(/tools/cursor-pinch.png) 9 5, pointer; }
+    #wallStage.t-cut #cov, #wallStage.t-pin #cov { cursor: crosshair; }
+
+    /* ── controles en las ventanas de propiedades ── */
+    #sidebar { width: 226px; }
+    .y-panel { gap: 10px; padding: 12px 12px 14px; }
+    .y-sec {
+      font-size: 8px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--red); display: flex; align-items: center; gap: 6px;
+    }
+    .y-sec::after { content: ''; flex: 1; height: 1px; background: var(--red-faint); }
+    .y-row { display: flex; flex-direction: column; gap: 5px; }
+    .y-lab {
+      font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--red-dim);
+      display: flex; justify-content: space-between; gap: 6px;
+    }
+    .y-lab output { color: var(--red); font-variant-numeric: tabular-nums; }
+    .y-panel input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 3px; margin: 3px 0; outline: none; cursor: pointer;
+      background: linear-gradient(to right, var(--red) var(--val, 50%), rgba(var(--g-red-rgb), .2) var(--val, 50%));
+    }
+    .y-panel input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 9px; height: 9px;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-thumb {
+      width: 9px; height: 9px; border-radius: 0;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-track { height: 3px; background: rgba(var(--g-red-rgb), .2); }
+    .y-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .y-btns.tres { grid-template-columns: 1fr 1fr 1fr; }
+    .y-btns .cam-btn { width: 100%; }
+    .y-btns .full { grid-column: 1 / -1; }
+    .cam-btn[aria-pressed="true"] { background: var(--red); color: var(--g-black); }
+    .y-hint { font-size: 7px; line-height: 1.7; letter-spacing: .06em; color: var(--red-dim); text-transform: uppercase; }
+
+    @media (max-width: 768px) {
+      /* el lienzo de WALL es 1080×1440 (3:4) */
+      .daisy-canvas { aspect-ratio: 1080 / 1440; }
+      #sidebar { flex-direction: column; }
+      #sidebar > .win { flex: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Barra madre fija superior -->
+  <div id="master-bar">
+    <span class="slz">///</span>
+    <div class="dot5"></div>
+    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button" aria-label="Volver al inicio" title="Volver al inicio">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+    <span class="mtitle">STUDIO GLAM</span>
+    <span class="msep">—</span>
+    <span class="msub">WALL</span>
+    <div class="mright">
+      <div class="mctrl">—</div>
+      <div class="mctrl">□</div>
+      <div class="mctrl mctrl--close" id="mclose" role="button" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</div>
+    </div>
+    <span class="slz">///</span>
+  </div>
+
+  <!-- Stage centrado -->
+  <div id="stage">
+    <div id="frame">
+      <div class="win" id="viewport">
+        <div class="win__bar">
+          <span class="slz">///</span>
+          <div class="win__bar-dot"></div>
+          <span class="win__bar-title">VIEWPORT.WALL</span>
+          <div class="win__bar-controls">
+            <div class="win__ctrl">—</div>
+            <div class="win__ctrl">□</div>
+            <div class="win__ctrl" id="wclose" role="button" aria-label="Cerrar" title="Cerrar">✕</div>
+          </div>
+        </div>
+
+        <div class="daisy-main">
+          <div class="daisy-canvas-wrap">
+            <!-- Lienzo 1080×1440: muro + sombra + tela (WebGL) + rasgados + guías -->
+            <div class="daisy-canvas" id="wallStage" aria-label="Lienzo 1080 por 1440 con un póster de papel pegado en un muro">
+              <canvas id="cbg"></canvas>
+              <canvas id="csh"></canvas>
+              <canvas id="cgl"></canvas>
+              <canvas id="cfx"></canvas>
+              <canvas id="cov"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar: ventanas de propiedades -->
+      <div id="sidebar">
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">PROPIEDADES</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">—</div>
+              <div class="win__ctrl">□</div>
+            </div>
+          </div>
+          <div class="daisy-panel y-panel">
+            <div class="y-sec">herramienta</div>
+            <div class="y-btns tres">
+              <button type="button" class="cam-btn" data-t="grab" aria-pressed="true">Arrancar</button>
+              <button type="button" class="cam-btn" data-t="cut" aria-pressed="false">Cortar</button>
+              <button type="button" class="cam-btn" data-t="pin" aria-pressed="false">Chinche</button>
+            </div>
+
+            <div class="y-sec">tela</div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="bReset">Reiniciar</button>
+              <button type="button" class="cam-btn" id="bPause" aria-pressed="false">Pausa</button>
+              <button type="button" class="cam-btn" id="bHang">Colgar</button>
+              <button type="button" class="cam-btn" id="bDrop">Soltar todo</button>
+            </div>
+
+            <div class="y-sec">grabar</div>
+            <div class="cam-wrap" id="recSlot"></div>
+            <div class="y-sec">papel</div>
+            <div class="y-row">
+              <div class="y-lab"><span>Pegamento</span><output id="glueOut"></output></div>
+              <input id="glue" type="range" min="0" max="1" step="0.01">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Resistencia al rasgado</span><output id="tearOut"></output></div>
+              <input id="tear" type="range" min="1.25" max="4" step="0.05">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Gravedad</span><output id="gOut"></output></div>
+              <input id="g" type="range" min="0" max="1.6" step="0.02">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Curvatura al despegar</span><output id="curlOut"></output></div>
+              <input id="curl" type="range" min="0" max="1" step="0.01">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Holgura</span><output id="slackOut"></output></div>
+              <input id="slack" type="range" min="1" max="1.2" step="0.005">
+            </div>
+
+            <div class="y-sec">viento</div>
+            <div class="y-row">
+              <div class="y-lab"><span>Lateral</span><output id="wxOut"></output></div>
+              <input id="wx" type="range" min="-3" max="3" step="0.1">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Hacia afuera</span><output id="wzOut"></output></div>
+              <input id="wz" type="range" min="-3" max="3" step="0.1">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Ráfagas</span><output id="gustOut"></output></div>
+              <input id="gust" type="range" min="0" max="4" step="0.1">
+            </div>
+
+          </div>
+        </div>
+
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">ESCENA</span>
+            <div class="win__bar-controls">
+              <div class="win__ctrl">—</div>
+              <div class="win__ctrl">□</div>
+            </div>
+          </div>
+          <div class="daisy-panel y-panel">
+            <div class="y-sec">imágenes</div>
+            <div class="y-btns">
+              <label class="cam-btn" for="fBg" style="text-align:center">Fondo…</label>
+              <label class="cam-btn" for="fTex" style="text-align:center">Tela…</label>
+              <input id="fBg" type="file" accept="image/*" hidden>
+              <input id="fTex" type="file" accept="image/*" hidden>
+              <button type="button" class="cam-btn full" id="bOrig">Muro original</button>
+            </div>
+
+            <div class="y-sec">luz y perspectiva</div>
+            <div class="y-row">
+              <div class="y-lab"><span>Sombra</span><output id="shadowOut"></output></div>
+              <input id="shadow" type="range" min="0" max="1" step="0.01">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Desenfoque sombra</span><output id="blurOut"></output></div>
+              <input id="blur" type="range" min="0" max="30" step="0.5">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Pliegues</span><output id="shadeOut"></output></div>
+              <input id="shade" type="range" min="0" max="1.5" step="0.05">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Profundidad</span><output id="depthOut"></output></div>
+              <input id="depth" type="range" min="0" max="3" step="0.05">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Ojo de pez</span><output id="fishOut"></output></div>
+              <input id="fish" type="range" min="0" max="0.5" step="0.005">
+            </div>
+            <div class="y-row">
+              <div class="y-lab"><span>Detalle de la malla</span><output id="gridOut"></output></div>
+              <input id="grid" type="range" min="20" max="64" step="2">
+            </div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="bGuides" aria-pressed="false">Anclas</button>
+              <button type="button" class="cam-btn" id="bMesh" aria-pressed="false">Malla</button>
+              <button type="button" class="cam-btn full" id="bExp">Exportar PNG</button>
+            </div>
+            <div class="y-hint">con «anclas» activo arrastra P1 · P2 · D3 · D4 para encajar la tela en otra foto</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel de instrucciones flotante, fuera de la ventana. -->
+    <div class="ip" id="infoPanel">
+      <div class="ip__bar" id="infoPanelBar">
+        <span class="ip__slz">///</span>
+        <span class="ip__dot"></span>
+        <span class="ip__title">cómo usar — wall</span>
+        <div class="ip__ctrls">
+          <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
+          <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
+        </div>
+      </div>
+      <div class="ip__body" id="infoBody">
+        <p class="ip__desc">un póster de papel pegado al muro, con física de tela.</p>
+        <ol class="ip__steps">
+          <li>arrancar: agarra el papel y tira para despegarlo</li>
+          <li>tira fuerte y el papel se rasga</li>
+          <li>cortar: arrastra para rajarlo con cuchilla</li>
+          <li>chinche: clava o quita un punto</li>
+          <li>carga tu propio fondo o tu propia tela</li>
+        </ol>
+      </div>
+    </div>
+    <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
+  </div>
+
+  <script>
+(function(){
+'use strict';
+const $ = (id) => document.getElementById(id);
+const IW=1080, IH=1440;            // lienzo 1080×1440
+const stage=$('wallStage');
+
+// Casita y cerrar: vuelven siempre al inicio del sitio.
+function goHome(){ try{ if(window.top&&window.top!==window) window.top.location.href='/'; else window.location.href='/'; }catch(e){ window.location.href='/'; } }
+$('mhouse').addEventListener('click',goHome);
+$('mclose').addEventListener('click',goHome);
+$('wclose').addEventListener('click',goHome);
+
+/* ─────────── TAMAÑO DEL LIENZO (1080×1440, mismo sistema que Yummy) ─────────── */
+const frameEl=$('frame'), viewportEl=$('viewport'), sidebarEl=$('sidebar');
+const winBarEl=document.querySelector('#viewport .win__bar');
+let sc=1;   // px de pantalla por px de lienzo
+function fitStage(){
+  frameEl.style.width=''; frameEl.style.height=''; viewportEl.style.width='';
+  if(!window.matchMedia('(max-width: 768px)').matches){
+    const stageBox=$('stage').getBoundingClientRect();
+    const framePad=20, winBorder=2, gap=5, sidebarW=sidebarEl.offsetWidth;
+    const chromeW=winBorder*2, chromeH=winBarEl.offsetHeight+winBorder*2;
+    const maxW=stageBox.width-8-framePad*2-gap-sidebarW-chromeW;
+    const maxH=stageBox.height-8-framePad*2-chromeH;
+    const ratio=IW/IH;
+    let h=maxH, w=h*ratio; if(w>maxW){ w=maxW; h=w/ratio; }
+    w=Math.max(120,Math.floor(w)); h=Math.max(160,Math.floor(h));
+    viewportEl.style.width=(w+chromeW)+'px';
+    frameEl.style.width=(w+chromeW+gap+sidebarW+framePad*2)+'px';
+    frameEl.style.height=(h+chromeH+framePad*2)+'px';
+  }
+  sc=(stage.clientWidth||IW)/IW;
+  setSh();
+}
+addEventListener('resize',fitStage);
+
+/* ─────────── PARÁMETROS ─────────── */
+const DEF={ g:.5, d:.985, sub:8, grid:44, wx:0, wz:0, gust:0, slack:1, depth:.9, shade:.9,
+            fish:.3, shadow:.55, blur:5, glue:.35, tear:2.1, curl:.35 };
+const P=Object.assign({},DEF);
+const O={ shear:true, guides:false, mesh:false };
+// Anclas que encajan la tela con el póster de la foto original (ojo de pez 0,3)
+const A0=[{x:177.5,y:137.6},{x:769.6,y:256.8},{x:929.1,y:1133.9},{x:279.0,y:1378.9}]; // TL,TR,BR,BL
+let A=A0.map(p=>({x:p.x,y:p.y}));
+let SW=972, SH=1350;               // tela en reposo (espacio plano)
+let tool='grab', paused=false, frame=0;
+
+const cbg=$('cbg'), csh=$('csh'), cgl=$('cgl'), cfx=$('cfx'), cov=$('cov');
+[cbg,csh,cgl,cfx,cov].forEach(c=>{ c.width=IW; c.height=IH; });
+const xbg=cbg.getContext('2d'), xsh=csh.getContext('2d'), xfx=cfx.getContext('2d'), xov=cov.getContext('2d');
+
+/* ─────────── HOMOGRAFÍA + OJO DE PEZ ─────────── */
+let H=null, Hi=null, BX=[0,0,1], JX=[1,0], JY=[0,1], FS=1, cen=[0,0];
+function homog(s,d){ const M=[]; for(let i=0;i<4;i++){ const {x,y}=s[i],{x:u,y:v}=d[i];
+    M.push([x,y,1,0,0,0,-u*x,-u*y,u],[0,0,0,x,y,1,-v*x,-v*y,v]); }
+  for(let c=0;c<8;c++){ let m=c; for(let r=c+1;r<8;r++) if(Math.abs(M[r][c])>Math.abs(M[m][c])) m=r; [M[c],M[m]]=[M[m],M[c]];
+    for(let r=0;r<8;r++){ if(r===c) continue; const f=M[r][c]/M[c][c]; for(let k=c;k<9;k++) M[r][k]-=f*M[c][k]; } }
+  return M.map((r,i)=>r[8]/r[i]); }
+const proj=(h,x,y)=>{ const w=h[6]*x+h[7]*y+1; return [(h[0]*x+h[1]*y+h[2])/w,(h[3]*x+h[4]*y+h[5])/w]; };
+const R2=(IW*IW+IH*IH)/4;
+// radio distorsionado en función del radio limpio (barril + cola lineal); es monótona
+function rmap(r){ const k=P.fish, lim=R2/(3*k+1e-4); if(r*r<=lim) return r*(1-k*r*r/R2);
+  const rl=Math.sqrt(lim); return rl*(1-k*lim/R2)+(r-rl)*.35; }
+function dist(x,y){ const dx=x-IW/2, dy=y-IH/2, r=Math.hypot(dx,dy); if(r<1e-9) return [x,y]; const s=rmap(r)/r; return [IW/2+dx*s, IH/2+dy*s]; }
+// inversa por bisección (estable aunque el ojo de pez sea fuerte)
+function undist(x,y){ const dx=x-IW/2, dy=y-IH/2, d=Math.hypot(dx,dy); if(d<1e-9) return {x,y};
+  let lo=0, hi=d*4+10; while(rmap(hi)<d) hi*=2;
+  for(let i=0;i<40;i++){ const m=(lo+hi)/2; if(rmap(m)<d) lo=m; else hi=m; }
+  const s=(lo+hi)/2/d; return {x:IW/2+dx*s, y:IH/2+dy*s}; }
+function sp3(x,y,z){ const qx=Math.min(Math.max(x,BX[0]),BX[2]), qy=Math.min(Math.max(y,BX[1]),SH), ex=x-qx, ey=y-qy,
+    p=proj(H,qx,qy), f=Math.max(.3,Math.min(3,1+z*P.depth/1200));
+  return dist(cen[0]+(p[0]-cen[0])*f+ex*JX[0]+(ey>0?0:ey*JY[0]), cen[1]+(p[1]-cen[1])*f+ex*JX[1]+(ey>0?ey*FS:ey*JY[1])); }
+// punto de pantalla → plano de la tela, a la altura z
+function toSim(m,z){ const u=undist(m.x,m.y), f=Math.max(.3,Math.min(3,1+(z||0)*P.depth/1200));
+  return proj(Hi, cen[0]+(u.x-cen[0])/f, cen[1]+(u.y-cen[1])/f); }
+function outline(){ const pts=[], C=[[0,0],[SW,0],[SW,SH],[0,SH]];
+  for(let s=0;s<4;s++){ const a=C[s], b=C[(s+1)%4]; for(let i=0;i<24;i++){ const t=i/24, q=proj(H,a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t); pts.push(dist(q[0],q[1])); } }
+  return pts; }
+function upd(){
+  const R=[{x:0,y:0},{x:SW,y:0},{x:SW,y:SH},{x:0,y:SH}], Au=A.map(p=>undist(p.x,p.y));
+  H=homog(R,Au); Hi=homog(Au,R);
+  let f=.6; const ok=f=>[[-f*SW,-f*SH],[(1+f)*SW,-f*SH],[(1+f)*SW,SH],[-f*SW,SH]].every(q=>H[6]*q[0]+H[7]*q[1]+1>.25);
+  while(f>0&&!ok(f)) f-=.05; f=Math.max(f,0); BX=[-f*SW,-f*SH,(1+f)*SW];
+  JX=[(Au[1].x-Au[0].x+Au[2].x-Au[3].x)/2/SW,(Au[1].y-Au[0].y+Au[2].y-Au[3].y)/2/SW];
+  JY=[(Au[3].x-Au[0].x+Au[2].x-Au[1].x)/2/SH,(Au[3].y-Au[0].y+Au[2].y-Au[1].y)/2/SH];
+  FS=(Math.hypot(A[3].x-A[0].x,A[3].y-A[0].y)+Math.hypot(A[2].x-A[1].x,A[2].y-A[1].y))/2/SH;
+  cen=[Au.reduce((s,p)=>s+p.x,0)/4, Au.reduce((s,p)=>s+p.y,0)/4];
+}
+
+/* ─────────── ALFA DE LA TELA (para saber dónde hay papel) ─────────── */
+const AMW=120, AMH=160; let alphaMap=null;
+function buildAlpha(src){
+  const c=document.createElement('canvas'); c.width=AMW; c.height=AMH; const x=c.getContext('2d');
+  x.drawImage(src,0,0,AMW,AMH); const d=x.getImageData(0,0,AMW,AMH).data;
+  alphaMap=new Float32Array(AMW*AMH); for(let i=0;i<alphaMap.length;i++) alphaMap[i]=d[i*4+3]/255;
+}
+function alphaAt(u,v){ if(!alphaMap) return 1; const x=Math.min(AMW-1,Math.max(0,u*AMW|0)), y=Math.min(AMH-1,Math.max(0,v*AMH|0)); return alphaMap[x+y*AMW]; }
+
+/* ─────────── TELA VERLET ───────────
+   Cada nodo puede estar: pegado (GLU) al muro en su lugar de reposo,
+   clavado (PIN, chinche) o libre. Al tirar, los nodos pegados se despegan
+   cuando el borde que los une a la parte libre se estira más que el
+   pegamento; si se estira más que la resistencia, el papel se rasga.
+   Todo en arreglos tipados para que vaya fluido. */
+let NX=0, NY=0, NN=0, NE=0;
+let X,Y,Z,PX,PY,PZ,UU,VV,GI,GJ,PIN,CUS,GLU,HARD,IM,nA;
+let EA,EB,ER,EON,ESH, eR,eD,eG;
+let vb, ib, vis1, vis2, scr=[];
+let grab=null, prevCut=null, trail=[], dragA=-1;
+function build(glued=true){
+  NX=P.grid|0; NY=Math.max(2,Math.round(NX*SH/SW));
+  const w=NX+1, sx=SW/NX, sy=SH/NY; NN=w*(NY+1);
+  X=new Float32Array(NN); Y=new Float32Array(NN); Z=new Float32Array(NN);
+  PX=new Float32Array(NN); PY=new Float32Array(NN); PZ=new Float32Array(NN);
+  UU=new Float32Array(NN); VV=new Float32Array(NN); GI=new Int16Array(NN); GJ=new Int16Array(NN);
+  PIN=new Uint8Array(NN); CUS=new Uint8Array(NN); GLU=new Uint8Array(NN); HARD=new Uint8Array(NN); IM=new Float32Array(NN); nA=new Float32Array(NN);
+  grab=null;
+  for(let j=0;j<=NY;j++) for(let i=0;i<=NX;i++){ const k=i+j*w;
+    X[k]=PX[k]=i*sx; Y[k]=PY[k]=j*sy; Z[k]=PZ[k]=glued?0:(Math.random()-.5)*6*(j>0);
+    UU[k]=i/NX; VV[k]=j/NY; GI[k]=i; GJ[k]=j; GLU[k]=glued?1:0; nA[k]=alphaAt(UU[k],VV[k]); }
+  const cap=2*NN+2*NX*NY; EA=new Int32Array(cap); EB=new Int32Array(cap); ER=new Float32Array(cap); EON=new Uint8Array(cap); ESH=new Uint8Array(cap);
+  eR=new Int32Array(NN).fill(-1); eD=new Int32Array(NN).fill(-1); eG=new Int32Array(NX*NY);
+  NE=0;
+  const add=(a,b,sh)=>{ EA[NE]=a; EB[NE]=b; ER[NE]=Math.hypot(X[a]-X[b],Y[a]-Y[b]); EON[NE]=1; ESH[NE]=sh; return NE++; };
+  for(let j=0;j<=NY;j++) for(let i=0;i<=NX;i++){ const k=i+j*w; if(i<NX) eR[k]=add(k,k+1,0); if(j<NY) eD[k]=add(k,k+w,0); }
+  // diagonales: b–cc (la que parte cada celda en dos triángulos) y a–d
+  for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){ const k=i+j*w; eG[i+j*NX]=add(k+1,k+w,1); add(k,k+w+1,1); }
+  vb=new Float32Array(NN*6); for(let k=0;k<NN;k++){ vb[k*6+3]=UU[k]; vb[k*6+4]=VV[k]; }
+  ib=new Uint32Array(NX*NY*6); vis1=new Uint8Array(NX*NY); vis2=new Uint8Array(NX*NY);
+  scr=new Array(NN); for(let k=0;k<NN;k++) scr[k]=[0,0];
+  gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER,vbuf); gl.bufferData(gl.ARRAY_BUFFER,vb.byteLength,gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,ib.byteLength,gl.DYNAMIC_DRAW);
+  if(!glued) hangFromCorners();
+}
+// nodo con papel más cercano a una esquina (u,v) de la tela
+function cornerNode(cu,cv){ let best=-1, bd=1e9;
+  for(let k=0;k<NN;k++){ if(nA[k]<.6) continue; const d=Math.hypot((UU[k]-cu)*SW,(VV[k]-cv)*SH); if(d<bd){ bd=d; best=k; } }
+  return best; }
+function freeNode(k){ GLU[k]=0; PX[k]=X[k]; PY[k]=Y[k]; PZ[k]=Z[k]; }
+function hangFromCorners(){
+  for(let k=0;k<NN;k++){ freeNode(k); PIN[k]=0; CUS[k]=0; }
+  [cornerNode(0,0),cornerNode(1,0)].forEach(k=>{ if(k>=0){ PIN[k]=1; CUS[k]=1; } });
+}
+function dropAll(){ for(let k=0;k<NN;k++){ if(GLU[k]) freeNode(k); PIN[k]=0; CUS[k]=0; } }
+function unglue(k){ if(GLU[k]) freeNode(k); }
+
+function step(){
+  frame++;
+  const wd=P.wx+P.gust*Math.sin(frame*.04)*Math.cos(frame*.013);
+  // agarre: los nodos del centro van directo al cursor; los de alrededor, como resorte
+  if(grab){
+    grab.z+=(grab.zt-grab.z)*.12;
+    const t=toSim(grab.m,grab.z);
+    if(isFinite(t[0]+t[1])) grab.t=[Math.min(Math.max(t[0],BX[0]),BX[2]), Math.min(Math.max(t[1],BX[1]),2.2*SH)];
+    for(const g of grab.set){ if(g.w<1) continue; const k=g.k, tx=grab.t[0]+g.dx, ty=grab.t[1]+g.dy;
+      let dx=tx-X[k], dy=ty-Y[k]; const d=Math.hypot(dx,dy), q=d>40?40/d:1;
+      PX[k]=X[k]; PY[k]=Y[k]; PZ[k]=Z[k]; X[k]+=dx*q; Y[k]+=dy*q; Z[k]+=(grab.z-Z[k])*.3; }
+  }
+  for(let k=0;k<NN;k++) IM[k]=(PIN[k]|GLU[k]|HARD[k])?0:1;
+  const d=P.d, g=P.g, cz=P.curl*.09; let bad=false;
+  for(let k=0;k<NN;k++){ if(!IM[k]) continue;
+    let vx=(X[k]-PX[k])*d, vy=(Y[k]-PY[k])*d, vz=(Z[k]-PZ[k])*d; const sv=vx*vx+vy*vy+vz*vz; if(sv>8100){ const q=90/Math.sqrt(sv); vx*=q; vy*=q; vz*=q; }
+    PX[k]=X[k]; PY[k]=Y[k]; PZ[k]=Z[k];
+    const wz=(P.wz+P.gust*Math.sin(frame*.05+VV[k]*3+UU[k]*2))*.12*(.3+VV[k]);
+    X[k]+=vx+wd*.1; Y[k]+=vy+g;
+    // el papel despegado se curva hacia afuera del muro
+    let z=Z[k]+vz+wz+cz-Z[k]*.004; Z[k]=z<-500?-500:z>500?500:z;
+    if(!(Math.abs(X[k]+Y[k]+Z[k])<1e7)) bad=true;
+  }
+  if(bad){ build(true); return; }
+  if(grab) for(const g of grab.set){ if(g.w>=1) continue; const k=g.k; if(!IM[k]) continue;
+    const q=g.w*.35; X[k]+=(grab.t[0]+g.dx-X[k])*q; Y[k]+=(grab.t[1]+g.dy-Y[k])*q; Z[k]+=(grab.z*g.w-Z[k])*q; }
+  const slack=P.slack, shear=O.shear;
+  for(let s=0;s<P.sub;s++){
+    for(let e=0;e<NE;e++){ if(!EON[e]||(ESH[e]&&!shear)) continue;
+      const a=EA[e], b=EB[e], ma=IM[a], mb=IM[b], m=ma+mb; if(!m) continue;
+      const dx=X[b]-X[a], dy=Y[b]-Y[a], dz=Z[b]-Z[a], dd=Math.sqrt(dx*dx+dy*dy+dz*dz); if(dd<1e-3) continue;
+      const f=(ER[e]*slack-dd)/dd/m;
+      if(ma){ X[a]-=dx*f; Y[a]-=dy*f; Z[a]-=dz*f; }
+      if(mb){ X[b]+=dx*f; Y[b]+=dy*f; Z[b]+=dz*f; }
+    }
+  }
+  // muro: el papel no puede atravesarlo
+  for(let k=0;k<NN;k++) if(Z[k]<0) Z[k]=0;
+  // despegar o rasgar según cuánto se estiró cada borde.
+  // Si un lado está pegado, primero cede el pegamento (salvo pegamento casi total).
+  const peel=1.012+P.glue*.32, tear=P.tear, duro=P.glue>.85;
+  for(let e=0;e<NE;e++){ if(!EON[e]) continue;
+    const a=EA[e], b=EB[e]; if(GLU[a]&&GLU[b]) continue;
+    const dx=X[b]-X[a], dy=Y[b]-Y[a], dz=Z[b]-Z[a], s=Math.sqrt(dx*dx+dy*dy+dz*dz)/(ER[e]*slack);
+    if(GLU[a]!==GLU[b]){
+      if(s>peel){ if(duro&&s>tear) EON[e]=0; else if(!ESH[e]) unglue(GLU[a]?a:b); }
+    } else if(s>tear) EON[e]=0;
+  }
+  strain();
+}
+// límite de estiramiento (que la tela no se vuelva chicle)
+function strain(){ const slack=P.slack*1.08;
+  for(let k=0;k<NN;k++) IM[k]=(PIN[k]|GLU[k]|HARD[k])?0:1;
+  for(let p=0;p<4;p++) for(let e=0;e<NE;e++){ if(!EON[e]||ESH[e]) continue;
+    const a=EA[e], b=EB[e], ma=IM[a], mb=IM[b], m=ma+mb; if(!m) continue;
+    const dx=X[b]-X[a], dy=Y[b]-Y[a], dz=Z[b]-Z[a], dd=Math.sqrt(dx*dx+dy*dy+dz*dz), mx=ER[e]*slack; if(dd<=mx||dd<1e-3) continue;
+    const f=(mx-dd)/dd/m;
+    if(ma){ X[a]-=dx*f; Y[a]-=dy*f; Z[a]-=dz*f; }
+    if(mb){ X[b]+=dx*f; Y[b]+=dy*f; Z[b]+=dz*f; } } }
+
+/* corte con cuchilla, en pantalla: sirve aunque el papel esté doblado */
+function segX(p1,p2,a,b){ const d1x=p2.x-p1.x, d1y=p2.y-p1.y, d2x=b[0]-a[0], d2y=b[1]-a[1], den=d1x*d2y-d1y*d2x;
+  if(Math.abs(den)<1e-6) return false; const ox=a[0]-p1.x, oy=a[1]-p1.y, t=(ox*d2y-oy*d2x)/den, u=(ox*d1y-oy*d1x)/den;
+  return t>=0&&t<=1&&u>=0&&u<=1; }
+function slice(p1,p2){
+  const len=Math.hypot(p2.x-p1.x,p2.y-p1.y); if(len<.5) return;
+  const nx=-(p2.y-p1.y)/len, ny=(p2.x-p1.x)/len;     // normal del corte en pantalla
+  const minx=Math.min(p1.x,p2.x)-60, maxx=Math.max(p1.x,p2.x)+60, miny=Math.min(p1.y,p2.y)-60, maxy=Math.max(p1.y,p2.y)+60;
+  const tocados=new Set();
+  for(let e=0;e<NE;e++){ if(!EON[e]) continue; const a=scr[EA[e]], b=scr[EB[e]];
+    if(a[0]<minx&&b[0]<minx||a[0]>maxx&&b[0]>maxx||a[1]<miny&&b[1]<miny||a[1]>maxy&&b[1]>maxy) continue;
+    if(segX(p1,p2,a,b)){ EON[e]=0; tocados.add(EA[e]); tocados.add(EB[e]); } }
+  // la hoja levanta y separa un poco los bordes del corte
+  tocados.forEach(k=>{ if(PIN[k]) return;
+    if(GLU[k] && Math.random()>P.glue*.8) unglue(k);
+    if(GLU[k]) return;
+    const s=Math.sign((scr[k][0]-p1.x)*nx+(scr[k][1]-p1.y)*ny)||1;
+    const q=toSim({x:scr[k][0]+nx*s*3, y:scr[k][1]+ny*s*3}, Z[k]), o=toSim({x:scr[k][0],y:scr[k][1]}, Z[k]);
+    if(isFinite(q[0]+q[1]+o[0]+o[1])){ X[k]+=(q[0]-o[0]); Y[k]+=(q[1]-o[1]); }
+    Z[k]+=4+Math.random()*6; });
+}
+function nodeVisible(k){ const i=GI[k], j=GJ[k];
+  for(let c=0;c<4;c++){ const ci=i-(c&1), cj=j-(c>>1); if(ci<0||cj<0||ci>=NX||cj>=NY) continue; const q=ci+cj*NX; if(vis1[q]||vis2[q]) return true; }
+  return false; }
+// el nodo con papel más cercano en pantalla; ante empate, el que está más afuera del muro
+function nearestScreen(m,maxD){
+  let best=-1, bd=maxD*maxD;
+  for(let k=0;k<NN;k++){ if(nA[k]<.35) continue; const dx=scr[k][0]-m.x, dy=scr[k][1]-m.y, d=dx*dx+dy*dy-Z[k]*2;
+    if(d<bd && nodeVisible(k)){ bd=d; best=k; } }
+  return best; }
+
+/* ─────────── WEBGL ─────────── */
+const gl=cgl.getContext('webgl2',{premultipliedAlpha:true,preserveDrawingBuffer:true,antialias:true,depth:true});
+if(!gl){ xbg.fillStyle='#000'; xbg.fillRect(0,0,IW,IH); xbg.fillStyle='#fff'; xbg.font='28px monospace'; xbg.fillText('Este navegador no soporta WebGL2',60,100); throw new Error('sin WebGL2'); }
+const mk=(t,s)=>{ const o=gl.createShader(t); gl.shaderSource(o,s); gl.compileShader(o); if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(o)); return o; };
+const pr=gl.createProgram();
+gl.attachShader(pr,mk(gl.VERTEX_SHADER,`#version 300 es
+layout(location=0) in vec3 aP;layout(location=1) in vec2 aUV;layout(location=2) in float aS;
+uniform vec3 r0,r1,r2;uniform vec2 res,cn;uniform float kz,kd,fs,uSh;uniform vec4 bx;uniform vec2 jx,jy;out vec2 vUV;out float vS;
+void main(){vec2 qc=clamp(aP.xy,bx.xy,bx.zw);vec2 e=aP.xy-qc;vec3 p=vec3(qc,1.);float X=dot(r0,p),Y=dot(r1,p),W=dot(r2,p);
+vec2 s=cn+(vec2(X,Y)/W-cn)*clamp(1.+aP.z*kz,.3,3.);s+=e.x*jx+max(e.y,0.)*vec2(0.,fs)+min(e.y,0.)*jy;
+vec2 c0=res*.5;vec2 dd=s-c0;float rr=dot(res,res)*.25,r2=dot(dd,dd),lim=rr/(3.*kd+1e-4);
+if(r2<=lim){s=c0+dd*(1.-kd*r2/rr);}else{float r=sqrt(r2),rl=sqrt(lim);s=c0+dd/r*(rl*(1.-kd*lim/rr)+(r-rl)*.35);}
+s+=uSh*vec2(.55,.83)*(2.+max(aP.z,0.)*.8);
+vec2 n=vec2(s.x/res.x*2.-1.,1.-s.y/res.y*2.);float dz=-clamp(aP.z,0.,600.)/700.;
+gl_Position=vec4(n*W,dz*W*(1.-uSh),W);vUV=aUV;vS=aS;}`));
+gl.attachShader(pr,mk(gl.FRAGMENT_SHADER,`#version 300 es
+precision highp float;in vec2 vUV;in float vS;uniform sampler2D T;uniform float uSh,uFlip;uniform vec3 uBack;out vec4 o;
+void main(){vec4 c=texture(T,vUV);if(c.a<.02)discard;
+if(uSh>.5){o=vec4(vec3(.11,.06,.035)*c.a,c.a);return;}
+bool front=(gl_FrontFacing==(uFlip>.5));
+vec3 col=front?c.rgb:uBack*(.9+.1*dot(c.rgb,vec3(.333)));
+o=vec4(col*vS*c.a,c.a);}`));
+gl.linkProgram(pr); gl.useProgram(pr);
+const U={}; ['r0','r1','r2','res','cn','kz','kd','fs','bx','jx','jy','uSh','uFlip','uBack','T'].forEach(k=>U[k]=gl.getUniformLocation(pr,k));
+const vao=gl.createVertexArray(), vbuf=gl.createBuffer(), ibuf=gl.createBuffer();
+gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER,vbuf);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,24,0);
+gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,2,gl.FLOAT,false,24,12);
+gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2,1,gl.FLOAT,false,24,20);
+gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+let tex=null, back=[.80,.66,.50];
+function setTex(src){
+  tex=tex||gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src); gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  const an=gl.getExtension('EXT_texture_filter_anisotropic'); if(an) gl.texParameterf(gl.TEXTURE_2D,an.TEXTURE_MAX_ANISOTROPY_EXT,8);
+  buildAlpha(src);
+  // color del reverso: el tono medio del papel, más claro y sin tinta
+  try{ const c=document.createElement('canvas'); c.width=c.height=8; const x=c.getContext('2d'); x.drawImage(src,0,0,8,8);
+    const d=x.getImageData(0,0,8,8).data; let r=0,g=0,b=0,n=0; for(let i=0;i<d.length;i+=4){ if(d[i+3]<200) continue; r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; }
+    if(n){ const m=v=>Math.min(1,v/n/255*1.05+.04); back=[m(r),m(g),m(b)]; } }catch(e){}
+  SW=SH*(src.naturalWidth||src.width)/(src.naturalHeight||src.height);
+}
+
+/* ─────────── RENDER ─────────── */
+let FLIP=0;
+function render(){
+  const w=NX+1; let c=0; const shade=P.shade*.9;
+  // normales → sombreado de pliegues
+  for(let k=0;k<NN;k++){ const i=GI[k], j=GJ[k];
+    const l=i>0?k-1:k, r=i<NX?k+1:k, u=j>0?k-w:k, d=j<NY?k+w:k;
+    const ax=X[r]-X[l], ay=Y[r]-Y[l], az=Z[r]-Z[l], bx=X[d]-X[u], by=Y[d]-Y[u], bz=Z[d]-Z[u];
+    const nx=ay*bz-az*by, ny=az*bx-ax*bz, nz=ax*by-ay*bx, m=Math.hypot(nx,ny,nz)||1;
+    const dt=Math.abs((nx*-.4+ny*-.5+nz*.77)/m);
+    vb[k*6]=X[k]; vb[k*6+1]=Y[k]; vb[k*6+2]=Z[k]; vb[k*6+5]=Math.max(.3,1+(dt-.77)*shade);
+    const s=sp3(X[k],Y[k],Z[k]); scr[k][0]=s[0]; scr[k][1]=s[1];
+  }
+  for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){ const a=i+j*w, b=a+1, cc=a+w, d=cc+1, cell=i+j*NX, dg=EON[eG[cell]];
+    const t1=dg&&EON[eR[a]]&&EON[eD[a]], t2=dg&&EON[eD[b]]&&EON[eR[cc]];
+    vis1[cell]=t1?1:0; vis2[cell]=t2?1:0;
+    if(t1){ ib[c++]=a; ib[c++]=b; ib[c++]=cc; }
+    if(t2){ ib[c++]=b; ib[c++]=d; ib[c++]=cc; } }
+  gl.viewport(0,0,IW,IH); gl.useProgram(pr); gl.bindVertexArray(vao);
+  gl.bindBuffer(gl.ARRAY_BUFFER,vbuf); gl.bufferSubData(gl.ARRAY_BUFFER,0,vb);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf); gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER,0,ib.subarray(0,c));
+  gl.uniform3f(U.r0,H[0],H[1],H[2]); gl.uniform3f(U.r1,H[3],H[4],H[5]); gl.uniform3f(U.r2,H[6],H[7],1);
+  gl.uniform2f(U.res,IW,IH); gl.uniform2f(U.cn,cen[0],cen[1]); gl.uniform1f(U.kz,P.depth/1200); gl.uniform1f(U.kd,P.fish); gl.uniform1f(U.fs,FS);
+  gl.uniform4f(U.bx,BX[0],BX[1],BX[2],SH); gl.uniform2f(U.jx,JX[0],JX[1]); gl.uniform2f(U.jy,JY[0],JY[1]);
+  gl.uniform1f(U.uFlip,FLIP); gl.uniform3f(U.uBack,back[0],back[1],back[2]);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,tex); gl.uniform1i(U.T,0);
+  // 1) sombra sobre el muro → lienzo 2D (con multiply + desenfoque por CSS)
+  gl.disable(gl.DEPTH_TEST); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+  if(P.shadow>0){ gl.uniform1f(U.uSh,1); gl.drawElements(gl.TRIANGLES,c,gl.UNSIGNED_INT,0); }
+  xsh.clearRect(0,0,IW,IH); if(P.shadow>0) xsh.drawImage(cgl,0,0);
+  // 2) la tela, con profundidad para que los pliegues se tapen bien
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.uniform1f(U.uSh,0); gl.drawElements(gl.TRIANGLES,c,gl.UNSIGNED_INT,0);
+  drawFx(); drawOv();
+}
+
+/* bordes rasgados: fibra clara del papel donde la tela se abrió */
+function hash(a,b){ let h=(a*374761393+b*668265263)|0; h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967295; }
+const segs=[];
+function drawFx(){
+  const x=xfx; x.clearRect(0,0,IW,IH);
+  const w=NX+1; segs.length=0;
+  const pushE=(p,q)=>{ if(alphaAt((UU[p]+UU[q])/2,(VV[p]+VV[q])/2)<.5) return; segs.push(p,q); };
+  for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){ const cell=i+j*NX, a=i+j*w, b=a+1, cc=a+w;
+    if(vis1[cell]!==vis2[cell]) pushE(b,cc);
+    if(j>0 && vis1[cell]!==vis2[cell-NX]) pushE(a,b);
+    if(i>0 && vis1[cell]!==vis2[cell-1]) pushE(a,cc); }
+  if(segs.length){
+    x.lineCap='round'; x.lineJoin='round';
+    for(let pass=0;pass<2;pass++){
+      x.strokeStyle=pass?'rgba(250,244,232,.95)':'rgba(60,38,20,.38)'; x.lineWidth=pass?2.2:4;
+      x.beginPath();
+      for(let s=0;s<segs.length;s+=2){ const p=segs[s], q=segs[s+1], A_=scr[p], B_=scr[q];
+        const mx=(A_[0]+B_[0])/2, my=(A_[1]+B_[1])/2, jx=(hash(p,q)-.5)*3.4, jy=(hash(q,p)-.5)*3.4;
+        x.moveTo(A_[0],A_[1]); x.lineTo(mx+jx,my+jy); x.lineTo(B_[0],B_[1]); }
+      x.stroke();
+    }
+  }
+  // chinches
+  for(let k=0;k<NN;k++){ if(!CUS[k]||!PIN[k]) continue; const p=scr[k];
+    x.fillStyle='rgba(0,0,0,.35)'; x.beginPath(); x.arc(p[0]+3,p[1]+4,7,0,7); x.fill();
+    const g=x.createRadialGradient(p[0]-2,p[1]-2,1,p[0],p[1],7); g.addColorStop(0,'#ff8a80'); g.addColorStop(1,'#c4120a');
+    x.fillStyle=g; x.beginPath(); x.arc(p[0],p[1],6.5,0,7); x.fill(); }
+  // estela de la cuchilla
+  trail=trail.filter(t=>++t.a<20);
+  if(trail.length>1){ x.strokeStyle='#fff'; x.lineWidth=1.5;
+    for(let i=1;i<trail.length;i++){ const p=trail[i-1], t=trail[i]; if(t.id!==p.id) continue; x.globalAlpha=1-t.a/20; x.beginPath(); x.moveTo(p.x,p.y); x.lineTo(t.x,t.y); x.stroke(); }
+    x.globalAlpha=1; }
+}
+function drawOv(){
+  const c=xov; c.clearRect(0,0,IW,IH);
+  if(O.mesh){ c.strokeStyle='rgba(255,255,255,.35)'; c.lineWidth=1; c.beginPath();
+    for(let e=0;e<NE;e++){ if(!EON[e]||ESH[e]) continue; const a=scr[EA[e]], b=scr[EB[e]]; c.moveTo(a[0],a[1]); c.lineTo(b[0],b[1]); } c.stroke(); }
+  if(!O.guides) return;
+  c.setLineDash([7,5]); c.strokeStyle='rgba(255,1,0,.9)'; c.lineWidth=1.5; c.beginPath();
+  outline().forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1])); c.closePath(); c.stroke(); c.setLineDash([]);
+  c.font='700 12px "Space Mono", monospace';
+  A.forEach((p,i)=>{ const top=i<2; c.fillStyle=top?'#ff0100':'#000'; c.strokeStyle='#fff'; c.lineWidth=1.5; c.beginPath();
+    if(top) c.arc(p.x,p.y,9,0,7); else { const r=11; c.moveTo(p.x,p.y-r); c.lineTo(p.x+r,p.y); c.lineTo(p.x,p.y+r); c.lineTo(p.x-r,p.y); c.closePath(); }
+    c.fill(); c.stroke(); c.fillStyle='#fff'; c.fillText((top?'P':'D')+(i+1),p.x+14,p.y-12); });
+}
+function setSh(){ csh.style.filter=`blur(${(P.blur*sc).toFixed(2)}px)`; csh.style.opacity=P.shadow; }
+
+/* ─────────── FONDO ─────────── */
+let bgImg=null;
+function drawBg(){ xbg.clearRect(0,0,IW,IH); if(!bgImg) return;
+  const iw=bgImg.naturalWidth||bgImg.width, ih=bgImg.naturalHeight||bgImg.height, s=Math.max(IW/iw,IH/ih);
+  const w=iw*s, h=ih*s; xbg.drawImage(bgImg,(IW-w)/2,(IH-h)/2,w,h); }
+
+/* ─────────── PUNTERO ─────────── */
+const pt=e=>{ const r=cov.getBoundingClientRect(); return { x:(e.clientX-r.left)*IW/r.width, y:(e.clientY-r.top)*IH/r.height }; };
+let cutId=0;
+cov.addEventListener('pointerdown',e=>{
+  try{ cov.setPointerCapture(e.pointerId); }catch(_){}
+  const m=pt(e); dragA=-1;
+  if(O.guides){ let b=26; A.forEach((a,i)=>{ const d=Math.hypot(a.x-m.x,a.y-m.y); if(d<b){ b=d; dragA=i; } }); if(dragA>=0) return; }
+  if(tool==='grab'){
+    const k0=nearestScreen(m,46); if(k0<0) return;
+    // agarra un puñado de papel: centro firme, borde suave (por topología de la malla)
+    const R=2.4*NX/44, set=[];
+    for(let k=0;k<NN;k++){ const d=Math.hypot(GI[k]-GI[k0],GJ[k]-GJ[k0]); if(d>R) continue;
+      const w=d<.75?1:Math.pow(1-(d-.75)/(R-.75),2); set.push({k,w,dx:X[k]-X[k0],dy:Y[k]-Y[k0]});
+      if(w>.3) unglue(k); if(w>=1) HARD[k]=1; }
+    grab={set,m,z:Z[k0],zt:70,t:[X[k0],Y[k0]]};
+    stage.classList.add('grabbing');
+  } else if(tool==='cut'){ prevCut=m; cutId++; trail.push({x:m.x,y:m.y,a:0,id:cutId}); }
+  else { const k=nearestScreen(m,30); if(k>=0){
+      if(CUS[k]&&PIN[k]){ CUS[k]=0; PIN[k]=0; }
+      else { CUS[k]=1; PIN[k]=1; unglue(k); } } }
+});
+cov.addEventListener('pointermove',e=>{
+  const m=pt(e);
+  if(dragA>=0){ A[dragA]={x:m.x,y:m.y}; upd(); return; }
+  if(grab){ grab.m=m; }
+  else if(prevCut&&tool==='cut'){ slice(prevCut,m); prevCut=m; trail.push({x:m.x,y:m.y,a:0,id:cutId}); }
+});
+function soltar(){ dragA=-1; prevCut=null;
+  if(grab){ grab.set.forEach(g=>{ HARD[g.k]=0; }); grab=null; }
+  stage.classList.remove('grabbing'); }
+cov.addEventListener('pointerup',soltar);
+cov.addEventListener('pointercancel',soltar);
+addEventListener('blur',soltar);
+
+/* ─────────── CONTROLES ─────────── */
+function relleno(el){ const v=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--val',v+'%'); }
+const SL={};
+function slider(id,fmt,fn){
+  const el=$(id), out=$(id+'Out');
+  const upd_=()=>{ relleno(el); if(out) out.textContent=fmt(+el.value); fn(+el.value); };
+  el.value=P[id]; el.addEventListener('input',upd_); relleno(el); if(out) out.textContent=fmt(+el.value);
+  SL[id]={el,upd:upd_}; return el;
+}
+const pct=v=>Math.round(v*100)+'%', x2=v=>v.toFixed(2)+'×', n1=v=>(+v).toFixed(1), n0=v=>String(Math.round(v));
+const set=k=>v=>{ P[k]=v; };
+slider('glue',pct,set('glue'));
+slider('tear',x2,set('tear'));
+slider('g',x2,set('g'));
+slider('curl',pct,set('curl'));
+slider('slack',v=>'+'+Math.round((v-1)*100)+'%',set('slack'));
+slider('wx',n1,set('wx'));
+slider('wz',n1,set('wz'));
+slider('gust',n1,set('gust'));
+slider('shadow',pct,v=>{ P.shadow=v; setSh(); });
+slider('blur',v=>v.toFixed(1)+'px',v=>{ P.blur=v; setSh(); });
+slider('shade',x2,set('shade'));
+slider('depth',x2,set('depth'));
+slider('fish',v=>v.toFixed(3),v=>{ P.fish=v; upd(); });
+slider('grid',n0,v=>{ P.grid=v; clearTimeout(slider._g); slider._g=setTimeout(()=>build(true),120); });
+
+document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{
+  tool=b.dataset.t; document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
+  stage.classList.toggle('t-cut',tool==='cut'); stage.classList.toggle('t-pin',tool==='pin'); }));
+$('bReset').onclick=()=>build(true);
+$('bPause').onclick=e=>{ paused=!paused; e.currentTarget.setAttribute('aria-pressed',paused); e.currentTarget.textContent=paused?'Seguir':'Pausa'; };
+$('bHang').onclick=()=>hangFromCorners();
+$('bDrop').onclick=()=>dropAll();
+const toggle=(id,k)=>{ const b=$(id); b.onclick=()=>{ O[k]=!O[k]; b.setAttribute('aria-pressed',O[k]); }; };
+toggle('bGuides','guides'); toggle('bMesh','mesh');
+
+const readImg=(f,cb)=>{ if(!f) return; const r=new FileReader(); r.onload=e=>{ const im=new Image(); im.onload=()=>cb(im); im.src=e.target.result; }; r.readAsDataURL(f); };
+$('fBg').onchange=e=>{ readImg(e.target.files[0],im=>{ bgImg=im; drawBg(); }); e.target.value=''; };
+$('fTex').onchange=e=>{ readImg(e.target.files[0],im=>{ setTex(im); upd(); build(true); }); e.target.value=''; };
+$('bOrig').onclick=()=>cargarOriginal();
+
+/* ─────────── COMPONER (PNG y video) ─────────── */
+function componer(c,w,h){
+  c.drawImage(cbg,0,0,w,h);
+  if(P.shadow>0){ c.save(); c.globalAlpha=P.shadow; c.globalCompositeOperation='multiply';
+    if(P.blur>0) c.filter=`blur(${(P.blur*w/IW).toFixed(2)}px)`; c.drawImage(csh,0,0,w,h); c.restore(); }
+  c.drawImage(cgl,0,0,w,h);
+  c.drawImage(cfx,0,0,w,h);
+  if(O.guides||O.mesh) c.drawImage(cov,0,0,w,h);
+}
+$('bExp').onclick=()=>{ const c=document.createElement('canvas'); c.width=IW; c.height=IH; componer(c.getContext('2d'),IW,IH);
+  c.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='wall.png'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }); };
+
+/* ---------- GRABAR (post IG 1080×1440, 60 fps) ---------- */
+GlamRec.montar({
+  contenedor: $('recSlot'),
+  clase: 'cam-btn',
+  nombre: 'wall',
+  manual: false,
+  ancho: 1080, alto: 1440, aspecto: 1080/1440,
+  ventana: () => $('viewport'),
+  zonaCursor: () => stage,
+  dibujar(c,w,h){ componer(c,w,h); },
+});
+/* ---------- GRABAR TODA LA VENTANA (captura de la pestaña completa, 60 fps) ---------- */
+GlamRec.montar({
+  contenedor: $('recSlot'),
+  clase: 'cam-btn',
+  nombre: 'wall-pantalla',
+  etiqueta: '● TODA LA VENTANA',
+  info: 'toda la ventana',
+  fuente: 'pestaña',
+  manual: false,
+});
+
+/* ─────────── ARRANQUE ─────────── */
+const cargar=src=>new Promise((ok,ko)=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=ko; im.src=src; });
+let listo=false;
+async function cargarOriginal(){
+  const [bgI,texI]=await Promise.all([cargar('/tools/wall-media/muro.webp'),cargar('/tools/wall-media/poster.webp')]);
+  bgImg=bgI; drawBg();
+  A=A0.map(p=>({x:p.x,y:p.y})); P.fish=DEF.fish; SL.fish.el.value=P.fish; SL.fish.upd();
+  setTex(texI); upd(); build(true); listo=true;
+}
+let acc=0, last=performance.now();
+function loop(now){
+  let dt=(now-last)/1000; last=now; if(dt>.25) dt=.25;
+  if(listo){
+    if(!paused){ acc+=dt; let n=0; while(acc>=1/60 && n<4){ step(); acc-=1/60; n++; } if(n>=4) acc=0; }
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+cargarOriginal().then(()=>{ fitStage(); });
+requestAnimationFrame(loop);
+fitStage();
+addEventListener('load',fitStage);
+window.__wall={P,O,step,render,slice,toSim,stats:()=>{let g=0,o=0;for(let k=0;k<NN;k++)g+=GLU[k];for(let e=0;e<NE;e++)o+=1-EON[e];return {NN,NE,glued:g,off:o};}};
+
+/* ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ─────────── */
+    (function setupInfoPanel() {
+      const panel = $('infoPanel');
+      const bar = $('infoPanelBar');
+      const minBtn = $('infoMin');
+      const closeBtn = $('infoClose');
+      const bubble = $('infoBubble');
+      const bounds = $('stage');
+      const exclusionEl = $('frame');
+
+      function defaultPos() {
+        const b = bounds.getBoundingClientRect();
+        const c = exclusionEl.getBoundingClientRect();
+        const ex = { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height };
+        const pw = panel.offsetWidth, ph = panel.offsetHeight;
+        const roomRight = b.width - (ex.x + ex.w);
+        const roomBelow = b.height - (ex.y + ex.h);
+        if (roomRight >= pw + 14) return { x: ex.x + ex.w + 8, y: ex.y + 8 };
+        if (roomBelow >= ph + 14) return { x: 8, y: ex.y + ex.h + 8 };
+        return { x: 8, y: 8 };
+      }
+      function placeAt(pos) { panel.style.left = pos.x + 'px'; panel.style.top = pos.y + 'px'; }
+      function placeBubbleAt(pos) { bubble.style.left = pos.x + 'px'; bubble.style.top = pos.y + 'px'; }
+
+      let userMoved = false;
+      function resetToDefault() { if (!userMoved) placeAt(defaultPos()); }
+
+      let dragging = false, offsetX = 0, offsetY = 0;
+      function getPoint(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
+      function onDown(e) {
+        if (e.target === minBtn || e.target === closeBtn) return;
+        const p = getPoint(e);
+        const rect = panel.getBoundingClientRect();
+        dragging = true;
+        userMoved = true;
+        offsetX = p.clientX - rect.left;
+        offsetY = p.clientY - rect.top;
+      }
+      function onMove(e) {
+        if (!dragging) return;
+        const p = getPoint(e);
+        const b = bounds.getBoundingClientRect();
+        placeAt({ x: p.clientX - b.left - offsetX, y: p.clientY - b.top - offsetY });
+        if (e.cancelable) e.preventDefault();
+      }
+      function onUp() { dragging = false; }
+
+      bar.addEventListener('mousedown', onDown);
+      bar.addEventListener('touchstart', onDown, { passive: true });
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchend', onUp);
+
+      function collapseToBubble() {
+        const rect = panel.getBoundingClientRect();
+        const b = bounds.getBoundingClientRect();
+        placeBubbleAt({ x: rect.left - b.left, y: rect.top - b.top });
+        panel.style.display = 'none';
+        bubble.style.display = 'flex';
+      }
+      minBtn.addEventListener('click', collapseToBubble);
+      closeBtn.addEventListener('click', collapseToBubble);
+      bubble.addEventListener('click', () => {
+        const bRect = bubble.getBoundingClientRect();
+        const bnd = bounds.getBoundingClientRect();
+        placeAt({ x: bRect.left - bnd.left, y: bRect.top - bnd.top });
+        bubble.style.display = 'none';
+        panel.style.display = '';
+      });
+
+      window.addEventListener('resize', resetToDefault);
+      requestAnimationFrame(() => requestAnimationFrame(resetToDefault));
+      // En el celular el panel taparía el lienzo: arranca como burbuja "?".
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          placeBubbleAt({ x: 8, y: 8 });
+          panel.style.display = 'none';
+          bubble.style.display = 'flex';
+        }));
+      }
+    })();
+
+})();
+  </script>
+
+</body>
+
+</html>
