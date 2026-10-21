@@ -1283,7 +1283,24 @@ toggle('bGuides','guides'); toggle('bMesh','mesh');
 
 const readImg=(f,cb)=>{ if(!f) return; const r=new FileReader(); r.onload=e=>{ const im=new Image(); im.onload=()=>cb(im); im.src=e.target.result; }; r.readAsDataURL(f); };
 $('fBg').onchange=e=>{ readImg(e.target.files[0],im=>{ bgImg=im; drawBg(); }); e.target.value=''; };
-$('fTex').onchange=e=>{ readImg(e.target.files[0],im=>{ setTex(im); upd(); build(true); }); e.target.value=''; };
+// textura propia: se recorta a la forma y al lugar exactos del póster,
+// así la tela no cambia de tamaño ni de posición
+let posterImg=null, posterBox=null;
+function medirPoster(im){
+  const w=im.naturalWidth, h=im.naturalHeight, c=document.createElement('canvas'); c.width=w; c.height=h;
+  const x=c.getContext('2d'); x.drawImage(im,0,0); const d=x.getImageData(0,0,w,h).data;
+  let x0=w,y0=h,x1=0,y1=0; for(let y=0;y<h;y+=2) for(let i=0;i<w;i+=2) if(d[(y*w+i)*4+3]>128){ if(i<x0)x0=i; if(i>x1)x1=i; if(y<y0)y0=y; if(y>y1)y1=y; }
+  posterBox=[x0,y0,x1-x0+1,y1-y0+1];
+}
+function texturaUsuario(im){
+  if(!posterImg){ setTex(im); upd(); build(true); return; }
+  const w=posterImg.naturalWidth, h=posterImg.naturalHeight, c=document.createElement('canvas'); c.width=w; c.height=h;
+  const x=c.getContext('2d'), [bx,by,bw,bh]=posterBox, iw=im.naturalWidth||im.width, ih=im.naturalHeight||im.height, k=Math.max(bw/iw,bh/ih);
+  x.drawImage(im,bx+(bw-iw*k)/2,by+(bh-ih*k)/2,iw*k,ih*k);
+  x.globalCompositeOperation='destination-in'; x.drawImage(posterImg,0,0);
+  setTex(c); upd(); build(true);
+}
+$('fTex').onchange=e=>{ readImg(e.target.files[0],texturaUsuario); e.target.value=''; };
 $('bOrig').onclick=()=>cargarOriginal();
 
 /* ─────────── COMPONER (PNG y video) ─────────── */
@@ -1326,6 +1343,7 @@ let listo=false;
 async function cargarOriginal(){
   const [bgI,texI]=await Promise.all([cargar('/tools/wall-media/muro.webp'),cargar('/tools/wall-media/poster.webp')]);
   bgImg=bgI; drawBg();
+  posterImg=texI; if(!posterBox) medirPoster(texI);
   A=A0.map(p=>({x:p.x,y:p.y})); P.fish=DEF.fish; SL.fish.el.value=P.fish; SL.fish.upd();
   setTex(texI); upd();
   // póster un poco más abajo y más corto (misma proporción), sobre el mismo plano del muro
