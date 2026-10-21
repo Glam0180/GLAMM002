@@ -812,7 +812,7 @@ function goHome(){ try{ if(window.top&&window.top!==window) window.top.location.
 $('mhouse').addEventListener('click',goHome); $('mclose').addEventListener('click',goHome); $('wclose').addEventListener('click',goHome);
 
 /* ═══ Motor de «tela · anclas en perspectiva» (Verlet + homografía), en lienzo 1080×1440 ═══ */
-const P={g:.55,d:.985,sub:9,grid:35,wx:-.2,wz:-.2,gust:0,slack:1,depth:.9,shade:.95,fish:.3,shadow:.8,blur:0};
+const P={g:.55,d:.985,sub:9,grid:35,wx:-.2,wz:-.2,gust:0,slack:1,depth:.9,shade:.95,fish:.25,shadow:.8,blur:0};
 const O={pinEdge:true,pinBottom:false,shear:true,guides:false,mesh:false};
 const IW=1080,IH=1440; let sc=1,tool='grab',paused=false,frame=0,SW=1080,SH=1350;
 let A=[{x:322,y:212},{x:1022,y:358},{x:1222,y:1378},{x:330,y:1608}]; // TL,TR,BR,BL
@@ -1018,11 +1018,15 @@ GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'wall',manual:fal
 GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'wall-pantalla',etiqueta:'● TODA LA VENTANA',info:'toda la ventana',fuente:'pestaña',manual:false});
 
 /* ─── arranque: muro limpio + póster, anclas en las esquinas del póster ─── */
-const A_POSTER=[{x:193.7,y:221.4},{x:753.1,y:343.0},{x:884.9,y:1122.7},{x:327.3,y:1314.7}];
+// anclas por defecto del archivo original, llevadas al lienzo 1080×1440
+const A_POSTER=[{x:260.2,y:173.5},{x:832.9,y:292.9},{x:996.5,y:1127.5},{x:266.7,y:1315.6}];
+function defaultTex(){const c=document.createElement('canvas');c.width=1080;c.height=1350;const x=c.getContext('2d');
+  for(let j=0;j<10;j++)for(let i=0;i<8;i++){x.fillStyle=(i+j)%2?'#fff':'#ff4d00';x.fillRect(i*135,j*135,135,135);}
+  x.fillStyle='#111';x.font='bold 300px sans-serif';x.textAlign='center';x.fillText('TELA',540,740);return c;}
 const cargar=src=>new Promise((ok,ko)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=ko;im.src=src;});
 let listo=false;
 async function cargarOriginal(){
-  const [bgI,texI]=await Promise.all([cargar('/tools/wall-media/muro.webp'),cargar('/tools/wall-media/poster.webp')]);
+  const bgI=await cargar('/tools/wall-media/muro.webp'), texI=defaultTex();
   bgImg=bgI;drawBg();A=A_POSTER.map(p=>({x:p.x,y:p.y}));setTex(texI);listo=true;}
 cargarOriginal().then(fitStage);
 (function loop(){if(listo){frame++;if(!paused)step();render();}requestAnimationFrame(loop);})();
