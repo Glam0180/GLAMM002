@@ -270,6 +270,11 @@ function draw() {
   const camZ = 1 / lerp(1 / camZ0, 1 / (camZ0 * ORTHO_ZOOM), onion);
   perspective(2 * Math.atan((height / 2) / camZ), width / height, camZ / 20, camZ * 20);
   camera(0, 0, camZ, 0, 0, 0, 0, 1, 0);
+  // interacción: el mouse inclina toda la escena (suavizado)
+  mouseTilt.x += (mouseTilt.tx - mouseTilt.x) * 0.06;
+  mouseTilt.y += (mouseTilt.ty - mouseTilt.y) * 0.06;
+  rotateX(mouseTilt.x);
+  rotateY(mouseTilt.y);
 
   if (nest >= 0.5) {
 
