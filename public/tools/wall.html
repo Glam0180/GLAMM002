@@ -736,17 +736,14 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div class="y-btns">
               <button type="button" class="cam-btn" id="bReset">Reiniciar</button>
               <button type="button" class="cam-btn" id="bPause" aria-pressed="false">Pausa</button>
-              <button type="button" class="cam-btn" id="bHang">Colgar</button>
+              <button type="button" class="cam-btn" id="bTop">Sujetar arriba</button>
               <button type="button" class="cam-btn" id="bDrop">Soltar todo</button>
+              <label class="cam-btn full" for="fTex" style="text-align:center">Cargar textura a la tela…</label>
             </div>
 
             <div class="y-sec">grabar</div>
             <div class="cam-wrap" id="recSlot"></div>
             <div class="y-sec">papel</div>
-            <div class="y-row">
-              <div class="y-lab"><span>Pegamento</span><output id="glueOut"></output></div>
-              <input id="glue" type="range" min="0" max="1" step="0.01">
-            </div>
             <div class="y-row">
               <div class="y-lab"><span>Resistencia al rasgado</span><output id="tearOut"></output></div>
               <input id="tear" type="range" min="1.25" max="4" step="0.05">
@@ -851,11 +848,11 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
       <div class="ip__body" id="infoBody">
         <p class="ip__desc">un póster de papel pegado al muro, con física de tela.</p>
         <ol class="ip__steps">
-          <li>arrancar: agarra el papel y tira para despegarlo</li>
+          <li>arrancar: agarra el papel y jálalo; cuelga solo de arriba</li>
           <li>tira fuerte y el papel se rasga</li>
           <li>cortar: arrastra para rajarlo con cuchilla</li>
           <li>chinche: clava o quita un punto</li>
-          <li>carga tu propio fondo o tu propia tela</li>
+          <li>«cargar textura» pone tu imagen en la tela</li>
         </ol>
       </div>
     </div>
@@ -981,8 +978,8 @@ function build(glued=true){
   PIN=new Uint8Array(NN); CUS=new Uint8Array(NN); GLU=new Uint8Array(NN); HARD=new Uint8Array(NN); IM=new Float32Array(NN); nA=new Float32Array(NN);
   grab=null;
   for(let j=0;j<=NY;j++) for(let i=0;i<=NX;i++){ const k=i+j*w;
-    X[k]=PX[k]=i*sx; Y[k]=PY[k]=j*sy; Z[k]=PZ[k]=glued?0:(Math.random()-.5)*6*(j>0);
-    UU[k]=i/NX; VV[k]=j/NY; GI[k]=i; GJ[k]=j; GLU[k]=glued?1:0; nA[k]=alphaAt(UU[k],VV[k]); }
+    X[k]=PX[k]=i*sx; Y[k]=PY[k]=j*sy; Z[k]=PZ[k]=0;
+    UU[k]=i/NX; VV[k]=j/NY; GI[k]=i; GJ[k]=j; GLU[k]=0; nA[k]=alphaAt(UU[k],VV[k]); }
   const cap=2*NN+2*NX*NY; EA=new Int32Array(cap); EB=new Int32Array(cap); ER=new Float32Array(cap); EON=new Uint8Array(cap); ESH=new Uint8Array(cap);
   eR=new Int32Array(NN).fill(-1); eD=new Int32Array(NN).fill(-1); eG=new Int32Array(NX*NY);
   NE=0;
@@ -995,7 +992,7 @@ function build(glued=true){
   scr=new Array(NN); for(let k=0;k<NN;k++) scr[k]=[0,0];
   gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER,vbuf); gl.bufferData(gl.ARRAY_BUFFER,vb.byteLength,gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,ib.byteLength,gl.DYNAMIC_DRAW);
-  if(!glued) hangFromCorners();
+  hangTop();
 }
 // nodo con papel más cercano a una esquina (u,v) de la tela
 function cornerNode(cu,cv){ let best=-1, bd=1e9;
@@ -1005,6 +1002,12 @@ function freeNode(k){ GLU[k]=0; PX[k]=X[k]; PY[k]=Y[k]; PZ[k]=Z[k]; }
 function hangFromCorners(){
   for(let k=0;k<NN;k++){ freeNode(k); PIN[k]=0; CUS[k]=0; }
   [cornerNode(0,0),cornerNode(1,0)].forEach(k=>{ if(k>=0){ PIN[k]=1; CUS[k]=1; } });
+}
+// sujeto solo por arriba: el primer nodo con papel de cada columna queda fijo
+function hangTop(){
+  for(let k=0;k<NN;k++){ freeNode(k); PIN[k]=0; CUS[k]=0; }
+  const w=NX+1;
+  for(let i=0;i<=NX;i++) for(let j=0;j<=NY;j++){ const k=i+j*w; if(nA[k]>.5){ PIN[k]=1; break; } }
 }
 function dropAll(){ for(let k=0;k<NN;k++){ if(GLU[k]) freeNode(k); PIN[k]=0; CUS[k]=0; } }
 function unglue(k){ if(GLU[k]) freeNode(k); }
@@ -1187,33 +1190,12 @@ function hash(a,b){ let h=(a*374761393+b*668265263)|0; h=Math.imul(h^(h>>>13),12
 const segs=[];
 function drawFx(){
   const x=xfx; x.clearRect(0,0,IW,IH);
-  const w=NX+1; segs.length=0;
-  const pushE=(p,q)=>{ if(alphaAt((UU[p]+UU[q])/2,(VV[p]+VV[q])/2)<.5) return; segs.push(p,q); };
-  for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){ const cell=i+j*NX, a=i+j*w, b=a+1, cc=a+w;
-    if(vis1[cell]!==vis2[cell]) pushE(b,cc);
-    if(j>0 && vis1[cell]!==vis2[cell-NX]) pushE(a,b);
-    if(i>0 && vis1[cell]!==vis2[cell-1]) pushE(a,cc); }
-  if(segs.length){
-    x.lineCap='round'; x.lineJoin='round';
-    for(let pass=0;pass<2;pass++){
-      x.strokeStyle=pass?'rgba(250,244,232,.95)':'rgba(60,38,20,.38)'; x.lineWidth=pass?2.2:4;
-      x.beginPath();
-      for(let s=0;s<segs.length;s+=2){ const p=segs[s], q=segs[s+1], A_=scr[p], B_=scr[q];
-        const mx=(A_[0]+B_[0])/2, my=(A_[1]+B_[1])/2, jx=(hash(p,q)-.5)*3.4, jy=(hash(q,p)-.5)*3.4;
-        x.moveTo(A_[0],A_[1]); x.lineTo(mx+jx,my+jy); x.lineTo(B_[0],B_[1]); }
-      x.stroke();
-    }
-  }
   // chinches
   for(let k=0;k<NN;k++){ if(!CUS[k]||!PIN[k]) continue; const p=scr[k];
     x.fillStyle='rgba(0,0,0,.35)'; x.beginPath(); x.arc(p[0]+3,p[1]+4,7,0,7); x.fill();
     const g=x.createRadialGradient(p[0]-2,p[1]-2,1,p[0],p[1],7); g.addColorStop(0,'#ff8a80'); g.addColorStop(1,'#c4120a');
     x.fillStyle=g; x.beginPath(); x.arc(p[0],p[1],6.5,0,7); x.fill(); }
-  // estela de la cuchilla
-  trail=trail.filter(t=>++t.a<20);
-  if(trail.length>1){ x.strokeStyle='#fff'; x.lineWidth=1.5;
-    for(let i=1;i<trail.length;i++){ const p=trail[i-1], t=trail[i]; if(t.id!==p.id) continue; x.globalAlpha=1-t.a/20; x.beginPath(); x.moveTo(p.x,p.y); x.lineTo(t.x,t.y); x.stroke(); }
-    x.globalAlpha=1; }
+  trail.length=0;
 }
 function drawOv(){
   const c=xov; c.clearRect(0,0,IW,IH);
@@ -1280,7 +1262,6 @@ function slider(id,fmt,fn){
 }
 const pct=v=>Math.round(v*100)+'%', x2=v=>v.toFixed(2)+'×', n1=v=>(+v).toFixed(1), n0=v=>String(Math.round(v));
 const set=k=>v=>{ P[k]=v; };
-slider('glue',pct,set('glue'));
 slider('tear',x2,set('tear'));
 slider('g',x2,set('g'));
 slider('curl',pct,set('curl'));
@@ -1300,7 +1281,7 @@ document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>
   stage.classList.toggle('t-cut',tool==='cut'); stage.classList.toggle('t-pin',tool==='pin'); }));
 $('bReset').onclick=()=>build(true);
 $('bPause').onclick=e=>{ paused=!paused; e.currentTarget.setAttribute('aria-pressed',paused); e.currentTarget.textContent=paused?'Seguir':'Pausa'; };
-$('bHang').onclick=()=>hangFromCorners();
+$('bTop').onclick=()=>hangTop();
 $('bDrop').onclick=()=>dropAll();
 const toggle=(id,k)=>{ const b=$(id); b.onclick=()=>{ O[k]=!O[k]; b.setAttribute('aria-pressed',O[k]); }; };
 toggle('bGuides','guides'); toggle('bMesh','mesh');
