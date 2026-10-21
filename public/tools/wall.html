@@ -873,32 +873,20 @@ function upd(){const R=[{x:0,y:0},{x:SW,y:0},{x:SW,y:SH},{x:0,y:SH}],Au=A.map(p=
   FS=(Math.hypot(A[3].x-A[0].x,A[3].y-A[0].y)+Math.hypot(A[2].x-A[1].x,A[2].y-A[1].y))/2/SH;cen=[Au.reduce((s,p)=>s+p.x,0)/4,Au.reduce((s,p)=>s+p.y,0)/4];}
 
 // ── Tela Verlet (espacio plano) ──
-let vb,ib,vao,vbuf,ibuf,tris=[],vcap=0;
-/* La malla es una lista de triángulos. Al cortar, los vértices tocados se
-   llevan justo sobre la línea del corte y se duplican: cada lado se queda
-   con su copia. Así el corte sale limpio, sin dientes de sierra. */
+let vb,ib,vao,vbuf,ibuf;
 function build(){
-  const N=P.grid|0,w=N+1,sx=SW/N,sy=SH/N;nodes=[];tris=[];grab=null;
-  for(let j=0;j<=N;j++)for(let i=0;i<=N;i++)nodes.push({x:i*sx,y:j*sy,z:(Math.random()-.5)*6*(j>0),oz:0,ox:i*sx,oy:j*sy,rx:i*sx,ry:j*sy,u:i/N,v:j/N,i,j,pin:false,custom:false});
-  nodes.forEach(n=>n.oz=n.z);
-  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=i+j*w,b=a+1,cc=a+w,d=cc+1;tris.push([a,b,cc],[b,d,cc]);}
-  rebuildEdges();applyPins();}
-// aristas = lados de los triángulos (+ la diagonal opuesta entre pares vecinos, anti-colapso)
-function rebuildEdges(){
-  edges=[];const map=new Map();
-  const key=(a,b)=>a<b?a*1e6+b:b*1e6+a;
-  const add=(a,b,sh)=>{const p=nodes[a],q=nodes[b];edges.push({a:p,b:q,ia:a,ib:b,r:Math.hypot(p.rx-q.rx,p.ry-q.ry),on:true,sh});};
-  for(const t of tris)for(let s=0;s<3;s++){const a=t[s],b=t[(s+1)%3],o=t[(s+2)%3],k=key(a,b),m=map.get(k);
-    if(m===undefined){map.set(k,o);add(a,b,false);}else if(m>=0){add(o,m,true);map.set(k,-1);}}
-}
-function ensureBuffers(){
-  if(nodes.length<=vcap&&ib&&ib.length>=tris.length*3)return;
-  vcap=Math.ceil(nodes.length*1.3);vb=new Float32Array(vcap*6);ib=new Uint32Array(Math.ceil(tris.length*1.3)*3);
+  const N=P.grid|0,w=N+1,sx=SW/N,sy=SH/N;nodes=[];edges=[];eR=[];eD=[];grab=null;
+  for(let j=0;j<=N;j++)for(let i=0;i<=N;i++)nodes.push({x:i*sx,y:j*sy,z:(Math.random()-.5)*6*(j>0),oz:0,ox:i*sx,oy:j*sy,u:i/N,v:j/N,i,j,pin:false,custom:false});
+  const add=(a,b,sh)=>{const p=nodes[a],q=nodes[b];edges.push({a:p,b:q,r:Math.hypot(p.x-q.x,p.y-q.y),on:true,sh,ia:a,ib:b});return edges.length-1;};
+  for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){const k=i+j*w;eR[k]=i<N?add(k,k+1):-1;eD[k]=j<N?add(k,k+w):-1;}
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const k=i+j*w;add(k,k+w+1,true);add(k+1,k+w,true);}
+  vb=new Float32Array(nodes.length*6);nodes.forEach((n,k)=>{n.oz=n.z;vb[k*6+3]=n.u;vb[k*6+4]=n.v;});ib=new Uint32Array(N*N*6);
   gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,vbuf);gl.bufferData(gl.ARRAY_BUFFER,vb.byteLength,gl.DYNAMIC_DRAW);
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,ib.byteLength,gl.DYNAMIC_DRAW);}
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,ib.byteLength,gl.DYNAMIC_DRAW);
+  applyPins();}
 function applyPins(){const N=P.grid|0;nodes.forEach(n=>{
   const rule=(n.j===0&&(n.i===0||n.i===N||O.pinEdge))||(n.j===N&&O.pinBottom&&(n.i===0||n.i===N));
-  if(rule){n.x=n.ox=n.rx;n.y=n.oy=n.ry;n.z=n.oz=0;}n.pin=rule||n.custom;});}
+  if(rule){n.x=n.ox=n.u*SW;n.y=n.oy=n.v*SH;n.z=n.oz=0;}n.pin=rule||n.custom;});}
 function step(){
   const wd=P.wx+P.gust*Math.sin(frame*.04)*Math.cos(frame*.013);
   if(grab&&gt){const dx=gt[0]-grab.x,dy=gt[1]-grab.y,d=Math.hypot(dx,dy),q=d>45?45/d:1;grab.x+=dx*q;grab.y+=dy*q;grab.ox=grab.x;grab.oy=grab.y;}
@@ -913,46 +901,16 @@ function step(){
     const m1=!e.a.pin&&e.a!==grab,m2=!e.b.pin&&e.b!==grab,k=m1&&m2?.5:1;
     if(m1){e.a.x-=dx*f*k;e.a.y-=dy*f*k;e.a.z-=dz*f*k;}
     if(m2){e.b.x+=dx*f*k;e.b.y+=dy*f*k;e.b.z+=dz*f*k;}}
-  strain();limpiarAstillas();}
-// un triángulo que quedó unido a ambos lados de un corte se estira como aguja: se quita
-function limpiarAstillas(){let quit=false;const lim=SW/(P.grid|0)*2.2;
-  tris=tris.filter(t=>{for(let q=0;q<3;q++){const a=nodes[t[q]],b=nodes[t[(q+1)%3]],r=Math.hypot(a.rx-b.rx,a.ry-b.ry),d=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
-    if(d>Math.max(r*2.5,lim)){quit=true;return false;}}return true;});
-  if(quit)rebuildEdges();}
+  strain();}
 function strain(){for(let p=0;p<6;p++)for(const e of edges){if(!e.on||e.sh)continue;
   const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,dz=e.b.z-e.a.z,d=Math.hypot(dx,dy,dz),mx=e.r*P.slack*1.1;if(d<=mx||d<1e-3)continue;
   const f=(mx-d)/d,m1=!e.a.pin&&e.a!==grab,m2=!e.b.pin&&e.b!==grab,k=m1&&m2?.5:1;
   if(m1){e.a.x-=dx*f*k;e.a.y-=dy*f*k;e.a.z-=dz*f*k;}
   if(m2){e.b.x+=dx*f*k;e.b.y+=dy*f*k;e.b.z+=dz*f*k;}}}
-function slice(x1,y1,x2,y2){
-  const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy);if(L<1e-3)return;
-  const side=n=>((n.x-x1)*dy-(n.y-y1)*dx)/L;          // distancia con signo a la línea
-  // 1) aristas cruzadas por el segmento → su extremo más cercano se lleva al punto de corte
-  const snapped=new Set();
-  for(const e of edges){if(e.sh)continue;const A=e.a,B=e.b;
-    const d2x=B.x-A.x,d2y=B.y-A.y,den=dx*d2y-dy*d2x;if(Math.abs(den)<1e-6)continue;
-    const ox=A.x-x1,oy=A.y-y1,t=(ox*d2y-oy*d2x)/den,u=(ox*dy-oy*dx)/den;
-    if(!(t>=0&&t<=1&&u>0&&u<1))continue;
-    let k=u<.5?e.ia:e.ib,f=u<.5?u:u-1;const n=nodes[k];
-    if(snapped.has(k)||n.pin){k=u<.5?e.ib:e.ia;f=u<.5?u-1:u;}
-    const m=nodes[k];if(snapped.has(k)||m.pin)continue;
-    // mover por la arista (posición, reposo y UV) hasta el cruce
-    const o=nodes[k===e.ia?e.ib:e.ia],g=Math.abs(f);
-    m.x+=(o.x-m.x)*g;m.y+=(o.y-m.y)*g;m.z+=(o.z-m.z)*g;m.ox=m.x;m.oy=m.y;m.oz=m.z;
-    m.rx+=(o.rx-m.rx)*g;m.ry+=(o.ry-m.ry)*g;m.u+=(o.u-m.u)*g;m.v+=(o.v-m.v)*g;snapped.add(k);}
-  if(!snapped.size)return;
-  // vértices que quedan sobre el corte: los llevados a la línea + los que ya estaban casi encima
-  const cell=SW/(P.grid|0),on=new Set(snapped);
-  nodes.forEach((n,k)=>{if(n.pin)return;const t=((n.x-x1)*dx+(n.y-y1)*dy)/(L*L);if(t>=0&&t<=1&&Math.abs(side(n))<cell*.3)on.add(k);});
-  // 2) lado de cada triángulo según sus vértices que no están sobre el corte
-  const tside=t=>{let s=0;for(const k of t)if(!on.has(k))s+=side(nodes[k]);return Math.sign(s);};
-  const inc=new Map();on.forEach(k=>inc.set(k,[]));
-  for(const t of tris){if(!t.some(k=>on.has(k)))continue;const sd=tside(t);for(const k of t)if(inc.has(k))inc.get(k).push([t,sd]);}
-  // 3) cada vértice del corte con triángulos a ambos lados se duplica
-  inc.forEach((list,k)=>{if(!list.some(x=>x[1]>0)||!list.some(x=>x[1]<0))return;
-    const n=nodes[k],c=Object.assign({},n);c.custom=false;nodes.push(c);const m=nodes.length-1;
-    for(const [t,sd] of list)if(sd<0)for(let q=0;q<3;q++)if(t[q]===k)t[q]=m;});
-  rebuildEdges();}
+function slice(x1,y1,x2,y2){for(const e of edges){if(!e.on)continue;
+  const d1x=x2-x1,d1y=y2-y1,d2x=e.b.x-e.a.x,d2y=e.b.y-e.a.y,den=d1x*d2y-d1y*d2x;if(Math.abs(den)<1e-4)continue;
+  const ox=e.a.x-x1,oy=e.a.y-y1,t=(ox*d2y-oy*d2x)/den,u=(ox*d1y-oy*d1x)/den;if(t>0&&t<1&&u>0&&u<1)e.on=false;}}
+
 // ── WebGL (textura con corrección de perspectiva vía w) ──
 const gl=cgl.getContext('webgl2',{premultipliedAlpha:true,preserveDrawingBuffer:true});
 if(!gl)alert('Tu navegador no soporta WebGL2');
@@ -984,19 +942,19 @@ function setTex(src){tex=tex||gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,te
   const an=gl.getExtension('EXT_texture_filter_anisotropic');if(an)gl.texParameterf(gl.TEXTURE_2D,an.TEXTURE_MAX_ANISOTROPY_EXT,8);
   SW=SH*(src.naturalWidth||src.width)/(src.naturalHeight||src.height);build();upd();}
 function render(){
-  ensureBuffers();let c=0;const NN=nodes.length,nrm=new Float32Array(NN*3);
-  for(const t of tris){const a=nodes[t[0]],b=nodes[t[1]],d=nodes[t[2]];
-    const ax=b.x-a.x,ay=b.y-a.y,az=b.z-a.z,bx=d.x-a.x,by=d.y-a.y,bz=d.z-a.z;
-    const nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx;
-    for(const k of t){nrm[k*3]+=nx;nrm[k*3+1]+=ny;nrm[k*3+2]+=nz;}
-    ib[c++]=t[0];ib[c++]=t[1];ib[c++]=t[2];}
-  nodes.forEach((n,k)=>{const nx=nrm[k*3],ny=nrm[k*3+1],nz=nrm[k*3+2],m=Math.hypot(nx,ny,nz)||1;
-    const dt=m===1&&!nz?.77:Math.abs((nx*-.4+ny*-.5+nz*.77)/m);
-    vb[k*6]=n.x;vb[k*6+1]=n.y;vb[k*6+2]=n.z;vb[k*6+3]=n.u;vb[k*6+4]=n.v;vb[k*6+5]=Math.max(.3,1+(dt-.77)*.9*P.shade);
+  const N=P.grid|0;let c=0;const w=N+1;
+  nodes.forEach((n,k)=>{const l=nodes[n.i>0?k-1:k],r=nodes[n.i<N?k+1:k],u=nodes[n.j>0?k-w:k],d=nodes[n.j<N?k+w:k];
+    const ax=r.x-l.x,ay=r.y-l.y,az=r.z-l.z,bx=d.x-u.x,by=d.y-u.y,bz=d.z-u.z;
+    const nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx,m=Math.hypot(nx,ny,nz)||1;
+    const dt=Math.abs((nx*-.4+ny*-.5+nz*.77)/m);
+    vb[k*6]=n.x;vb[k*6+1]=n.y;vb[k*6+2]=n.z;vb[k*6+5]=Math.max(.3,1+(dt-.77)*.9*P.shade);
     scr[k]=sp3(n.x,n.y,n.z);});
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=i+j*w,b=a+1,cc=a+w,d=cc+1;
+    if(edges[eR[a]].on&&edges[eD[a]].on){ib[c++]=a;ib[c++]=b;ib[c++]=cc;}
+    if(edges[eR[cc]].on&&edges[eD[b]].on){ib[c++]=b;ib[c++]=d;ib[c++]=cc;}}
   gl.viewport(0,0,IW,IH);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
   gl.useProgram(pr);gl.bindVertexArray(vao);
-  gl.bindBuffer(gl.ARRAY_BUFFER,vbuf);gl.bufferSubData(gl.ARRAY_BUFFER,0,vb.subarray(0,NN*6));
+  gl.bindBuffer(gl.ARRAY_BUFFER,vbuf);gl.bufferSubData(gl.ARRAY_BUFFER,0,vb);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf);gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER,0,ib.subarray(0,c));
   gl.uniform3f(gl.getUniformLocation(pr,'r0'),H[0],H[1],H[2]);gl.uniform3f(gl.getUniformLocation(pr,'r1'),H[3],H[4],H[5]);
   gl.uniform3f(gl.getUniformLocation(pr,'r2'),H[6],H[7],1);gl.uniform2f(gl.getUniformLocation(pr,'res'),IW,IH);gl.uniform2f(gl.getUniformLocation(pr,'cn'),cen[0],cen[1]);gl.uniform1f(gl.getUniformLocation(pr,'kz'),P.depth/1200);gl.uniform1f(gl.getUniformLocation(pr,'kd'),P.fish);gl.uniform1f(gl.getUniformLocation(pr,'fs'),FS);
@@ -1014,7 +972,8 @@ function drawBg(){const c=cbg.getContext('2d');c.clearRect(0,0,IW,IH);if(!bgImg)
   const iw=bgImg.naturalWidth,ih=bgImg.naturalHeight,s=Math.max(IW/iw,IH/ih);c.drawImage(bgImg,(IW-iw*s)/2,(IH-ih*s)/2,iw*s,ih*s);}
 function drawOv(){const c=cov.getContext('2d'),k=1/sc;c.clearRect(0,0,IW,IH);c.lineWidth=k;
   const f=cfx.getContext('2d');f.clearRect(0,0,IW,IH);
-  if(O.mesh){c.strokeStyle='rgba(255,255,255,.35)';c.beginPath();for(const e of edges){if(e.sh)continue;const a=scr[e.ia],b=scr[e.ib];c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);}c.stroke();}
+  if(O.mesh){c.strokeStyle='rgba(255,255,255,.35)';c.beginPath();
+    nodes.forEach((n,q)=>{[eR[q],eD[q]].forEach(ei=>{if(ei<0)return;const e=edges[ei];if(!e.on)return;const a=scr[q],b=scr[e.ib];c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);});});c.stroke();}
   nodes.forEach((n,q)=>{if(n.custom){f.fillStyle='#ff3b30';f.beginPath();f.arc(scr[q][0],scr[q][1],4*k,0,7);f.fill();}});
   trail=trail.filter(t=>++t.a<24);
   if(!O.guides)return;
