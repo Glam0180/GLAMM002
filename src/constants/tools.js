@@ -12,6 +12,18 @@ export const TOOLS = [
     thumbnail: '/tool-thumbnails/we-dont-belong.webp',
   },
   {
+    id: 'hoops',
+    slug: 'hoops',
+    name: 'Hoops',
+    description: 'Aros 3D con tu texto que pasan por 7 estados: pila, resorte, jarrón, monedas, cebolla y nido.',
+    category: 'interaction',
+    status: 'live',
+    tech: ['p5.js', 'WebGL'],
+    path: '/tools/hoops',
+    index: '011',
+    thumbnail: '/tool-thumbnails/hoops.webp',
+  },
+  {
     id: 'wall',
     slug: 'wall',
     name: 'Wall',

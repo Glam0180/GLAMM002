@@ -8,6 +8,7 @@ import Daisy from '@pages/tools/Daisy'
 import WeDontBelong from '@pages/tools/WeDontBelong'
 import Yummy from '@pages/tools/Yummy'
 import Wall from '@pages/tools/Wall'
+import Hoops from '@pages/tools/Hoops'
 import TipografiaAdaptativa from '@pages/tools/TipografiaAdaptativa'
 import PosterGenerativo from '@pages/tools/PosterGenerativo'
 import FaceTracking from '@pages/tools/FaceTracking'
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="tools/we-dont-belong" element={<WeDontBelong />} />
         <Route path="tools/yummy" element={<Yummy />} />
         <Route path="tools/wall" element={<Wall />} />
+        <Route path="tools/hoops" element={<Hoops />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="tools/floralis" element={<Floralis />} />
