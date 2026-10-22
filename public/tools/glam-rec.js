@@ -483,7 +483,15 @@
       // sin elemento = la pestaña completa (sin recorte)
       var el = op.elemento ? op.elemento() : null;
       return navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: FPS, max: FPS }, cursor: 'always', displaySurface: 'browser' },
+        // Pedir una captura grande (4K) hace que Chrome dibuje la pestaña
+        // con más densidad de píxeles (como en una pantalla retina) en vez
+        // de entregarla al tamaño de la ventana: los textos y la interfaz
+        // salen nítidos al bajarlos a 1920, en lugar de estirados.
+        video: {
+          frameRate: { ideal: FPS, max: FPS },
+          width: { ideal: 3840 }, height: { ideal: 2160 },
+          cursor: 'always', displaySurface: 'browser',
+        },
         audio: false,
         preferCurrentTab: true,
         selfBrowserSurface: 'include',
