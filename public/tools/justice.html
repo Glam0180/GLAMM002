@@ -600,20 +600,27 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     /* ═════════ JUSTICE ═════════ */
     #sketch-holder { position: relative; overflow: hidden; background: #000; }
     #sketch-holder canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
-    /* ── controles en las ventanas de propiedades ── */
-    #sidebar { width: 226px; }
+    #sidebar { width: 236px; }
     .y-panel { gap: 10px; padding: 12px 12px 14px; }
     .y-sec {
       font-size: 8px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
       color: var(--red); display: flex; align-items: center; gap: 6px;
     }
     .y-sec::after { content: ''; flex: 1; height: 1px; background: var(--red-faint); }
-    .y-row { display: flex; flex-direction: column; gap: 5px; }
+    .y-row { display: flex; flex-direction: column; gap: 4px; }
     .y-lab {
-      font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--red-dim);
-      display: flex; justify-content: space-between; gap: 6px;
+      font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--red-dim);
+      display: flex; justify-content: space-between; align-items: center; gap: 6px;
     }
-    .y-lab output { color: var(--red); font-variant-numeric: tabular-nums; }
+    .y-num, .y-hex {
+      width: 54px; flex: none; font: inherit; font-size: 9px; letter-spacing: .04em; text-align: right;
+      color: var(--red); background: var(--black); border: 1px solid var(--red-faint); padding: 2px 4px; outline: none;
+      font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+    }
+    .y-num::-webkit-inner-spin-button, .y-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .y-hex { width: 62px; text-transform: uppercase; text-align: left; }
+    .y-num:focus, .y-hex:focus { border-color: var(--red); }
+    .y-hex.error { border-color: var(--red); background: var(--red-faint); }
     .y-panel input[type=range] {
       -webkit-appearance: none; appearance: none;
       width: 100%; height: 3px; margin: 3px 0; outline: none; cursor: pointer;
@@ -631,7 +638,6 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     .y-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     .y-btns.tres { grid-template-columns: 1fr 1fr 1fr; }
     .y-btns .cam-btn { width: 100%; }
-    .y-btns .full { grid-column: 1 / -1; }
     .cam-btn[aria-pressed="true"] { background: var(--red); color: var(--g-black); }
     .y-hint { font-size: 7px; line-height: 1.7; letter-spacing: .06em; color: var(--red-dim); text-transform: uppercase; }
     .y-txt {
@@ -644,15 +650,15 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
       font-size: 7px; letter-spacing: .08em; color: var(--red-dim); text-transform: uppercase;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .y-colors { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-    .y-color { display: flex; flex-direction: column; gap: 3px; font-size: 7px; letter-spacing: .1em; text-transform: uppercase; color: var(--red-dim); }
-    .y-color input[type=color] {
-      -webkit-appearance: none; appearance: none; width: 100%; height: 18px; padding: 0; cursor: pointer;
+    .y-crow { display: flex; align-items: center; gap: 6px; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--red-dim); }
+    .y-crow span { flex: 1; }
+    .y-crow input[type=color] {
+      -webkit-appearance: none; appearance: none; width: 26px; height: 16px; padding: 0; cursor: pointer;
       border: 1px solid var(--red); background: var(--black);
     }
-    .y-color input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
-    .y-color input[type=color]::-webkit-color-swatch { border: none; }
-    .y-color input[type=color]::-moz-color-swatch { border: none; }
+    .y-crow input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+    .y-crow input[type=color]::-webkit-color-swatch { border: none; }
+    .y-crow input[type=color]::-moz-color-swatch { border: none; }
     @media (max-width: 768px) {
       /* el lienzo de JUSTICE es 1080×1440 (3:4) */
       .daisy-canvas { aspect-ratio: 1080 / 1440; }
@@ -699,8 +705,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
 
         <div class="daisy-main">
           <div class="daisy-canvas-wrap">
-            <!-- Lienzo 1080×1440: columnas de texto extruido en 3D + halftone (p5.js, WebGL) -->
-            <div class="daisy-canvas" id="sketch-holder" aria-label="Columnas de texto extruido en 3D con efecto halftone"></div>
+            <!-- Lienzo 1080×1440: texto extruido con franja de luz + capa halftone (p5.js, WebGL) -->
+            <div class="daisy-canvas" id="sketch-holder" aria-label="Texto extruido en 3D con franja de luz y trama halftone"></div>
           </div>
         </div>
       </div>
@@ -719,11 +725,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
           <div class="daisy-panel y-panel">
             <div class="y-sec">texto</div>
             <input id="jText" class="y-txt" type="text" maxlength="24" spellcheck="false" autocomplete="off">
-            <div class="y-btns">
-              <button type="button" class="cam-btn" id="jMayus" aria-pressed="true">MAYÚSCULAS</button>
-              <button type="button" class="cam-btn" id="jRev" aria-pressed="false">INVERTIR</button>
-            </div>
-            <div id="slTexto"></div>
+            <button type="button" class="cam-btn" id="jMayus" aria-pressed="true">MAYÚSCULAS</button>
 
             <div class="y-sec">tipografía</div>
             <div class="y-btns" id="jFonts"></div>
@@ -733,24 +735,11 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div id="slTipo"></div>
             <div class="y-hint">todas las letras usan la misma escala: ninguna se estira a lo ancho</div>
 
-            <div class="y-sec">columnas</div>
-            <div id="slCols"></div>
-            <div class="y-btns">
-              <button type="button" class="cam-btn" id="jConc" aria-pressed="true">ENVUELVE</button>
-              <button type="button" class="cam-btn" id="jConv" aria-pressed="false">COLUMNA</button>
-            </div>
-
-            <div class="y-sec">extrusión</div>
-            <div id="slExtr"></div>
+            <div class="y-sec">luz y color</div>
+            <div id="jColores" class="y-row"></div>
 
             <div class="y-sec">movimiento</div>
             <div id="slMov"></div>
-            <div class="y-btns tres">
-              <button type="button" class="cam-btn" id="jUp" aria-pressed="true">SUBE</button>
-              <button type="button" class="cam-btn" id="jDown" aria-pressed="false">BAJA</button>
-              <button type="button" class="cam-btn" id="jPause" aria-pressed="false">PAUSA</button>
-            </div>
-            <div class="y-hint">mueve el mouse sobre el lienzo: inclina la escena</div>
           </div>
         </div>
 
@@ -758,22 +747,14 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
           <div class="win__bar">
             <span class="slz">///</span>
             <div class="win__bar-dot"></div>
-            <span class="win__bar-title">EFECTOS</span>
+            <span class="win__bar-title">HALFTONE</span>
             <div class="win__bar-controls">
               <div class="win__ctrl">—</div>
               <div class="win__ctrl">□</div>
             </div>
           </div>
           <div class="daisy-panel y-panel">
-            <div class="y-sec">color</div>
-            <div class="y-btns tres" id="jPalettes"></div>
-            <div class="y-colors">
-              <label class="y-color">frente<input type="color" id="cFrente"></label>
-              <label class="y-color">pared<input type="color" id="cOscuro"></label>
-              <label class="y-color">fondo<input type="color" id="cFondo"></label>
-            </div>
-
-            <div class="y-sec">halftone</div>
+            <div class="y-sec">trama</div>
             <div class="y-btns tres">
               <button type="button" class="cam-btn" id="htOn" aria-pressed="true">ON</button>
               <button type="button" class="cam-btn" id="htDither" aria-pressed="true">DITHER</button>
@@ -801,12 +782,12 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         </div>
       </div>
       <div class="ip__body" id="infoBody">
-        <p class="ip__desc">tu texto extruido en 3d, en columnas sobre una curva que suben en loop infinito, con trama halftone.</p>
+        <p class="ip__desc">tu texto extruido en 3d con ojo de pez, una franja de luz roja que lo cruza y una capa de trama halftone encima.</p>
         <ol class="ip__steps">
-          <li>escribe tu texto y elige la letra central</li>
+          <li>escribe tu texto</li>
           <li>elige una tipografía o sube tu propia fuente (.ttf, .otf, .woff)</li>
-          <li>ajusta columnas, curva y profundidad de la extrusión</li>
-          <li>cambia colores y la trama halftone (dither o puntos)</li>
+          <li>ajusta la luz, la estela y el movimiento</li>
+          <li>cambia la trama halftone (dither o puntos) o apágala</li>
           <li>graba en video o descarga el png 1080×1440</li>
         </ol>
       </div>
@@ -823,356 +804,438 @@ function goHome(){ try{ if(window.top&&window.top!==window) window.top.location.
 $('mhouse').addEventListener('click',goHome); $('mclose').addEventListener('click',goHome); $('wclose').addEventListener('click',goHome);
 
 /* ═════════════════════════════════════════════════════════
-   JUSTICE · tipografía extruida en 3D, loop infinito
+   JUSTICE vertical · tipografía extruida en 3D, loop infinito
    ---------------------------------------------------------
-   Cada letra es un bloque profundo hecho de muchas copias planas
-   apiladas hacia atrás, que van del color de frente al de la pared
-   y al del fondo. Las letras forman columnas sobre una curva: la del
-   centro mira a la cámara y las de los lados giran en sentidos
-   opuestos. Todas las filas dicen lo mismo y suben despacio; al
-   avanzar exactamente una fila la imagen vuelve a ser idéntica.
-   Después, toda la escena pasa por un shader de trama (halftone).
+   Mismo motor que justice_vertical.html: cada letra es un bloque
+   hecho de muchas copias planas apiladas hacia atrás (la estela),
+   con ojo de pez y forma de moño en pantalla, y una franja de luz
+   roja que cruza el fondo. Encima de todo va la capa halftone.
+   La escena original era de 553×777; aquí se escala entera a
+   1080×1440 (×1440/777) para conservar la composición.
    ═════════════════════════════════════════════════════════ */
-const IW=1080, IH=1440;
+const IW=1080, IH=1440, S=IH/777;
 
-// Parámetros (los controla el panel). Las medidas están en las unidades
-// del lienzo 1080×1440: la escena original era de 553×777 y se escaló
-// entera (×1440/777) para conservar la misma composición.
-const P={
-  texto:'JUSTICE', central:3, mayus:true, invertir:false,
-  fuente:'anton', tam:1, grosor:4,
-  columnas:17, espaciado:14, anchoCol:156, altoFila:245, giro:23, concavo:1, fov:1.2,
-  profundidad:352, capas:90,
-  vel:1.1, dir:1, inclin:0.15, pausa:false,
-  cFrente:'#FFF4C2', cOscuro:'#6E0000', cFondo:'#FF0100',
-  ht:true, htModo:0, htCelda:7, htPunto:0.8, htNiveles:2, htAngulo:45, htMezcla:1,
+const ANCHO_LETRA = 70*S;      // referencia del giro entre columnas
+const ALTO_FILA   = 120*S;     // alto de cada fila
+const FILAS       = 17;
+const CAPAS       = 150;
+const CONCAVO     = 1;
+const CAMPO_VISUAL= 1.2;
+const LARGO_VERDE = 0.45;
+const CONTRASTE_FRENTE = 0.5;
+const OJO_PEZ_VERTICAL = 0.5;
+const SUBDIVISION = 10;
+const DURACION_LOOP = 200;
+const MONO_CURVA  = 0.12;
+const MONO_ESCALA = 1.0;
+
+// Ajustes del panel — valores por defecto de la configuración elegida
+const P = {
+  SEGUNDOS_CRUCE:   0.40,
+  APAGAR_EN_BORDE:  0.7,
+  APAGADO:          0.05,
+  RECORRIDO:        1.43,
+  ANCHO_FRANJA:     0.35,
+  INTENSIDAD_LUZ:   1.07,
+  BRUMA:            0.11,
+  GIRO_HACIA_LUZ:   0,
+  MOVER_HACIA_LUZ:  0,
+  SUAVIDAD_SEGUIR:  0.01,
+  VELOCIDAD:        0.40,
+  PROFUNDIDAD:      1200,
+  ALFA_ESTELA:      0.04,
+  GIRO_POR_COLUMNA: 3,
+  OJO_PEZ:          1.28,
+  MONO_CRECE:       0,
+  RESPIRACION:      0,
 };
-
-// Tipografías de partida. Todas condensadas o pesadas para que llenen la
-// columna sin tener que deformarlas.
-const FUENTES=[
-  {id:'anton',   label:'ANTON',   fam:'"Anton"',        peso:'400'},
-  {id:'bebas',   label:'BEBAS',   fam:'"Bebas Neue"',   peso:'400'},
-  {id:'archivo', label:'ARCHIVO', fam:'"Archivo Black"',peso:'400'},
-  {id:'yemeyi',  label:'YEMEYI',  fam:'"Yemeyi"',       peso:'400'},
-  {id:'sans',    label:'SANS',    fam:'sans-serif',     peso:'700'},
-  {id:'mono',    label:'MONO',    fam:'"Space Mono"',   peso:'700'},
+const COL = {
+  luzNucleo: '#FFFFFF',
+  luzMedia:  '#FE5B16',
+  luzBorde:  '#FF0000',
+  letra:     '#000000',
+  estela:    '#0E1234',
+  estelaFin: '#020303',
+};
+const SELECTORES = [
+  ['luzNucleo', 'Luz · centro'],
+  ['luzMedia',  'Luz · degradé'],
+  ['luzBorde',  'Luz · bordes'],
+  ['letra',     'Letras · frente'],
+  ['estela',    'Estela · medio'],
+  ['estelaFin', 'Estela · final'],
 ];
-let fuenteSubida=null;   // {fam, peso, nombre}
+const SLIDERS = [
+  ['SEGUNDOS_CRUCE',   'Ritmo: segundos por cruce', 0.3, 8, 0.05],
+  ['APAGAR_EN_BORDE',  'Apagar en el borde (0 / 1)', 0, 1, 1],
+  ['APAGADO',          'Apagado en el borde (s)',   0, 2, 0.05],
+  ['RECORRIDO',        'Hasta dónde rebota',        0.2, 1.6, 0.01],
+  ['ANCHO_FRANJA',     'Ancho de la franja',        0.05, 1.2, 0.01],
+  ['INTENSIDAD_LUZ',   'Intensidad del rojo',       0, 2.5, 0.01],
+  ['BRUMA',            'Bruma roja',                0, 0.5, 0.01],
+  ['GIRO_HACIA_LUZ',   'Giro del texto hacia la luz', 0, 1, 0.01],
+  ['MOVER_HACIA_LUZ',  'Cuánto se mueve hacia la luz', 0, 0.8, 0.01],
+  ['SUAVIDAD_SEGUIR',  'Rapidez al seguir la luz',  0.01, 0.4, 0.01],
+  ['VELOCIDAD',        'Velocidad de las filas',    0, 4, 0.05],
+  ['PROFUNDIDAD',      'Largo de la estela',        50, 1200, 10],
+  ['ALFA_ESTELA',      'Opacidad de la estela',     0.005, 0.25, 0.005],
+  ['GIRO_POR_COLUMNA', 'Giro entre letras (°)',     0, 40, 1],
+  ['OJO_PEZ',          'Ojo de pez',                0, 1.5, 0.01],
+  ['MONO_CRECE',       'Forma de moño',             0, 2.5, 0.01],
+  ['RESPIRACION',      'Respiración del moño',      0, 0.6, 0.01],
+];
+
+// Texto y tipografía
+const T = { texto:'JUSTICE', mayus:true, fuente:'sans', tam:1, grosor:14, espaciado:4 };
+const FUENTES=[
+  {id:'sans',    label:'SANS',    fam:'sans-serif',      peso:'700'},
+  {id:'anton',   label:'ANTON',   fam:'"Anton"',         peso:'400'},
+  {id:'bebas',   label:'BEBAS',   fam:'"Bebas Neue"',    peso:'400'},
+  {id:'archivo', label:'ARCHIVO', fam:'"Archivo Black"', peso:'400'},
+  {id:'yemeyi',  label:'YEMEYI',  fam:'"Yemeyi"',        peso:'400'},
+  {id:'mono',    label:'MONO',    fam:'"Space Mono"',    peso:'700'},
+];
+let fuenteSubida=null;
 function fuenteActual(){
-  if(P.fuente==='custom'&&fuenteSubida) return fuenteSubida;
-  return FUENTES.find(f=>f.id===P.fuente)||FUENTES[0];
+  if(T.fuente==='custom'&&fuenteSubida) return fuenteSubida;
+  return FUENTES.find(f=>f.id===T.fuente)||FUENTES[0];
 }
 
-const PALETAS={
-  CREMA:{cFrente:'#FFF4C2',cOscuro:'#6E0000',cFondo:'#FF0100'},
-  VERDE:{cFrente:'#39FF00',cOscuro:'#087A00',cFondo:'#000000'},
-  GLAM: {cFrente:'#FF0100',cOscuro:'#5A0000',cFondo:'#000000'},
-};
+// Halftone (capa encima de toda la escena)
+const H = { on:true, modo:0, celda:5, punto:0.85, niveles:4, angulo:45, mezcla:1 };
 
-/* ─────────── HALFTONE (shader de post-proceso sobre toda la escena) ─────────── */
+/* ─────────── SHADERS ─────────── */
+const VERTICES_FONDO = `
+precision highp float;
+attribute vec3 aPosition;
+varying vec2 vPos;
+void main() {
+  vPos = aPosition.xy * 2.0;
+  gl_Position = vec4(vPos, 0.0, 1.0);
+}`;
+const PIXELES_FONDO = `
+precision highp float;
+varying vec2 vPos;
+uniform float uX, uAncho, uIntensidad, uBruma;
+uniform vec3 uNucleo, uMedia, uBorde;
+float azar(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main() {
+  vec2 p = vPos;
+  float d = abs(p.x - uX) / uAncho;
+  float nucleo = exp(-d * d * 5.0);
+  float media  = exp(-d * d * 1.4);
+  float borde  = exp(-d * 0.9);
+  vec3 luz = uBorde * borde + uMedia * media + uNucleo * nucleo * 0.8;
+  luz *= 1.0 - 0.2 * p.y * p.y;
+  luz += uBorde * uBruma * 2.0;
+  luz *= uIntensidad;
+  luz *= 0.97 + 0.03 * azar(floor(p * 400.0));
+  float tope = max(luz.r, max(luz.g, luz.b));
+  if (tope > 1.0) luz /= tope;
+  gl_FragColor = vec4(luz, 1.0);
+}`;
+const VERTICES_OJO_PEZ = `
+precision highp float;
+attribute vec3 aPosition;
+attribute vec2 aTexCoord;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+uniform float uFuerza, uVertical, uAspecto, uMonoEscala, uMonoCrece, uMonoCurva;
+varying vec2 vTexCoord;
+void main() {
+  vec4 clip = uProjectionMatrix * uModelViewMatrix * vec4(aPosition, 1.0);
+  vec2 ndc = clip.xy / clip.w;
+  vec2 q = vec2(ndc.x, ndc.y / uAspecto * uVertical);
+  float r = length(q);
+  if (r > 0.0001 && uFuerza > 0.0001) {
+    float rNuevo = atan(r * uFuerza * 2.0) / (uFuerza * 2.0);
+    ndc *= rNuevo / r;
+  }
+  float x0 = ndc.x, y0 = ndc.y;
+  ndc.y = y0 * (uMonoEscala + uMonoCrece * x0 * x0);
+  ndc.x = x0 * (1.0 + uMonoCurva * y0 * y0);
+  gl_Position = vec4(ndc * clip.w, clip.z, clip.w);
+  vTexCoord = aTexCoord;
+}`;
+const PIXELES_OJO_PEZ = `
+precision highp float;
+varying vec2 vTexCoord;
+uniform sampler2D uSampler;
+uniform vec4 uTinte;
+void main() {
+  vec4 c = texture2D(uSampler, vTexCoord);
+  if (c.a < 0.02) discard;
+  gl_FragColor = vec4(uTinte.rgb * c.rgb * uTinte.a, c.a * uTinte.a);
+}`;
 const HT_FRAG=`precision highp float;
 varying vec2 vTexCoord;
 uniform sampler2D tex0;
 uniform vec2 canvasSize;
 uniform float uCelda, uPunto, uNiveles, uAngulo, uMezcla, uModo;
-uniform vec3 uFondo;
-
-// Matriz de Bayer 4×4 (umbral ordenado), en forma cerrada
 float bayer2(vec2 a){ a=floor(a); return fract(dot(a, vec2(0.5, a.y*0.75))); }
 float bayer4(vec2 a){ return bayer2(0.5*a)*0.25 + bayer2(a); }
-
 void main(){
   vec4 orig = texture2D(tex0, vTexCoord);
   vec2 px = vTexCoord * canvasSize;
   vec3 res;
   if (uModo < 0.5) {
-    // DITHER: la imagen se reduce a celdas; cada celda se cuantiza por
-    // canal con un umbral de Bayer y se pinta como un punto cuadrado.
+    // DITHER: celdas cuantizadas por canal con umbral de Bayer, en puntos cuadrados
     vec2 celda = floor(px / uCelda);
     vec3 c = texture2D(tex0, (celda + 0.5) * uCelda / canvasSize).rgb;
     float L = max(uNiveles - 1.0, 1.0);
     float t = bayer4(celda) + 1.0/32.0;
     vec3 alto = clamp(floor(c * L + t) / L, 0.0, 1.0);
     vec3 bajo = clamp(floor(c * L) / L, 0.0, 1.0);
-    // dentro del cuadrado: el color tramado; en la separación: el nivel de abajo
     vec2 f = abs(fract(px / uCelda) - 0.5) * 2.0;
-    float dentro = step(max(f.x, f.y), uPunto);
-    res = mix(bajo, alto, dentro);
+    res = mix(bajo, alto, step(max(f.x, f.y), uPunto));
   } else {
-    // PUNTOS: trama clásica girada; el radio sale de la luminosidad.
+    // PUNTOS: trama clásica girada; el radio sale de la luminosidad
     float a = radians(uAngulo);
     mat2 R = mat2(cos(a), -sin(a), sin(a), cos(a));
     vec2 pr = R * px;
     vec2 centroR = (floor(pr / uCelda) + 0.5) * uCelda;
-    vec2 centro = centroR * R;                 // vuelta al espacio del lienzo
-    vec3 c = texture2D(tex0, clamp(centro / canvasSize, 0.0, 1.0)).rgb;
+    vec3 c = texture2D(tex0, clamp((centroR * R) / canvasSize, 0.0, 1.0)).rgb;
     float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
     float m = max(max(c.r, c.g), c.b);
-    vec3 tinta = m > 0.001 ? c / m : uFondo;
+    vec3 tinta = m > 0.001 ? c / m : vec3(0.0);
     float r = sqrt(luma) * uCelda * 0.5 * (0.6 + uPunto * 0.9);
-    float d = length(pr - centroR);
-    float k = 1.0 - smoothstep(r - 0.75, r + 0.75, d);
-    res = mix(uFondo, tinta, k);
+    float k = 1.0 - smoothstep(r - 0.75, r + 0.75, length(pr - centroR));
+    res = tinta * k;
   }
   gl_FragColor = vec4(mix(orig.rgb, res, uMezcla), 1.0);
 }`;
 
-/* ─────────── SKETCH (p5 en modo instancia, lienzo fijo 1080×1440) ─────────── */
+/* ─────────── SKETCH (p5 en modo instancia) ─────────── */
 let p5i=null;
 const sketch=p=>{
-  let anchos=new Map();      // carácter → ancho real de su tinta, en unidades 3D
-  let letras=new Map();       // carácter → p5.Graphics (blanco sobre transparente, se tiñe con tint)
-  let texW=0, texH=0;
-  let tira=null, tiraKey='';  // geometría: una columna de FILAS letras planas
-  let desp=0, giroX=0, giroY=0;
-  let capasCol=[], capasKey='';
-  let ht=null;
-  let texturasSucias=true;
+  let letras=new Map();   // carácter → {img, geo, ancho}
+  let desp=0, giroX=0, giroY=0, corrimiento=0, tiempoLuz=0;
+  let fondoLuz, ojoPez, pantalla, ht;
+  let sucio=true;
 
   p.setup=()=>{
     const cv=p.createCanvas(IW,IH,p.WEBGL);
     cv.parent('sketch-holder');
     p.pixelDensity(1);
     p.noStroke();
-    p.textureMode(p.NORMAL);
+    ojoPez=p.createShader(VERTICES_OJO_PEZ,PIXELES_OJO_PEZ);
+    fondoLuz=p.createShader(VERTICES_FONDO,PIXELES_FONDO);
     ht=p.createFilterShader(HT_FRAG);
+    pantalla=p.buildGeometry(()=>p.plane(1,1));
   };
 
-  // Letras del texto en el orden en que se reparten por las columnas
   function palabra(){
-    let t=P.texto.length?P.texto:' ';
-    if(P.mayus) t=t.toUpperCase();
-    if(P.invertir) t=[...t].reverse().join('');
+    let t=T.texto.length?T.texto:' ';
+    if(T.mayus) t=t.toUpperCase();
     return [...t];
   }
 
-  // Geometría y tamaño de textura dependen del ancho de columna y alto de fila
-  function asegurarGeometria(){
-    const filas=2*Math.ceil((IH*1.9/P.altoFila)/2)+3;   // impar y de sobra para cubrir
-    const pw=P.anchoCol*0.94, ph=P.altoFila*0.86;
-    const key=filas+'|'+pw+'|'+ph;
-    if(key===tiraKey) return;
-    if(tira) p.freeGeometry(tira);
-    tira=p.buildGeometry(()=>{
-      const mitad=(filas-1)/2;
-      for(let r=-mitad;r<=mitad;r++){ p.push(); p.translate(0,r*P.altoFila,0); p.plane(pw,ph); p.pop(); }
-    });
-    tiraKey=key;
-    // La textura tiene EXACTAMENTE la proporción del plano: así el plano
-    // no la estira, y la letra se ve con su ancho real.
-    const nh=512, nw=Math.max(8,Math.round(nh*pw/ph));
-    if(nw!==texW||nh!==texH){
-      letras.forEach(g=>g.remove()); letras.clear();
-      texW=nw; texH=nh;
-    }
-    texturasSucias=true;
+  function liberar(l){
+    if(l.geo) p.freeGeometry(l.geo);
+    try{ const tx=p._renderer.textures.get(l.img); if(tx){ tx.remove(); p._renderer.textures.delete(l.img); } }catch(e){}
   }
 
-  // Dibuja cada letra con UNA sola escala para todo el texto: misma línea
-  // base y mismo alto para todas, sin estirar las finas (la I queda fina).
-  function crearTexturas(){
+  // Cada letra se dibuja con UNA sola escala para todo el texto (misma
+  // línea base y mismo alto) y su plano tiene el ancho REAL de la letra:
+  // nada se estira y el espaciado entre letras es el normal.
+  function crearLetras(){
+    letras.forEach(liberar); letras.clear();
     const chars=[...new Set(palabra())];
-    const f=fuenteActual();
-    const R=1000;
+    const f=fuenteActual(), R=1000, texH=512, g0=T.grosor;
+    const ph=ALTO_FILA*0.86;
     const med=document.createElement('canvas').getContext('2d');
     med.font=`${f.peso} ${R}px ${f.fam}`;
-    let asc=0, desc=0, ancho=0;
+    let asc=0, desc=0;
     for(const ch of chars){
       if(!ch.trim()) continue;
       const m=med.measureText(ch);
-      asc=Math.max(asc,m.actualBoundingBoxAscent);
-      desc=Math.max(desc,m.actualBoundingBoxDescent);
-      ancho=Math.max(ancho,m.actualBoundingBoxLeft+m.actualBoundingBoxRight);
+      asc=Math.max(asc,m.actualBoundingBoxAscent); desc=Math.max(desc,m.actualBoundingBoxDescent);
     }
-    if(asc+desc<=0){ asc=R*0.7; desc=0; ancho=R*0.5; }
-    const g0=P.grosor;
-    const k=Math.min((texH*0.97-g0)/(asc+desc),(texW*0.94-g0)/ancho)*P.tam;   // escala uniforme
-    const size=R*k;
+    if(asc+desc<=0){ asc=R*0.7; desc=0; }
+    const k=(texH*0.97-g0)/(asc+desc)*T.tam;
     const base=texH/2+(asc-desc)*k/2;
-
-    // quita las letras que ya no se usan
-    for(const [ch,g] of letras) if(!chars.includes(ch)){ g.remove(); letras.delete(ch); }
     for(const ch of chars){
-      let g=letras.get(ch);
-      if(!g){ g=p.createGraphics(texW,texH); g.pixelDensity(1); letras.set(ch,g); }
-      g.clear();
-      const ctx=g.drawingContext;
-      ctx.save();
-      ctx.setTransform(1,0,0,1,0,0);
-      ctx.font=`${f.peso} ${size}px ${f.fam}`;
+      if(!ch.trim()){ letras.set(ch,{img:null,geo:null,ancho:ph*0.3}); continue; }
+      const m=med.measureText(ch);
+      const tinta=(m.actualBoundingBoxLeft+m.actualBoundingBoxRight)*k;
+      const texW=Math.max(8,Math.ceil(tinta+g0+6));
+      // p5.Image con su propio canvas 2D: textura fija, sin p5.Graphics
+      const img=p.createImage(texW,texH);
+      const ctx=img.drawingContext;
+      ctx.clearRect(0,0,texW,texH);
+      ctx.font=`${f.peso} ${R*k}px ${f.fam}`;
       ctx.textAlign='left'; ctx.textBaseline='alphabetic';
       ctx.fillStyle='#fff'; ctx.strokeStyle='#fff'; ctx.lineJoin='round'; ctx.lineWidth=g0;
-      const pw=P.anchoCol*0.94;
-      anchos.set(ch,pw*0.35);
-      if(ch.trim()){
-        const m=ctx.measureText(ch);
-        anchos.set(ch,(m.actualBoundingBoxLeft+m.actualBoundingBoxRight+g0)/texW*pw);
-        // centra la tinta de la letra en la celda (a su ancho real)
-        const x=texW/2-(m.actualBoundingBoxRight-m.actualBoundingBoxLeft)/2;
-        if(g0>0) ctx.strokeText(ch,x,base);
-        ctx.fillText(ch,x,base);
-      }
-      ctx.restore();
+      const x=texW/2-(m.actualBoundingBoxRight-m.actualBoundingBoxLeft)*k/2;
+      if(g0>0) ctx.strokeText(ch,x,base);
+      ctx.fillText(ch,x,base);
+      img.setModified(true);
+      const pw=texW/texH*ph;
+      const geo=p.buildGeometry(()=>{
+        const mitad=(FILAS-1)/2;
+        for(let r=-mitad;r<=mitad;r++){ p.push(); p.translate(0,r*ALTO_FILA,0); p.plane(pw,ph,SUBDIVISION,SUBDIVISION); p.pop(); }
+      });
+      letras.set(ch,{img,geo,ancho:pw});
     }
-    texturasSucias=false;
+    sucio=false;
   }
-
-  // Color de cada capa de la extrusión: frente → pared → fondo
-  function asegurarCapas(){
-    const key=P.capas+P.cFrente+P.cOscuro+P.cFondo;
-    if(key===capasKey) return;
-    const a=p.color(P.cFrente), b=p.color(P.cOscuro), c=p.color(P.cFondo);
-    capasCol=[];
-    for(let k=0;k<P.capas;k++){
-      const f=P.capas>1?k/(P.capas-1):0;
-      let col;
-      if(f===0) col=a;
-      else { const t=easeOutExpo(f); col=t<0.5?p.lerpColor(a,b,t*2):p.lerpColor(b,c,(t-0.5)*2); }
-      capasCol.push([p.red(col),p.green(col),p.blue(col)]);
-    }
-    capasKey=key;
-  }
-  function easeOutExpo(t){ return t>=1?1:1-Math.pow(2,-10*t); }
 
   p.draw=()=>{
-    asegurarGeometria();
-    if(texturasSucias) crearTexturas();
-    asegurarCapas();
-
-    const dist=(IH/2)/Math.tan(P.fov/2);
-    p.perspective(P.fov,IW/IH,1,40000);
+    if(sucio) crearLetras();
+    const dist=(IH/2)/Math.tan(CAMPO_VISUAL/2);
+    p.perspective(CAMPO_VISUAL,IW/IH,1,40000);
     p.camera(0,0,dist,0,0,0,0,1,0);
-    p.background(P.cFondo);
+    p.background(0);
     const gl=p.drawingContext;
-    // Se pinta de lejos a cerca, así que no hace falta el test de profundidad
     gl.disable(gl.DEPTH_TEST);
+    dibujarFondo();
 
-    if(!P.pausa) desp=((desp+P.vel*P.dir)%P.altoFila+P.altoFila)%P.altoFila;
+    desp=(desp+P.VELOCIDAD*S)%ALTO_FILA;
 
-    const dentro=p.mouseX>0&&p.mouseX<p.width&&p.mouseY>0&&p.mouseY<p.height;
-    giroY=p.lerp(giroY,dentro?p.map(p.mouseX,0,p.width,-P.inclin,P.inclin):0,0.05);
-    giroX=p.lerp(giroX,dentro?p.map(p.mouseY,0,p.height,P.inclin,-P.inclin):0,0.05);
-
+    // El texto gira y se corre hacia la franja de luz
+    const xLuz=p.constrain(estadoFranja(tiempoLuz).x,-1,1);
+    giroY=p.lerp(giroY,xLuz*P.GIRO_HACIA_LUZ,P.SUAVIDAD_SEGUIR);
+    corrimiento=p.lerp(corrimiento,xLuz*P.MOVER_HACIA_LUZ*IW/2,P.SUAVIDAD_SEGUIR);
+    giroX=p.lerp(giroX,0,P.SUAVIDAD_SEGUIR);
     p.push();
+    p.translate(corrimiento,0,0);
     p.rotateX(giroX); p.rotateY(giroY);
     dibujarEscena();
     p.pop();
-    // tint(255) y no noTint(): en p5 1.11 noTint() deja el tinte en null
-    // y filter() falla al dibujar la imagen.
-    p.tint(255);
     gl.enable(gl.DEPTH_TEST);
 
-    if(P.ht){
-      ht.setUniform('uCelda',P.htCelda);
-      ht.setUniform('uPunto',P.htPunto);
-      ht.setUniform('uNiveles',P.htNiveles);
-      ht.setUniform('uAngulo',P.htAngulo);
-      ht.setUniform('uMezcla',P.htMezcla);
-      ht.setUniform('uModo',P.htModo);
-      const c=p.color(P.cFondo);
-      ht.setUniform('uFondo',[p.red(c)/255,p.green(c)/255,p.blue(c)/255]);
+    // Capa halftone encima de todo
+    if(H.on){
+      ht.setUniform('uCelda',H.celda); ht.setUniform('uPunto',H.punto);
+      ht.setUniform('uNiveles',H.niveles); ht.setUniform('uAngulo',H.angulo);
+      ht.setUniform('uMezcla',H.mezcla); ht.setUniform('uModo',H.modo);
       p.filter(ht);
     }
   };
 
+  // ---------- FONDO: franja de luz que cruza y rebota ----------
+  function estadoFranja(t){
+    const C=Math.max(0.05,P.SEGUNDOS_CRUCE), A=Math.max(0,P.APAGADO);
+    const total=2*C+2*A;
+    t=((t%total)+total)%total;
+    let ida, brillo=1;
+    if(t<C) ida=easeInOutSine(t/C);
+    else if(t<C+A){ ida=1; brillo=0; }
+    else if(t<2*C+A) ida=1-easeInOutSine((t-C-A)/C);
+    else { ida=0; brillo=0; }
+    const x=p.lerp(-P.RECORRIDO,P.RECORRIDO,ida);
+    if(P.APAGAR_EN_BORDE>=0.5&&Math.abs(x)>=1) brillo=0;
+    if(P.APAGAR_EN_BORDE<0.5) brillo=1;
+    return {x,brillo};
+  }
+  function easeInOutSine(t){ return 0.5-0.5*Math.cos(Math.PI*t); }
+
+  function dibujarFondo(){
+    tiempoLuz+=Math.min(p.deltaTime,100)/1000;
+    const e=estadoFranja(tiempoLuz);
+    p.shader(fondoLuz);
+    fondoLuz.setUniform('uX',e.x);
+    fondoLuz.setUniform('uAncho',P.ANCHO_FRANJA);
+    fondoLuz.setUniform('uIntensidad',P.INTENSIDAD_LUZ*e.brillo);
+    fondoLuz.setUniform('uBruma',P.BRUMA);
+    fondoLuz.setUniform('uNucleo',colorVec(COL.luzNucleo));
+    fondoLuz.setUniform('uMedia',colorVec(COL.luzMedia));
+    fondoLuz.setUniform('uBorde',colorVec(COL.luzBorde));
+    p.model(pantalla);
+    p.resetShader();
+  }
+  function colorVec(hex){ const c=p.color(hex); return [p.red(c)/255,p.green(c)/255,p.blue(c)/255]; }
+
+  // ---------- ESCENA ----------
   function dibujarEscena(){
     const pal=palabra(), n=pal.length;
-    const cols=P.columnas, mitad=(cols-1)/2;
-    const central=Math.min(P.central,n-1);
-    const letraDe=c=>pal[((central+c)%n+n)%n];
-    const ancho=c=>anchos.get(letraDe(c))||P.anchoCol*0.5;
-    // Espaciado normal: cada columna se separa de la vecina por el ancho
-    // REAL de las dos letras + el espaciado, no por una celda fija.
-    const pos={0:0};
-    for(let c=1;c<=mitad;c++){
-      pos[c]=pos[c-1]+(ancho(c-1)+ancho(c))/2+P.espaciado;
-      pos[-c]=pos[-c+1]-(ancho(-c+1)+ancho(-c))/2-P.espaciado;
-    }
-    // radio de la curva: el giro por columna se mide sobre el ancho medio
-    let medio=0; for(const ch of pal) medio+=(anchos.get(ch)||0); medio=Math.max(1,medio/n+P.espaciado);
-    const plano=P.giro<0.05;
-    const radio=plano?0:medio/p.radians(P.giro);
-    const orden=[];
-    for(let c=-mitad;c<=mitad;c++) orden.push(c);
-    orden.sort((a,b)=>P.concavo>0?Math.abs(a)-Math.abs(b):Math.abs(b)-Math.abs(a));
-    for(const c of orden){
-      const ch=letraDe(c), tex=letras.get(ch);
-      if(!tex||!ch.trim()) continue;
-      const a=plano?0:pos[c]/radio;
-      const x=plano?pos[c]:radio*Math.sin(a);
-      const z=plano?0:P.concavo*(radio-radio*Math.cos(a));
+    // Posición de cada columna sobre la curva según el ancho real de las letras
+    const anchos=pal.map(ch=>(letras.get(ch)||{ancho:0}).ancho);
+    const gap=T.espaciado*S;
+    const total=anchos.reduce((a,b)=>a+b,0)+gap*(n-1);
+    const pos=[]; let x=-total/2;
+    for(let i=0;i<n;i++){ pos.push(x+anchos[i]/2); x+=anchos[i]+gap; }
+    const plano=P.GIRO_POR_COLUMNA<0.05;
+    const radio=plano?0:ANCHO_LETRA/p.radians(P.GIRO_POR_COLUMNA);
+    const orden=[...pal.keys()].sort((a,b)=>CONCAVO>0?Math.abs(pos[a])-Math.abs(pos[b]):Math.abs(pos[b])-Math.abs(pos[a]));
+    for(const i of orden){
+      const l=letras.get(pal[i]);
+      if(!l||!l.img) continue;
+      const a=plano?0:pos[i]/radio;
       p.push();
-      p.translate(x,0,z);
-      p.rotateY(-a*P.concavo);
-      dibujarColumna(tex);
+      if(plano) p.translate(pos[i],0,0);
+      else p.translate(radio*Math.sin(a),0,CONCAVO*(radio-radio*Math.cos(a)));
+      p.rotateY(-a*CONCAVO);
+      dibujarColumna(l);
       p.pop();
     }
   }
 
-  // Una columna: la misma letra repetida en vertical, cada una extruida.
-  // Capas de atrás hacia adelante.
-  function dibujarColumna(tex){
-    p.texture(tex);
-    const L=capasCol.length;
-    for(let k=L-1;k>=0;k--){
-      const f=L>1?k/(L-1):0;
-      const col=capasCol[k];
-      p.tint(col[0],col[1],col[2]);
+  function dibujarColumna(l){
+    p.shader(ojoPez);
+    p.texture(l.img);
+    ojoPez.setUniform('uFuerza',P.OJO_PEZ);
+    ojoPez.setUniform('uVertical',OJO_PEZ_VERTICAL);
+    ojoPez.setUniform('uAspecto',IW/IH);
+    ojoPez.setUniform('uMonoEscala',MONO_ESCALA);
+    const respiro=1+P.RESPIRACION*Math.sin(p.TWO_PI*(p.frameCount%DURACION_LOOP)/DURACION_LOOP);
+    ojoPez.setUniform('uMonoCrece',P.MONO_CRECE*respiro);
+    ojoPez.setUniform('uMonoCurva',MONO_CURVA);
+    const fr=p.color(COL.letra), me=p.color(COL.estela), fi=p.color(COL.estelaFin);
+    for(let k=CAPAS-1;k>=0;k--){
+      const f=k/(CAPAS-1);
+      const c=colorCapa(f,fr,me,fi);
+      ojoPez.setUniform('uTinte',[p.red(c)/255,p.green(c)/255,p.blue(c)/255,alphaCapa(f)]);
       p.push();
-      p.translate(0,-desp,-f*P.profundidad);
-      p.model(tira);
+      p.translate(0,-desp,-f*P.PROFUNDIDAD*S);
+      p.model(l.geo);
       p.pop();
     }
+    p.resetShader();
+  }
+  function alphaCapa(f){ return f===0?1:P.ALFA_ESTELA*Math.pow(1-f,1.6); }
+  function colorCapa(f,fr,me,fi){
+    if(f===0) return fr;
+    const t=CONTRASTE_FRENTE+(1-CONTRASTE_FRENTE)*Math.pow(f,1.1-LARGO_VERDE);
+    return t<0.5?p.lerpColor(fr,me,t*2):p.lerpColor(me,fi,(t-0.5)*2);
   }
 
-  p.marcarTexturas=()=>{ texturasSucias=true; };
+  p.marcar=()=>{ sucio=true; };
 };
 
 /* ─────────── PANEL ─────────── */
 function relleno(el){ const v=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--val',v+'%'); }
-const sliders={};
-function slider(cont,key,label,min,max,step,fmt,alCambiar){
+const fmt=v=>Number.isInteger(v)?String(v):(+v).toFixed(2);
+// Slider con casilla numérica: lo que escribas puede salir del rango (valor custom)
+function slider(cont,obj,key,label,min,max,step,alCambiar){
   const r=document.createElement('div'); r.className='y-row';
-  r.innerHTML=`<div class="y-lab"><span>${label}</span><output></output></div><input type="range" min="${min}" max="${max}" step="${step}">`;
-  const inp=r.querySelector('input'), out=r.querySelector('output');
-  const pinta=()=>{ out.textContent=fmt?fmt(P[key]):P[key]; relleno(inp); };
-  inp.value=P[key]; pinta();
-  inp.addEventListener('input',()=>{ P[key]=parseFloat(inp.value); pinta(); if(alCambiar) alCambiar(); });
+  r.innerHTML=`<div class="y-lab"><span>${label}</span><input class="y-num" type="number" step="any"></div><input type="range" min="${min}" max="${max}" step="${step}">`;
+  const s=r.querySelector('input[type=range]'), num=r.querySelector('.y-num');
+  const pinta=()=>{ num.value=fmt(obj[key]); s.value=Math.min(max,Math.max(min,obj[key])); relleno(s); };
+  pinta();
+  s.addEventListener('input',()=>{ obj[key]=parseFloat(s.value); num.value=fmt(obj[key]); relleno(s); if(alCambiar) alCambiar(); });
+  num.addEventListener('change',()=>{ const v=parseFloat(num.value); if(Number.isFinite(v)) obj[key]=v; pinta(); if(alCambiar) alCambiar(); });
   $(cont).appendChild(r);
-  sliders[key]={inp,pinta,fijar(v){ P[key]=v; inp.value=v; pinta(); }};
-  return sliders[key];
+  return r;
 }
-const tex=()=>p5i&&p5i.marcarTexturas();
-const f0=v=>Math.round(v), f2=v=>(+v).toFixed(2);
+const marcar=()=>p5i&&p5i.marcar();
 
 // texto
-const txt=$('jText'); txt.value=P.texto;
-const letraCentral=()=>{ const pal=[...(P.texto||' ')]; const i=Math.min(P.central,pal.length-1); const ch=(P.mayus?pal[i].toUpperCase():pal[i]); return `${i+1} · ${ch.trim()?ch:'␣'}`; };
-const slCentral=slider('slTexto','central','Letra central',0,P.texto.length-1,1,()=>letraCentral());
-txt.addEventListener('input',()=>{
-  P.texto=txt.value;
-  const n=Math.max(1,[...P.texto].length);
-  slCentral.inp.max=n-1;
-  slCentral.fijar(Math.floor((n-1)/2));
-  tex();
-});
-function toggle(id,get,set){ const b=$(id); b.setAttribute('aria-pressed',get()); b.addEventListener('click',()=>{ set(!get()); b.setAttribute('aria-pressed',get()); }); }
-toggle('jMayus',()=>P.mayus,v=>{ P.mayus=v; txt.classList.toggle('min',!v); slCentral.pinta(); tex(); });
-toggle('jRev',()=>P.invertir,v=>{ P.invertir=v; tex(); });
+const txt=$('jText'); txt.value=T.texto;
+txt.addEventListener('input',()=>{ T.texto=txt.value; marcar(); });
+const bMay=$('jMayus');
+bMay.addEventListener('click',()=>{ T.mayus=!T.mayus; bMay.setAttribute('aria-pressed',T.mayus); txt.classList.toggle('min',!T.mayus); marcar(); });
 
 // tipografía
 function cargarFuente(f){
-  const spec=`${f.peso} 100px ${f.fam}`;
   if(!document.fonts||f.fam==='sans-serif') return Promise.resolve();
-  return document.fonts.load(spec,P.texto||'A').catch(()=>{});
+  return document.fonts.load(`${f.peso} 100px ${f.fam}`,T.texto||'A').catch(()=>{});
 }
 function elegirFuente(id){
-  P.fuente=id;
+  T.fuente=id;
   document.querySelectorAll('#jFonts .cam-btn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===id));
   $('jUpload').setAttribute('aria-pressed',id==='custom');
-  cargarFuente(fuenteActual()).then(tex);
-  tex();
+  marcar(); cargarFuente(fuenteActual()).then(marcar);
 }
 FUENTES.forEach(f=>{
   const b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.textContent=f.label; b.dataset.id=f.id;
@@ -1183,173 +1246,106 @@ $('jUpload').addEventListener('click',()=>$('jFile').click());
 $('jFile').addEventListener('change',async e=>{
   const file=e.target.files&&e.target.files[0]; if(!file) return;
   try{
-    const buf=await file.arrayBuffer();
     const fam='GlamCustom'+(++nSubidas);
-    const ff=new FontFace(fam,buf);
+    const ff=new FontFace(fam,await file.arrayBuffer());
     await ff.load(); document.fonts.add(ff);
-    fuenteSubida={fam:`"${fam}"`,peso:'400',nombre:file.name};
+    fuenteSubida={fam:`"${fam}"`,peso:'400'};
     $('jFontName').textContent='✓ '+file.name;
     elegirFuente('custom');
   }catch(err){ $('jFontName').textContent='× no se pudo leer la fuente'; }
   e.target.value='';
 });
-slider('slTipo','tam','Tamaño',0.5,1.6,0.01,f2,tex);
-slider('slTipo','grosor','Grosor extra',0,30,1,f0,tex);
+slider('slTipo',T,'tam','Tamaño',0.5,1.5,0.01,marcar);
+slider('slTipo',T,'grosor','Grosor extra',0,40,1,marcar);
+slider('slTipo',T,'espaciado','Espaciado entre letras',-30,80,1);
 
-// columnas
-slider('slCols','columnas','Columnas',3,41,2,f0);
-slider('slCols','espaciado','Espaciado entre letras',-40,120,1,f0);
-slider('slCols','anchoCol','Ancho de columna',60,320,1,f0,tex);
-slider('slCols','altoFila','Alto de fila',100,480,1,f0,tex);
-slider('slCols','giro','Giro por columna',0,45,0.5,v=>v+'°');
-slider('slCols','fov','Perspectiva',0.3,2.2,0.01,f2);
-function curva(v){ P.concavo=v; $('jConc').setAttribute('aria-pressed',v>0); $('jConv').setAttribute('aria-pressed',v<0); }
-$('jConc').addEventListener('click',()=>curva(1)); $('jConv').addEventListener('click',()=>curva(-1));
+// colores (selector + casilla hex)
+for(const [clave,etiqueta] of SELECTORES){
+  const fila=document.createElement('label'); fila.className='y-crow';
+  fila.innerHTML=`<span>${etiqueta}</span><input type="color"><input class="y-hex" type="text" maxlength="7" spellcheck="false">`;
+  const sel=fila.querySelector('input[type=color]'), hex=fila.querySelector('.y-hex');
+  sel.value=COL[clave].toLowerCase(); hex.value=COL[clave].toUpperCase();
+  sel.addEventListener('input',()=>{ COL[clave]=sel.value; hex.value=sel.value.toUpperCase(); hex.classList.remove('error'); });
+  hex.addEventListener('change',()=>{
+    let v=hex.value.trim(); if(!v.startsWith('#')) v='#'+v;
+    if(/^#[0-9a-fA-F]{6}$/.test(v)){ COL[clave]=v; sel.value=v.toLowerCase(); hex.value=v.toUpperCase(); hex.classList.remove('error'); }
+    else hex.classList.add('error');
+  });
+  $('jColores').appendChild(fila);
+}
 
-// extrusión
-slider('slExtr','profundidad','Profundidad',0,1000,1,f0);
-slider('slExtr','capas','Capas',2,140,1,f0);
-
-// movimiento
-slider('slMov','vel','Velocidad',0,6,0.05,f2);
-slider('slMov','inclin','Inclinación mouse',0,0.6,0.01,f2);
-function dir(v){ P.dir=v; $('jUp').setAttribute('aria-pressed',v>0); $('jDown').setAttribute('aria-pressed',v<0); }
-$('jUp').addEventListener('click',()=>dir(1)); $('jDown').addEventListener('click',()=>dir(-1));
-toggle('jPause',()=>P.pausa,v=>{ P.pausa=v; });
-
-// color
-const cIn={cFrente:$('cFrente'),cOscuro:$('cOscuro'),cFondo:$('cFondo')};
-function pintarColores(){ for(const k in cIn) cIn[k].value=P[k].toLowerCase(); }
-for(const k in cIn) cIn[k].addEventListener('input',()=>{ P[k]=cIn[k].value; marcarPaleta(null); });
-function marcarPaleta(nombre){ document.querySelectorAll('#jPalettes .cam-btn').forEach(b=>b.setAttribute('aria-pressed',b.textContent===nombre)); }
-Object.keys(PALETAS).forEach(nombre=>{
-  const b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.textContent=nombre;
-  b.addEventListener('click',()=>{ Object.assign(P,PALETAS[nombre]); pintarColores(); marcarPaleta(nombre); });
-  $('jPalettes').appendChild(b);
-});
-pintarColores(); marcarPaleta('CREMA');
+// movimiento, luz y estela
+for(const [clave,etiqueta,mn,mx,paso] of SLIDERS) slider('slMov',P,clave,etiqueta,mn,mx,paso);
 
 // halftone
-toggle('htOn',()=>P.ht,v=>{ P.ht=v; $('htOn').textContent=v?'ON':'OFF'; });
-function modoHt(v){ P.htModo=v; $('htDither').setAttribute('aria-pressed',v===0); $('htDots').setAttribute('aria-pressed',v===1); filaAngulo.style.display=v===1?'':'none'; filaNiveles.style.display=v===0?'':'none'; }
+const bOn=$('htOn');
+bOn.addEventListener('click',()=>{ H.on=!H.on; bOn.setAttribute('aria-pressed',H.on); bOn.textContent=H.on?'ON':'OFF'; });
+slider('slHt',H,'celda','Tamaño de celda (px)',2,40,1);
+slider('slHt',H,'punto','Tamaño del punto',0.2,1,0.01);
+const filaNiv=slider('slHt',H,'niveles','Niveles de color',2,6,1);
+const filaAng=slider('slHt',H,'angulo','Ángulo de trama (°)',0,90,1);
+slider('slHt',H,'mezcla','Intensidad',0,1,0.01);
+function modoHt(v){ H.modo=v; $('htDither').setAttribute('aria-pressed',v===0); $('htDots').setAttribute('aria-pressed',v===1); filaAng.style.display=v===1?'':'none'; filaNiv.style.display=v===0?'':'none'; }
 $('htDither').addEventListener('click',()=>modoHt(0)); $('htDots').addEventListener('click',()=>modoHt(1));
-slider('slHt','htCelda','Tamaño de celda',2,40,1,v=>v+' px');
-slider('slHt','htPunto','Tamaño del punto',0.2,1,0.01,f2);
-const filaNiveles=slider('slHt','htNiveles','Niveles de color',2,6,1,f0).inp.parentElement;
-const filaAngulo=slider('slHt','htAngulo','Ángulo de trama',0,90,1,v=>v+'°').inp.parentElement;
-slider('slHt','htMezcla','Intensidad',0,1,0.01,f2);
-modoHt(P.htModo);
+modoHt(H.modo);
 
-elegirFuente(P.fuente);
+elegirFuente(T.fuente);
 p5i=new p5(sketch);
-// cuando terminan de cargar las fuentes web, se redibujan las letras
-if(document.fonts) document.fonts.ready.then(tex);
+if(document.fonts) document.fonts.ready.then(marcar);
 
 /* ─────────── AJUSTE DEL LIENZO 1080×1440 A LA VENTANA ─────────── */
 const frameEl=$('frame'),viewportEl=$('viewport'),sidebarEl=$('sidebar'),winBarEl=document.querySelector('#viewport .win__bar');
-const RW=IW,RH=IH;
 function fitStage(){
   frameEl.style.width='';frameEl.style.height='';viewportEl.style.width='';
   if(window.matchMedia('(max-width: 768px)').matches) return;
   const sb=$('stage').getBoundingClientRect(),pad=20,bw=2,gap=5,sw=sidebarEl.offsetWidth,cw=bw*2,ch=winBarEl.offsetHeight+bw*2;
-  const maxW=sb.width-8-pad*2-gap-sw-cw,maxH=sb.height-8-pad*2-ch;let h=maxH,w=h*RW/RH;if(w>maxW){w=maxW;h=w*RH/RW;}
+  const maxW=sb.width-8-pad*2-gap-sw-cw,maxH=sb.height-8-pad*2-ch;let h=maxH,w=h*IW/IH;if(w>maxW){w=maxW;h=w*IH/IW;}
   w=Math.max(120,Math.floor(w));h=Math.max(160,Math.floor(h));
   viewportEl.style.width=(w+cw)+'px';frameEl.style.width=(w+cw+gap+sw+pad*2)+'px';frameEl.style.height=(h+ch+pad*2)+'px';}
 addEventListener('resize',fitStage); fitStage(); addEventListener('load',fitStage);
 
 /* ─────────── EXPORTAR ─────────── */
 const lienzo=()=>document.querySelector('#sketch-holder canvas');
-// Video vertical 1080×1920 (reel/historia) con la ventana del viewport y el
-// arte 1080×1440 copiado directo del lienzo, igual que WALL.
 GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'justice',manual:false,ancho:1080,alto:1920,aspecto:IW/IH,info:'reel',
   ventana:()=>$('viewport'),zonaCursor:()=>$('sketch-holder'),dibujar(c,w,h){const cv=lienzo();if(cv)c.drawImage(cv,0,0,w,h);}});
 GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'justice-pantalla',etiqueta:'● TODA LA VENTANA',info:'toda la ventana',fuente:'pestaña',manual:false});
 $('jPng').addEventListener('click',()=>{ if(p5i) p5i.saveCanvas('justice','png'); });
 
 /* ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ─────────── */
-    (function setupInfoPanel() {
-      const panel = $('infoPanel');
-      const bar = $('infoPanelBar');
-      const minBtn = $('infoMin');
-      const closeBtn = $('infoClose');
-      const bubble = $('infoBubble');
-      const bounds = $('stage');
-      const exclusionEl = $('frame');
+(function setupInfoPanel() {
+  const panel=$('infoPanel'), bar=$('infoPanelBar'), minBtn=$('infoMin'), closeBtn=$('infoClose'), bubble=$('infoBubble');
+  const bounds=$('stage'), exclusionEl=$('frame');
+  function defaultPos(){
+    const b=bounds.getBoundingClientRect(), c=exclusionEl.getBoundingClientRect();
+    const ex={x:c.left-b.left,y:c.top-b.top,w:c.width,h:c.height};
+    const pw=panel.offsetWidth, ph=panel.offsetHeight;
+    if(b.width-(ex.x+ex.w)>=pw+14) return {x:ex.x+ex.w+8,y:ex.y+8};
+    if(b.height-(ex.y+ex.h)>=ph+14) return {x:8,y:ex.y+ex.h+8};
+    return {x:8,y:8};
+  }
+  const placeAt=pos=>{ panel.style.left=pos.x+'px'; panel.style.top=pos.y+'px'; };
+  const placeBubbleAt=pos=>{ bubble.style.left=pos.x+'px'; bubble.style.top=pos.y+'px'; };
+  let userMoved=false;
+  const resetToDefault=()=>{ if(!userMoved) placeAt(defaultPos()); };
+  let dragging=false, offsetX=0, offsetY=0;
+  const getPoint=e=>e.touches&&e.touches[0]?e.touches[0]:e;
+  function onDown(e){ if(e.target===minBtn||e.target===closeBtn) return; const pt=getPoint(e), rect=panel.getBoundingClientRect(); dragging=true; userMoved=true; offsetX=pt.clientX-rect.left; offsetY=pt.clientY-rect.top; }
+  function onMove(e){ if(!dragging) return; const pt=getPoint(e), b=bounds.getBoundingClientRect(); placeAt({x:pt.clientX-b.left-offsetX,y:pt.clientY-b.top-offsetY}); if(e.cancelable) e.preventDefault(); }
+  const onUp=()=>{ dragging=false; };
+  bar.addEventListener('mousedown',onDown); bar.addEventListener('touchstart',onDown,{passive:true});
+  window.addEventListener('mousemove',onMove); window.addEventListener('touchmove',onMove,{passive:false});
+  window.addEventListener('mouseup',onUp); window.addEventListener('touchend',onUp);
+  function collapseToBubble(){ const rect=panel.getBoundingClientRect(), b=bounds.getBoundingClientRect(); placeBubbleAt({x:rect.left-b.left,y:rect.top-b.top}); panel.style.display='none'; bubble.style.display='flex'; }
+  minBtn.addEventListener('click',collapseToBubble); closeBtn.addEventListener('click',collapseToBubble);
+  bubble.addEventListener('click',()=>{ const bR=bubble.getBoundingClientRect(), bnd=bounds.getBoundingClientRect(); placeAt({x:bR.left-bnd.left,y:bR.top-bnd.top}); bubble.style.display='none'; panel.style.display=''; });
+  window.addEventListener('resize',resetToDefault);
+  requestAnimationFrame(()=>requestAnimationFrame(resetToDefault));
+  if(window.matchMedia('(max-width: 768px)').matches){
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ placeBubbleAt({x:8,y:8}); panel.style.display='none'; bubble.style.display='flex'; }));
+  }
+})();
 
-      function defaultPos() {
-        const b = bounds.getBoundingClientRect();
-        const c = exclusionEl.getBoundingClientRect();
-        const ex = { x: c.left - b.left, y: c.top - b.top, w: c.width, h: c.height };
-        const pw = panel.offsetWidth, ph = panel.offsetHeight;
-        const roomRight = b.width - (ex.x + ex.w);
-        const roomBelow = b.height - (ex.y + ex.h);
-        if (roomRight >= pw + 14) return { x: ex.x + ex.w + 8, y: ex.y + 8 };
-        if (roomBelow >= ph + 14) return { x: 8, y: ex.y + ex.h + 8 };
-        return { x: 8, y: 8 };
-      }
-      function placeAt(pos) { panel.style.left = pos.x + 'px'; panel.style.top = pos.y + 'px'; }
-      function placeBubbleAt(pos) { bubble.style.left = pos.x + 'px'; bubble.style.top = pos.y + 'px'; }
-
-      let userMoved = false;
-      function resetToDefault() { if (!userMoved) placeAt(defaultPos()); }
-
-      let dragging = false, offsetX = 0, offsetY = 0;
-      function getPoint(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
-      function onDown(e) {
-        if (e.target === minBtn || e.target === closeBtn) return;
-        const p = getPoint(e);
-        const rect = panel.getBoundingClientRect();
-        dragging = true;
-        userMoved = true;
-        offsetX = p.clientX - rect.left;
-        offsetY = p.clientY - rect.top;
-      }
-      function onMove(e) {
-        if (!dragging) return;
-        const p = getPoint(e);
-        const b = bounds.getBoundingClientRect();
-        placeAt({ x: p.clientX - b.left - offsetX, y: p.clientY - b.top - offsetY });
-        if (e.cancelable) e.preventDefault();
-      }
-      function onUp() { dragging = false; }
-
-      bar.addEventListener('mousedown', onDown);
-      bar.addEventListener('touchstart', onDown, { passive: true });
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('touchmove', onMove, { passive: false });
-      window.addEventListener('mouseup', onUp);
-      window.addEventListener('touchend', onUp);
-
-      function collapseToBubble() {
-        const rect = panel.getBoundingClientRect();
-        const b = bounds.getBoundingClientRect();
-        placeBubbleAt({ x: rect.left - b.left, y: rect.top - b.top });
-        panel.style.display = 'none';
-        bubble.style.display = 'flex';
-      }
-      minBtn.addEventListener('click', collapseToBubble);
-      closeBtn.addEventListener('click', collapseToBubble);
-      bubble.addEventListener('click', () => {
-        const bRect = bubble.getBoundingClientRect();
-        const bnd = bounds.getBoundingClientRect();
-        placeAt({ x: bRect.left - bnd.left, y: bRect.top - bnd.top });
-        bubble.style.display = 'none';
-        panel.style.display = '';
-      });
-
-      window.addEventListener('resize', resetToDefault);
-      requestAnimationFrame(() => requestAnimationFrame(resetToDefault));
-      // En el celular el panel taparía el lienzo: arranca como burbuja "?".
-      if (window.matchMedia('(max-width: 768px)').matches) {
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          placeBubbleAt({ x: 8, y: 8 });
-          panel.style.display = 'none';
-          bubble.style.display = 'flex';
-        }));
-      }
-    })();
-
-window.__justice=P; // para depurar desde la consola
+window.__justice={P,COL,T,H};
 })();
   </script>
 

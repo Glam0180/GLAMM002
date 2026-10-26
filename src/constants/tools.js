@@ -3,7 +3,7 @@ export const TOOLS = [
     id: 'justice',
     slug: 'justice',
     name: 'Justice',
-    description: 'Tu texto extruido en 3D, en columnas sobre una curva que suben en loop, con trama halftone.',
+    description: 'Tu texto extruido en 3D con ojo de pez, una franja de luz roja que lo cruza y trama halftone encima.',
     category: 'typography',
     status: 'live',
     tech: ['p5.js', 'WebGL', 'GLSL'],
