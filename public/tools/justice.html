@@ -841,7 +841,7 @@ const IW=1080, IH=1440;
 const P={
   texto:'JUSTICE', central:3, mayus:true, invertir:false,
   fuente:'anton', tam:1, grosor:4,
-  columnas:11, anchoCol:156, altoFila:245, giro:23, concavo:1, fov:1.2,
+  columnas:17, espaciado:14, anchoCol:156, altoFila:245, giro:23, concavo:1, fov:1.2,
   profundidad:352, capas:90,
   vel:1.1, dir:1, inclin:0.15, pausa:false,
   cFrente:'#FFF4C2', cOscuro:'#6E0000', cFondo:'#FF0100',
@@ -921,6 +921,7 @@ void main(){
 /* ─────────── SKETCH (p5 en modo instancia, lienzo fijo 1080×1440) ─────────── */
 let p5i=null;
 const sketch=p=>{
+  let anchos=new Map();      // carácter → ancho real de su tinta, en unidades 3D
   let letras=new Map();       // carácter → p5.Graphics (blanco sobre transparente, se tiñe con tint)
   let texW=0, texH=0;
   let tira=null, tiraKey='';  // geometría: una columna de FILAS letras planas
@@ -1002,8 +1003,11 @@ const sketch=p=>{
       ctx.font=`${f.peso} ${size}px ${f.fam}`;
       ctx.textAlign='left'; ctx.textBaseline='alphabetic';
       ctx.fillStyle='#fff'; ctx.strokeStyle='#fff'; ctx.lineJoin='round'; ctx.lineWidth=g0;
+      const pw=P.anchoCol*0.94;
+      anchos.set(ch,pw*0.35);
       if(ch.trim()){
         const m=ctx.measureText(ch);
+        anchos.set(ch,(m.actualBoundingBoxLeft+m.actualBoundingBoxRight+g0)/texW*pw);
         // centra la tinta de la letra en la celda (a su ancho real)
         const x=texW/2-(m.actualBoundingBoxRight-m.actualBoundingBoxLeft)/2;
         if(g0>0) ctx.strokeText(ch,x,base);
@@ -1075,19 +1079,29 @@ const sketch=p=>{
   function dibujarEscena(){
     const pal=palabra(), n=pal.length;
     const cols=P.columnas, mitad=(cols-1)/2;
+    const central=Math.min(P.central,n-1);
+    const letraDe=c=>pal[((central+c)%n+n)%n];
+    const ancho=c=>anchos.get(letraDe(c))||P.anchoCol*0.5;
+    // Espaciado normal: cada columna se separa de la vecina por el ancho
+    // REAL de las dos letras + el espaciado, no por una celda fija.
+    const pos={0:0};
+    for(let c=1;c<=mitad;c++){
+      pos[c]=pos[c-1]+(ancho(c-1)+ancho(c))/2+P.espaciado;
+      pos[-c]=pos[-c+1]-(ancho(-c+1)+ancho(-c))/2-P.espaciado;
+    }
+    // radio de la curva: el giro por columna se mide sobre el ancho medio
+    let medio=0; for(const ch of pal) medio+=(anchos.get(ch)||0); medio=Math.max(1,medio/n+P.espaciado);
+    const plano=P.giro<0.05;
+    const radio=plano?0:medio/p.radians(P.giro);
     const orden=[];
     for(let c=-mitad;c<=mitad;c++) orden.push(c);
     orden.sort((a,b)=>P.concavo>0?Math.abs(a)-Math.abs(b):Math.abs(b)-Math.abs(a));
-    // radio de la curva: las columnas quedan borde con borde
-    const radio=P.anchoCol/p.radians(Math.max(P.giro,0.01));
-    const central=Math.min(P.central,n-1);
     for(const c of orden){
-      const a=p.radians(P.giro*c);
-      const x=radio*Math.sin(a);
-      const z=P.concavo*(radio-radio*Math.cos(a));
-      const idx=((central+c)%n+n)%n;
-      const tex=letras.get(pal[idx]);
-      if(!tex||!pal[idx].trim()) continue;
+      const ch=letraDe(c), tex=letras.get(ch);
+      if(!tex||!ch.trim()) continue;
+      const a=plano?0:pos[c]/radio;
+      const x=plano?pos[c]:radio*Math.sin(a);
+      const z=plano?0:P.concavo*(radio-radio*Math.cos(a));
       p.push();
       p.translate(x,0,z);
       p.rotateY(-a*P.concavo);
@@ -1183,7 +1197,8 @@ slider('slTipo','tam','Tamaño',0.5,1.6,0.01,f2,tex);
 slider('slTipo','grosor','Grosor extra',0,30,1,f0,tex);
 
 // columnas
-slider('slCols','columnas','Columnas',3,25,2,f0);
+slider('slCols','columnas','Columnas',3,41,2,f0);
+slider('slCols','espaciado','Espaciado entre letras',-40,120,1,f0);
 slider('slCols','anchoCol','Ancho de columna',60,320,1,f0,tex);
 slider('slCols','altoFila','Alto de fila',100,480,1,f0,tex);
 slider('slCols','giro','Giro por columna',0,45,0.5,v=>v+'°');
