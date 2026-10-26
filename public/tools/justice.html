@@ -908,7 +908,7 @@ function fuenteActual(){
 }
 
 // Halftone (capa encima de toda la escena)
-const H = { on:true, modo:1, celda:5, punto:0.88, niveles:4, angulo:33, mezcla:1 };
+const H = { on:true, modo:1, celda:9, celdaArriba:2, punto:0.88, niveles:4, angulo:33, mezcla:1 };
 
 /* ─────────── SHADERS ─────────── */
 const VERTICES_FONDO = `
@@ -981,35 +981,57 @@ const HT_FRAG=`precision highp float;
 varying vec2 vTexCoord;
 uniform sampler2D tex0;
 uniform vec2 canvasSize;
-uniform float uCelda, uPunto, uNiveles, uAngulo, uMezcla, uModo;
+uniform float uCelda, uCeldaArriba, uPunto, uNiveles, uAngulo, uMezcla, uModo;
 float bayer2(vec2 a){ a=floor(a); return fract(dot(a, vec2(0.5, a.y*0.75))); }
 float bayer4(vec2 a){ return bayer2(0.5*a)*0.25 + bayer2(a); }
+
+// Degradado de tamaño: la celda mide uCelda abajo y uCeldaArriba arriba,
+// variando de forma continua. y se mide desde abajo del lienzo.
+float A, B;
+float celdaEn(float y){ return max(A + B * y, 0.5); }
+float vDeY(float y){ return abs(B) < 1e-5 ? y / A : log(celdaEn(y) / A) / B; }   // filas acumuladas
+float yDeV(float v){ return abs(B) < 1e-5 ? v * A : (A * exp(B * v) - A) / B; }
+
 void main(){
   vec4 orig = texture2D(tex0, vTexCoord);
   vec2 px = vTexCoord * canvasSize;
+  float y = (1.0 - vTexCoord.y) * canvasSize.y;          // desde abajo
+  A = uCelda; B = (uCeldaArriba - uCelda) / canvasSize.y;
   vec3 res;
   if (uModo < 0.5) {
-    // DITHER: celdas cuantizadas por canal con umbral de Bayer, en puntos cuadrados
-    vec2 celda = floor(px / uCelda);
-    vec3 c = texture2D(tex0, (celda + 0.5) * uCelda / canvasSize).rgb;
+    // DITHER: filas cuyo alto sigue el degradado; en cada fila, celdas cuadradas
+    float v = vDeY(y);
+    float fila = floor(v);
+    float yc = yDeV(fila + 0.5);
+    float cf = celdaEn(yc);
+    float col = floor(px.x / cf);
+    vec2 centro = vec2((col + 0.5) * cf, canvasSize.y - yc);
+    vec3 c = texture2D(tex0, clamp(centro / canvasSize, 0.0, 1.0)).rgb;
     float L = max(uNiveles - 1.0, 1.0);
-    float t = bayer4(celda) + 1.0/32.0;
+    float t = bayer4(vec2(col, fila)) + 1.0/32.0;
     vec3 alto = clamp(floor(c * L + t) / L, 0.0, 1.0);
     vec3 bajo = clamp(floor(c * L) / L, 0.0, 1.0);
-    vec2 f = abs(fract(px / uCelda) - 0.5) * 2.0;
+    vec2 f = abs(vec2(fract(px.x / cf), fract(v)) - 0.5) * 2.0;
     res = mix(bajo, alto, step(max(f.x, f.y), uPunto));
   } else {
-    // PUNTOS: trama clásica girada; el radio sale de la luminosidad
+    // PUNTOS: trama girada sobre la misma rejilla con degradado
     float a = radians(uAngulo);
     mat2 R = mat2(cos(a), -sin(a), sin(a), cos(a));
-    vec2 pr = R * px;
-    vec2 centroR = (floor(pr / uCelda) + 0.5) * uCelda;
-    vec3 c = texture2D(tex0, clamp((centroR * R) / canvasSize, 0.0, 1.0)).rgb;
+    float cp = celdaEn(y);
+    vec2 w = vec2(px.x / cp, vDeY(y));                   // rejilla de celdas de tamaño 1
+    vec2 wr = R * w;
+    vec2 cr = floor(wr) + 0.5;
+    vec2 wc = cr * R;                                    // vuelta (transpuesta)
+    float yc = yDeV(wc.y);
+    float cc = celdaEn(yc);
+    vec2 centro = vec2(wc.x * cc, canvasSize.y - yc);
+    vec3 c = texture2D(tex0, clamp(centro / canvasSize, 0.0, 1.0)).rgb;
     float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
     float m = max(max(c.r, c.g), c.b);
     vec3 tinta = m > 0.001 ? c / m : vec3(0.0);
-    float r = sqrt(luma) * uCelda * 0.5 * (0.6 + uPunto * 0.9);
-    float k = 1.0 - smoothstep(r - 0.75, r + 0.75, length(pr - centroR));
+    float r = sqrt(luma) * 0.5 * (0.6 + uPunto * 0.9);  // en unidades de celda
+    float d = length(wr - cr);
+    float k = 1.0 - smoothstep(r - 0.75 / cp, r + 0.75 / cp, d);
     res = tinta * k;
   }
   gl_FragColor = vec4(mix(orig.rgb, res, uMezcla), 1.0);
@@ -1116,7 +1138,7 @@ const sketch=p=>{
 
     // Capa halftone encima de todo
     if(H.on){
-      ht.setUniform('uCelda',H.celda); ht.setUniform('uPunto',H.punto);
+      ht.setUniform('uCelda',H.celda); ht.setUniform('uCeldaArriba',H.celdaArriba); ht.setUniform('uPunto',H.punto);
       ht.setUniform('uNiveles',H.niveles); ht.setUniform('uAngulo',H.angulo);
       ht.setUniform('uMezcla',H.mezcla); ht.setUniform('uModo',H.modo);
       p.filter(ht);
@@ -1292,7 +1314,8 @@ for(const [clave,etiqueta,mn,mx,paso] of SLIDERS) slider('slMov',P,clave,etiquet
 // halftone
 const bOn=$('htOn');
 bOn.addEventListener('click',()=>{ H.on=!H.on; bOn.setAttribute('aria-pressed',H.on); bOn.textContent=H.on?'ON':'OFF'; });
-slider('slHt',H,'celda','Tamaño de celda (px)',2,40,1);
+slider('slHt',H,'celda','Celda abajo (px)',1,40,0.5);
+slider('slHt',H,'celdaArriba','Celda arriba (px)',1,40,0.5);
 slider('slHt',H,'punto','Tamaño del punto',0.2,1,0.01);
 const filaNiv=slider('slHt',H,'niveles','Niveles de color',2,6,1);
 const filaAng=slider('slHt',H,'angulo','Ángulo de trama (°)',0,90,1);
