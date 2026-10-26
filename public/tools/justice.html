@@ -848,6 +848,7 @@ const P = {
   OJO_PEZ:          1.28,
   MONO_CRECE:       0,
   RESPIRACION:      0,
+  EJE_Z:            0,   // zoom: + acerca el texto a la cámara, − lo aleja
 };
 const COL = {
   luzNucleo: '#FFFFFF',
@@ -883,6 +884,7 @@ const SLIDERS = [
   ['OJO_PEZ',          'Ojo de pez',                0, 1.5, 0.01],
   ['MONO_CRECE',       'Forma de moño',             0, 2.5, 0.01],
   ['RESPIRACION',      'Respiración del moño',      0, 0.6, 0.01],
+  ['EJE_Z',            'Zoom (eje Z)',              -1500, 600, 5],
 ];
 
 // Texto y tipografía
@@ -1098,7 +1100,7 @@ const sketch=p=>{
     corrimiento=p.lerp(corrimiento,xLuz*P.MOVER_HACIA_LUZ*IW/2,P.SUAVIDAD_SEGUIR);
     giroX=p.lerp(giroX,0,P.SUAVIDAD_SEGUIR);
     p.push();
-    p.translate(corrimiento,0,0);
+    p.translate(corrimiento,0,P.EJE_Z*S);   // zoom en el eje Z
     p.rotateX(giroX); p.rotateY(giroY);
     dibujarEscena();
     p.pop();
