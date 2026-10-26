@@ -849,6 +849,7 @@ const P = {
   MONO_CRECE:       0,
   RESPIRACION:      0,
   EJE_Z:            0,   // zoom: + acerca el texto a la cámara, − lo aleja
+  AL_FRENTE:        1,   // agranda las letras en pantalla (después del ojo de pez) hacia los bordes
 };
 const COL = {
   luzNucleo: '#FFFFFF',
@@ -885,6 +886,7 @@ const SLIDERS = [
   ['MONO_CRECE',       'Forma de moño',             0, 2.5, 0.01],
   ['RESPIRACION',      'Respiración del moño',      0, 0.6, 0.01],
   ['EJE_Z',            'Zoom (eje Z)',              -1500, 600, 5],
+  ['AL_FRENTE',        'Traer al frente (hacia el borde)', 0.5, 3, 0.01],
 ];
 
 // Texto y tipografía
@@ -942,7 +944,7 @@ attribute vec3 aPosition;
 attribute vec2 aTexCoord;
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
-uniform float uFuerza, uVertical, uAspecto, uMonoEscala, uMonoCrece, uMonoCurva;
+uniform float uFuerza, uVertical, uAspecto, uMonoEscala, uMonoCrece, uMonoCurva, uFrente;
 varying vec2 vTexCoord;
 void main() {
   vec4 clip = uProjectionMatrix * uModelViewMatrix * vec4(aPosition, 1.0);
@@ -953,6 +955,7 @@ void main() {
     float rNuevo = atan(r * uFuerza * 2.0) / (uFuerza * 2.0);
     ndc *= rNuevo / r;
   }
+  ndc *= uFrente;   // trae las letras al frente: crecen hacia los bordes del lienzo
   float x0 = ndc.x, y0 = ndc.y;
   ndc.y = y0 * (uMonoEscala + uMonoCrece * x0 * x0);
   ndc.x = x0 * (1.0 + uMonoCurva * y0 * y0);
@@ -1183,6 +1186,7 @@ const sketch=p=>{
     const respiro=1+P.RESPIRACION*Math.sin(p.TWO_PI*(p.frameCount%DURACION_LOOP)/DURACION_LOOP);
     ojoPez.setUniform('uMonoCrece',P.MONO_CRECE*respiro);
     ojoPez.setUniform('uMonoCurva',MONO_CURVA);
+    ojoPez.setUniform('uFrente',P.AL_FRENTE);
     const fr=p.color(COL.letra), me=p.color(COL.estela), fi=p.color(COL.estelaFin);
     for(let k=CAPAS-1;k>=0;k--){
       const f=k/(CAPAS-1);
