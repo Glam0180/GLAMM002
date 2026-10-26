@@ -836,8 +836,8 @@ const P = {
   APAGADO:          0.05,
   RECORRIDO:        1.43,
   ANCHO_FRANJA:     0.36,
-  BRILLO_CENTRO:    0.35,  // blanco sutil en el centro de la franja
-  INTENSIDAD_LUZ:   1.07,
+  BRILLO_CENTRO:    0.37,  // blanco sutil en el centro de la franja
+  INTENSIDAD_LUZ:   1.42,
   BRUMA:            0.11,
   GIRO_HACIA_LUZ:   0,
   MOVER_HACIA_LUZ:  0,
@@ -846,12 +846,12 @@ const P = {
   PROFUNDIDAD:      1200,
   ALFA_ESTELA:      0.04,
   GIRO_POR_COLUMNA: 3,
-  OJO_PEZ:          1.46,
+  OJO_PEZ:          1.41,
   MONO_CRECE:       0,
   RESPIRACION:      0,
-  EJE_Z:            185,   // zoom: + acerca el texto a la cámara, − lo aleja
-  AL_FRENTE:        2.22,
-  ESTIRAR_ANCHO:    1,     // estira solo a lo ancho, después del ojo de pez   // agranda las letras en pantalla (después del ojo de pez) hacia los bordes
+  EJE_Z:            270,   // zoom: + acerca el texto a la cámara, − lo aleja
+  AL_FRENTE:        1.22,
+  ESTIRAR_ANCHO:    1.63,     // estira solo a lo ancho, después del ojo de pez   // agranda las letras en pantalla (después del ojo de pez) hacia los bordes
 };
 const COL = {
   luzNucleo: '#FFFFFF',
@@ -894,7 +894,7 @@ const SLIDERS = [
 ];
 
 // Texto y tipografía
-const T = { texto:'JUSTICE', mayus:true, fuente:'sans', tam:1, grosor:14, espaciado:4 };
+const T = { texto:'JUSTICE', mayus:true, fuente:'sans', tam:0.82, grosor:24, espaciado:1 };
 const FUENTES=[
   {id:'sans',    label:'SANS',    fam:'sans-serif',      peso:'700'},
   {id:'anton',   label:'ANTON',   fam:'"Anton"',         peso:'400'},
@@ -910,7 +910,7 @@ function fuenteActual(){
 }
 
 // Halftone (capa encima de toda la escena)
-const H = { on:true, modo:1, celda:9, celdaArriba:2, punto:0.88, niveles:4, angulo:33, mezcla:1 };
+const H = { on:true, modo:1, celda:9, celdaArriba:2, punto:0.88, niveles:4, angulo:32, mezcla:0 };
 
 /* ─────────── SHADERS ─────────── */
 const VERTICES_FONDO = `
