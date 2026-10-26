@@ -835,7 +835,8 @@ const P = {
   APAGAR_EN_BORDE:  0.7,
   APAGADO:          0.05,
   RECORRIDO:        1.43,
-  ANCHO_FRANJA:     0.35,
+  ANCHO_FRANJA:     0.36,
+  BRILLO_CENTRO:    0.35,  // blanco sutil en el centro de la franja
   INTENSIDAD_LUZ:   1.07,
   BRUMA:            0.11,
   GIRO_HACIA_LUZ:   0,
@@ -845,11 +846,11 @@ const P = {
   PROFUNDIDAD:      1200,
   ALFA_ESTELA:      0.04,
   GIRO_POR_COLUMNA: 3,
-  OJO_PEZ:          1.28,
+  OJO_PEZ:          1.46,
   MONO_CRECE:       0,
   RESPIRACION:      0,
-  EJE_Z:            0,   // zoom: + acerca el texto a la cámara, − lo aleja
-  AL_FRENTE:        1,   // agranda las letras en pantalla (después del ojo de pez) hacia los bordes
+  EJE_Z:            185,   // zoom: + acerca el texto a la cámara, − lo aleja
+  AL_FRENTE:        2.22,   // agranda las letras en pantalla (después del ojo de pez) hacia los bordes
 };
 const COL = {
   luzNucleo: '#FFFFFF',
@@ -873,6 +874,7 @@ const SLIDERS = [
   ['APAGADO',          'Apagado en el borde (s)',   0, 2, 0.05],
   ['RECORRIDO',        'Hasta dónde rebota',        0.2, 1.6, 0.01],
   ['ANCHO_FRANJA',     'Ancho de la franja',        0.05, 1.2, 0.01],
+  ['BRILLO_CENTRO',    'Brillo del centro (blanco)', 0, 1, 0.01],
   ['INTENSIDAD_LUZ',   'Intensidad del rojo',       0, 2.5, 0.01],
   ['BRUMA',            'Bruma roja',                0, 0.5, 0.01],
   ['GIRO_HACIA_LUZ',   'Giro del texto hacia la luz', 0, 1, 0.01],
@@ -882,7 +884,7 @@ const SLIDERS = [
   ['PROFUNDIDAD',      'Largo de la estela',        50, 1200, 10],
   ['ALFA_ESTELA',      'Opacidad de la estela',     0.005, 0.25, 0.005],
   ['GIRO_POR_COLUMNA', 'Giro entre letras (°)',     0, 40, 1],
-  ['OJO_PEZ',          'Ojo de pez',                0, 1.5, 0.01],
+  ['OJO_PEZ',          'Ojo de pez',                0, 4, 0.01],
   ['MONO_CRECE',       'Forma de moño',             0, 2.5, 0.01],
   ['RESPIRACION',      'Respiración del moño',      0, 0.6, 0.01],
   ['EJE_Z',            'Zoom (eje Z)',              -1500, 600, 5],
@@ -906,7 +908,7 @@ function fuenteActual(){
 }
 
 // Halftone (capa encima de toda la escena)
-const H = { on:true, modo:0, celda:5, punto:0.85, niveles:4, angulo:45, mezcla:1 };
+const H = { on:true, modo:1, celda:5, punto:0.88, niveles:4, angulo:33, mezcla:1 };
 
 /* ─────────── SHADERS ─────────── */
 const VERTICES_FONDO = `
@@ -920,7 +922,7 @@ void main() {
 const PIXELES_FONDO = `
 precision highp float;
 varying vec2 vPos;
-uniform float uX, uAncho, uIntensidad, uBruma;
+uniform float uX, uAncho, uIntensidad, uBruma, uBrillo;
 uniform vec3 uNucleo, uMedia, uBorde;
 float azar(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 void main() {
@@ -936,6 +938,9 @@ void main() {
   luz *= 0.97 + 0.03 * azar(floor(p * 400.0));
   float tope = max(luz.r, max(luz.g, luz.b));
   if (tope > 1.0) luz /= tope;
+  // Centro de la franja con más poder: un núcleo angosto que tira a blanco
+  float centro = exp(-d * d * 14.0) * (1.0 - 0.25 * p.y * p.y);
+  luz = mix(luz, uNucleo, clamp(centro * uBrillo * min(uIntensidad, 1.0), 0.0, 1.0));
   gl_FragColor = vec4(luz, 1.0);
 }`;
 const VERTICES_OJO_PEZ = `
@@ -1143,6 +1148,7 @@ const sketch=p=>{
     fondoLuz.setUniform('uAncho',P.ANCHO_FRANJA);
     fondoLuz.setUniform('uIntensidad',P.INTENSIDAD_LUZ*e.brillo);
     fondoLuz.setUniform('uBruma',P.BRUMA);
+    fondoLuz.setUniform('uBrillo',P.BRILLO_CENTRO);
     fondoLuz.setUniform('uNucleo',colorVec(COL.luzNucleo));
     fondoLuz.setUniform('uMedia',colorVec(COL.luzMedia));
     fondoLuz.setUniform('uBorde',colorVec(COL.luzBorde));
