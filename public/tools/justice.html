@@ -9,15 +9,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&family=Anton&family=Bebas+Neue&display=swap" rel="stylesheet">
   <title>STUDIO GLAM — JUSTICE</title>
   <style>
-/* Tema alterno (switch): fondo #00E9B4, ventanas #E64CDF, líneas y texto negros.
+/* Tema alterno (switch bajado) en JUSTICE: ventanas gris oscuro con líneas, texto y barras blancas.
    --g-red = color de acento (líneas, texto, barras); --g-black = superficie.
-   En las barras de título se vuelve a cruzar el par para que queden
-   magenta con texto negro. */
+   Arriba (normal) se queda rojo/negro. */
 :root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb))}
-:root{--g-red-rgb:255,255,255;--g-black-rgb:30,30,30;--g-red-dark:#444444}  /* Justice: ventanas gris oscuro con blanco */
-html.glam-alt{--g-red-rgb:0,0,0;--g-black-rgb:230,76,223;--g-red-dark:#3a3a3a}
-html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red-rgb:230,76,223;--g-black-rgb:0,0,0;--g-red-dark:#b93ab3}
-html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{background:#00E9B4}
+:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red-dark:#CC0000}
+html.glam-alt{--g-red-rgb:255,255,255;--g-black-rgb:30,30,30;--g-red-dark:#444444}
+html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red-rgb:255,255,255;--g-black-rgb:30,30,30;--g-red-dark:#444444}
+html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{background:#1E1E1E}
 
     /* Space Mono — mismo design system que CANICAS.3D */
 
