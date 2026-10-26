@@ -1,5 +1,17 @@
 export const TOOLS = [
   {
+    id: 'justice',
+    slug: 'justice',
+    name: 'Justice',
+    description: 'Tu texto extruido en 3D, en columnas sobre una curva que suben en loop, con trama halftone.',
+    category: 'typography',
+    status: 'live',
+    tech: ['p5.js', 'WebGL', 'GLSL'],
+    path: '/tools/justice',
+    index: '012',
+    thumbnail: '/tool-thumbnails/justice.webp',
+  },
+  {
     id: 'we-dont-belong',
     slug: 'we-dont-belong',
     name: "We Don't Belong",
