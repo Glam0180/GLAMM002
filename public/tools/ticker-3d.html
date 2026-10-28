@@ -709,31 +709,27 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div class="win__bar-controls"><div class="win__ctrl">—</div><div class="win__ctrl">□</div></div>
           </div>
           <div class="daisy-panel y-panel">
+            <div class="y-sec">presets</div>
+            <div class="y-btns" id="gPreset"></div>
             <div class="y-sec">texto</div>
             <input id="tText" class="y-txt" type="text" maxlength="40" spellcheck="false" autocomplete="off">
             <div class="y-btns">
-              <button type="button" class="cam-btn" id="tMayus" aria-pressed="true">MAYÚSCULAS</button>
-              <button type="button" class="cam-btn" id="tFill" aria-pressed="true">LLENAR ANILLO</button>
+              <button type="button" class="cam-btn" id="tMayus">MAYÚSCULAS</button>
+              <button type="button" class="cam-btn" id="tFill">LLENAR RECORRIDO</button>
             </div>
-            <button type="button" class="cam-btn" id="tBack" aria-pressed="false">MOSTRAR CARA TRASERA</button>
             <div class="y-sec">tipografía</div>
             <div class="y-btns" id="gFont"></div>
             <button type="button" class="cam-btn" id="bFont">↑ SUBIR FUENTE</button>
             <input type="file" id="fFont" accept=".ttf,.otf,.woff" hidden>
             <div class="y-fontname" id="fontName"></div>
-            <div id="slType"></div>
-            <div class="y-sec">anillo</div>
             <div class="y-btns" id="gMode"></div>
-            <div id="slRing"></div>
-            <div class="y-sec">cámara</div>
+            <div id="slType"></div>
+            <div class="y-sec">recorrido 3d</div>
+            <div class="y-btns" id="gPath"></div>
+            <div id="slPath"></div>
+            <div class="y-sec">giro y cámara</div>
             <div id="slCam"></div>
-            <div class="y-sec">movimiento</div>
-            <div id="slMov"></div>
-            <div class="y-btns tres">
-              <button type="button" class="cam-btn" id="bFwd" aria-pressed="true">AVANZA</button>
-              <button type="button" class="cam-btn" id="bBack" aria-pressed="false">RETROCEDE</button>
-              <button type="button" class="cam-btn" id="bPause" aria-pressed="false">PAUSA</button>
-            </div>
+            <div class="y-hint">arrastra sobre el lienzo para girar</div>
           </div>
         </div>
 
@@ -741,12 +737,18 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
           <div class="win__bar">
             <span class="slz">///</span>
             <div class="win__bar-dot"></div>
-            <span class="win__bar-title">ESTELA Y COLOR</span>
+            <span class="win__bar-title">ESTELA, COLOR Y LOOP</span>
             <div class="win__bar-controls"><div class="win__ctrl">—</div><div class="win__ctrl">□</div></div>
           </div>
           <div class="daisy-panel y-panel">
             <div class="y-sec">estela de contornos</div>
             <div id="slTrail"></div>
+            <div class="y-sec">profundidad</div>
+            <div id="slDepth"></div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="tPersp">GROSOR 3D</button>
+              <button type="button" class="cam-btn" id="tBack">CARA TRASERA</button>
+            </div>
             <div class="y-sec">distorsión</div>
             <div id="slWarp"></div>
             <div class="y-sec">línea y color</div>
@@ -754,14 +756,23 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div id="cols" class="y-row"></div>
             <div id="slLine"></div>
             <div class="y-btns">
-              <button type="button" class="cam-btn" id="tHide" aria-pressed="true">OCULTAR DETRÁS</button>
-              <button type="button" class="cam-btn" id="tSolid" aria-pressed="false">FRENTE SÓLIDO</button>
+              <button type="button" class="cam-btn" id="tHide">OCULTAR DETRÁS</button>
+              <button type="button" class="cam-btn" id="tSolid">FRENTE SÓLIDO</button>
+            </div>
+            <div class="y-sec">loop</div>
+            <div id="slLoop"></div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="bPause">PAUSA</button>
+              <button type="button" class="cam-btn" id="bRev">INVERTIR</button>
             </div>
             <div class="y-sec">exportar</div>
+            <button type="button" class="cam-btn" id="bLoop">● EXPORTAR LOOP MP4 (1080×1440)</button>
+            <div class="y-hint" id="loopInfo">cuadro por cuadro, sin saltos: el último empalma con el primero</div>
             <div class="cam-wrap" id="recSlot"></div>
-            <button type="button" class="cam-btn" id="bPng">↓ PNG 1080×1440</button>
-            <button type="button" class="cam-btn" id="bSvg">↓ SVG (CUADRO ACTUAL)</button>
-            <div class="y-hint">arrastra sobre el lienzo para girar el anillo</div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="bPng">↓ PNG</button>
+              <button type="button" class="cam-btn" id="bSvg">↓ SVG</button>
+            </div>
           </div>
         </div>
       </div>
@@ -778,13 +789,13 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         </div>
       </div>
       <div class="ip__body">
-        <p class="ip__desc">un ticker de texto envuelto en un anillo 3d que gira; cada letra deja una estela de contornos que se deforma con la perspectiva.</p>
+        <p class="ip__desc">un ticker de texto que corre por un recorrido 3d cerrado; cada letra deja una estela de contornos que forma tubos y se deforma con la perspectiva. loop exacto.</p>
         <ol class="ip__steps">
           <li>escribe tu texto y elige o sube una tipografía</li>
-          <li>elige anillo vertical u horizontal y ajusta radio y giro</li>
-          <li>arrastra sobre el lienzo para girar el anillo</li>
-          <li>alarga la estela y acerca la cámara para deformar los bordes</li>
-          <li>graba en video o exporta png / svg</li>
+          <li>elige un preset o un recorrido: anillo, ola, nudo u ocho</li>
+          <li>arrastra sobre el lienzo para girar</li>
+          <li>ajusta capas y separación de la estela, niebla y órbita</li>
+          <li>exporta el loop mp4 exacto, png o svg</li>
         </ol>
       </div>
     </div>
@@ -801,178 +812,294 @@ function goHome(){ try{ if(window.top&&window.top!==window) window.top.location.
 $('mhouse').addEventListener('click',goHome); $('mclose').addEventListener('click',goHome); $('wclose').addEventListener('click',goHome);
 
 /* ═════════════════════════════════════════════════════════
-   TICKER 3D
+   TICKER 3D · texto que corre por un recorrido 3D cerrado
    ---------------------------------------------------------
-   El texto se reparte sobre un anillo (un círculo en 3D) que gira
-   como un letrero de texto que corre. Cada letra se dibuja muchas
-   veces: la copia de adelante en su lugar y las demás un poco más
-   atrás en el recorrido del anillo (y opcionalmente hacia el eje).
-   Cada copia es el CONTORNO de la letra, relleno con el color del
-   fondo y trazado con el color de la línea; pintadas de atrás hacia
-   adelante, solo se ven los bordes y forman "tubos" de líneas.
-   La proyección en perspectiva es propia (sin WebGL): así las líneas
-   salen nítidas y se pueden exportar a SVG.
+   1. El recorrido (anillo, ola, nudo toroidal u ocho) se muestrea y se
+      reparametriza por longitud de arco. En cada punto se calcula un
+      marco que no gira de golpe (transporte paralelo): tangente T,
+      lado U y normal hacia afuera N. Así la letra se curva siguiendo
+      la trayectoria sin voltearse.
+   2. Cada letra es su contorno real (opentype.js), con los tramos rectos
+      subdivididos para que también se doblen.
+   3. Estela: copias del contorno a lo largo del recorrido, con una
+      separación constante. Rellenas con el color del fondo y pintadas
+      de lejos a cerca, solo se ven los bordes: forman tubos de líneas.
+   4. Profundidad: el grosor de línea sigue la perspectiva y el color se
+      funde con el fondo según la distancia.
+   5. Loop: TODO depende de una fase 0→1. En una vuelta el texto avanza
+      exactamente una repetición, así el último cuadro empalma con el
+      primero. La exportación de loop renderiza cuadro por cuadro.
    ═════════════════════════════════════════════════════════ */
 const IW=1080, IH=1440;
 
-const P={
+const BASE={
   texto:'REAL', mayus:true, llenar:true,
-  fuente:'archivo', tam:470, espaciado:.06,
-  modo:'vertical', radio:620, giroX:15, giroY:-30, giroZ:10,
-  dist:1450, fov:60, centroX:170, centroY:30,
-  vel:.35, dir:1, pausa:false,
-  capas:32, estela:-.6, profundidad:460, afinar:.25, trasera:false,
+  fuente:'archivo', modo:'vertical', tam:370, espaciado:-.02,
+  recorrido:'anillo', radio:820, amp:140, p:2, q:3,
+  giroX:10, giroY:-46, giroZ:-6, orbita:10, pivote:1, dist:1050, fov:64, centroX:-170, centroY:0,
+  capas:64, separacion:0, haciaEje:620, afinar:.2, desvanecer:.15,
+  niebla:.45, persp:true, trasera:false,
   onda:0, ondaFrec:3, torsion:0,
-  fondo:'#4A2160', linea:'#F6E3D3', grosor:2.2, ocultar:true, solido:false,
+  fondo:'#4A2160', linea:'#F6E3D3', grosor:1.8, ocultar:true, solido:false,
+  duracion:8, avance:1, dir:1, pausa:false,
 };
+const PRESETS={
+  RUEDA:{},
+  ABANICO:{giroX:-16,giroY:-62,giroZ:14,haciaEje:700,afinar:.3,capas:72,tam:320,radio:860,dist:980,fov:66,centroX:60},
+  CORONA:{modo:'horizontal',radio:720,tam:250,giroX:38,giroY:0,giroZ:0,orbita:12,dist:1350,fov:60,capas:64,haciaEje:430,afinar:.2,centroX:-60,centroY:160},
+  NUDO:{recorrido:'nudo',modo:'horizontal',pivote:0,radio:400,amp:150,p:2,q:3,tam:110,giroX:30,giroY:-15,giroZ:0,orbita:20,dist:1900,fov:48,capas:40,separacion:0,haciaEje:120,afinar:0,niebla:.55,grosor:1.4,trasera:true,centroX:0},
+  OLA:{recorrido:'ola',modo:'horizontal',radio:620,amp:160,q:3,tam:200,giroX:26,giroY:0,giroZ:-6,orbita:12,dist:1150,fov:62,capas:56,separacion:0,haciaEje:300,afinar:.15,niebla:.5,centroX:0,centroY:-60},
+  BANDA:{recorrido:'anillo',modo:'horizontal',pivote:0,radio:470,tam:190,giroX:-24,giroY:0,giroZ:-14,orbita:10,dist:1450,fov:58,capas:44,separacion:8,haciaEje:140,afinar:0,niebla:.5,centroX:0},
+};
+const P=JSON.parse(JSON.stringify(BASE));
+let presetActivo='RUEDA';
+
 const FUENTES=[
   {id:'archivo', label:'ARCHIVO', url:'/fonts/ticker/archivo-black.woff'},
   {id:'anton',   label:'ANTON',   url:'/fonts/ticker/anton.woff'},
   {id:'bebas',   label:'BEBAS',   url:'/fonts/ticker/bebas-neue.woff'},
   {id:'yemeyi',  label:'YEMEYI',  url:'/fonts/Yemeyi_Bold_Condensed_Italic.otf'},
 ];
-const PALETAS={
-  UVA:{fondo:'#4A2160',linea:'#F6E3D3'},
-  GLAM:{fondo:'#000000',linea:'#FF0100'},
-  PAPEL:{fondo:'#F1EEE6',linea:'#141414'},
-};
+const PALETAS={ UVA:{fondo:'#4A2160',linea:'#F6E3D3'}, GLAM:{fondo:'#000000',linea:'#FF0100'}, PAPEL:{fondo:'#F1EEE6',linea:'#141414'} };
 
-/* ─────────── fuentes: contornos de cada letra con opentype.js ─────────── */
+/* ─────────── fuentes → contornos ─────────── */
 const fontCache={}; let font=null, glyphs=new Map();
 function loadFont(id,url){
   if(fontCache[id]) return Promise.resolve(fontCache[id]);
   return fetch(url).then(r=>r.arrayBuffer()).then(b=>(fontCache[id]=opentype.parse(b)));
 }
-// Aplana un trazo de opentype (M/L/Q/C/Z) en polígonos. Unidades: 1 = alto del em.
+const MAXSEG=.025;   // tramo máximo (en em) para que las rectas también se curven
 function shapeOf(ch){
   if(glyphs.has(ch)) return glyphs.get(ch);
   const path=font.getPath(ch,0,0,1), adv=font.getAdvanceWidth(ch,1);
   const cont=[]; let cur=null, x0=0, y0=0;
-  const push=(x,y)=>{ cur.push(x,-y); };
+  const lineTo=(x,y)=>{ const dx=x-x0, dy=y-y0, n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/MAXSEG)); for(let i=1;i<=n;i++) cur.push(x0+dx*i/n,-(y0+dy*i/n)); x0=x; y0=y; };
   for(const c of path.commands){
-    if(c.type==='M'){ cur=[]; cont.push(cur); push(c.x,c.y); x0=c.x; y0=c.y; }
-    else if(c.type==='L'){ push(c.x,c.y); x0=c.x; y0=c.y; }
-    else if(c.type==='Q'){ const n=7; for(let i=1;i<=n;i++){ const t=i/n, a=1-t; push(a*a*x0+2*a*t*c.x1+t*t*c.x, a*a*y0+2*a*t*c.y1+t*t*c.y); } x0=c.x; y0=c.y; }
-    else if(c.type==='C'){ const n=9; for(let i=1;i<=n;i++){ const t=i/n, a=1-t; push(a*a*a*x0+3*a*a*t*c.x1+3*a*t*t*c.x2+t*t*t*c.x, a*a*a*y0+3*a*a*t*c.y1+3*a*t*t*c.y2+t*t*t*c.y); } x0=c.x; y0=c.y; }
+    if(c.type==='M'){ cur=[]; cont.push(cur); cur.push(c.x,-c.y); x0=c.x; y0=c.y; }
+    else if(c.type==='L') lineTo(c.x,c.y);
+    else if(c.type==='Q'){ const sx=x0, sy=y0, n=Math.max(6,Math.ceil(Math.hypot(c.x-sx,c.y-sy)/MAXSEG)); for(let i=1;i<=n;i++){ const t=i/n, a=1-t; cur.push(a*a*sx+2*a*t*c.x1+t*t*c.x, -(a*a*sy+2*a*t*c.y1+t*t*c.y)); } x0=c.x; y0=c.y; }
+    else if(c.type==='C'){ const sx=x0, sy=y0, n=Math.max(8,Math.ceil(Math.hypot(c.x-sx,c.y-sy)/MAXSEG)); for(let i=1;i<=n;i++){ const t=i/n, a=1-t; cur.push(a*a*a*sx+3*a*a*t*c.x1+3*a*t*t*c.x2+t*t*t*c.x, -(a*a*a*sy+3*a*a*t*c.y1+3*a*t*t*c.y2+t*t*t*c.y)); } x0=c.x; y0=c.y; }
+    else if(c.type==='Z'&&cur&&cur.length){ lineTo(cur[0],-cur[1]); }
   }
-  // centrar: x en el centro del ancho de avance, y en la mitad de la altura de mayúsculas
   const capH=(font.tables.os2&&font.tables.os2.sCapHeight?font.tables.os2.sCapHeight/font.unitsPerEm:.7);
   const out=cont.filter(c=>c.length>=6).map(c=>{ const a=new Float32Array(c.length); for(let i=0;i<c.length;i+=2){ a[i]=c[i]-adv/2; a[i+1]=c[i+1]-capH/2; } return a; });
-  const s={cont:out, adv, capH, empty:!out.length};
-  glyphs.set(ch,s); return s;
+  const g={cont:out,adv,capH,empty:!out.length}; glyphs.set(ch,g); return g;
 }
 function setFont(f){ font=f; glyphs=new Map(); layout(); }
 
-/* ─────────── disposición del texto sobre el anillo ─────────── */
-let items=[];   // {s, ch} posición a lo largo del anillo (en unidades de mundo)
-function chars(){ let t=P.texto||' '; if(P.mayus) t=t.toUpperCase(); return [...t]; }
-function slotOf(ch){
-  const g=shapeOf(ch);
-  if(P.modo==='vertical') return P.tam*(g.capH+P.espaciado+.18);
-  return P.tam*(g.adv+P.espaciado);
+/* ─────────── recorrido 3D cerrado + marco por transporte paralelo ─────────── */
+const K=2048;
+let PATH=null;   // {L, pos, T, U, N} muestreado uniforme por arco
+function curve(th){
+  const R=P.radio, A=P.amp;
+  switch(P.recorrido){
+    case 'ola':  return [R*Math.sin(th), A*Math.sin(Math.round(P.q)*th), R*Math.cos(th)];
+    case 'nudo': { const p=Math.max(1,Math.round(P.p)), q=Math.max(1,Math.round(P.q)), rr=R+A*Math.cos(q*th);
+                   return [rr*Math.sin(p*th), A*Math.sin(q*th), rr*Math.cos(p*th)]; }
+    case 'ocho': return [R*Math.sin(th), A*Math.cos(th)*.6, R*.75*Math.sin(th)*Math.cos(th)*2];
+    default:     return [R*Math.sin(th), 0, R*Math.cos(th)];
+  }
 }
+function norm(v){ const l=Math.hypot(v[0],v[1],v[2])||1; v[0]/=l; v[1]/=l; v[2]/=l; return v; }
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+function buildPath(){
+  const M=8192, raw=[], cum=new Float64Array(M+1);
+  for(let i=0;i<=M;i++) raw.push(curve(i/M*Math.PI*2));
+  for(let i=1;i<=M;i++) cum[i]=cum[i-1]+Math.hypot(raw[i][0]-raw[i-1][0],raw[i][1]-raw[i-1][1],raw[i][2]-raw[i-1][2]);
+  const L=cum[M], pos=new Float32Array(K*3);
+  let j=0;
+  for(let k=0;k<K;k++){
+    const s=k/K*L; while(j<M-1&&cum[j+1]<s) j++;
+    const f=(s-cum[j])/((cum[j+1]-cum[j])||1);
+    for(let c=0;c<3;c++) pos[k*3+c]=raw[j][c]+(raw[j+1][c]-raw[j][c])*f;
+  }
+  const T=new Float32Array(K*3), U=new Float32Array(K*3), N=new Float32Array(K*3), tg=[];
+  for(let k=0;k<K;k++){ const a=(k+K-1)%K, b=(k+1)%K; tg.push(norm([pos[b*3]-pos[a*3],pos[b*3+1]-pos[a*3+1],pos[b*3+2]-pos[a*3+2]])); }
+  // lado inicial: lo más cercano al eje Y que sea perpendicular a la tangente
+  let u=[0,1,0]; { const d=dot(u,tg[0]); u=norm([u[0]-d*tg[0][0],u[1]-d*tg[0][1],u[2]-d*tg[0][2]]); }
+  const us=[u.slice()];
+  for(let k=1;k<=K;k++){ const t=tg[k%K], d=dot(u,t); u=norm([u[0]-d*t[0],u[1]-d*t[1],u[2]-d*t[2]]); if(k<K) us.push(u.slice()); }
+  // corrección de cierre: reparte el giro sobrante a lo largo del recorrido
+  const t0=tg[0], u0=us[0], b0=cross(t0,u0); let tw=Math.atan2(dot(u,b0),dot(u,u0));
+  for(let k=0;k<K;k++){
+    const t=tg[k], a=-tw*k/K, uk=us[k], bk=cross(t,uk), ca=Math.cos(a), sa=Math.sin(a);
+    const ur=[uk[0]*ca+bk[0]*sa, uk[1]*ca+bk[1]*sa, uk[2]*ca+bk[2]*sa];
+    const n=cross(t,ur);
+    T.set(t,k*3); U.set(ur,k*3); N.set(n,k*3);
+  }
+  PATH={L,pos,T,U,N};
+}
+// Muestra el recorrido en la longitud de arco s (con vuelta): escribe en o
+function sample(s,o){
+  const L=PATH.L, x=((s%L)+L)%L/L*K, i=Math.floor(x)%K, j=(i+1)%K, f=x-Math.floor(x), g=1-f, A=PATH;
+  for(let c=0;c<3;c++){ o.p[c]=A.pos[i*3+c]*g+A.pos[j*3+c]*f; o.u[c]=A.U[i*3+c]*g+A.U[j*3+c]*f; o.n[c]=A.N[i*3+c]*g+A.N[j*3+c]*f; }
+}
+
+/* ─────────── texto sobre el recorrido ─────────── */
+let items=[], repLen=1;
+function chars(){ let t=P.texto||' '; if(P.mayus) t=t.toUpperCase(); return [...t]; }
 function layout(){
   if(!font) return;
-  const cs=chars().concat([' ']), sl=cs.map(slotOf), tot=sl.reduce((a,b)=>a+b,0);
-  const C=2*Math.PI*P.radio;
+  buildPath();
+  // apiladas se leen de arriba hacia abajo: el recorrido sube, así que se invierte el orden
+  const cs=P.modo==='vertical'?chars().concat([' ']).reverse():chars().concat([' ']);
+  const sl=cs.map(ch=>{ const g=shapeOf(ch); return P.tam*((P.modo==='vertical'?g.capH+.22:g.adv)+P.espaciado); });
+  const tot=sl.reduce((a,b)=>a+b,0);
   let reps=1, k=1;
-  if(P.llenar){ reps=Math.max(1,Math.round(C/tot)); k=C/(reps*tot); }   // estirar un poco para que cierre sin costura
+  if(P.llenar){ reps=Math.max(1,Math.floor(PATH.L/tot)); k=PATH.L/(reps*tot); }   // se estira apenas para cerrar sin costura
   items=[]; let s=0;
   for(let r=0;r<reps;r++) for(let i=0;i<cs.length;i++){ const w=sl[i]*k; items.push({s:s+w/2,ch:cs[i]}); s+=w; }
-  const off=P.llenar?0:s/2; for(const it of items) it.s-=off;
+  repLen=P.llenar?PATH.L/reps:PATH.L;
+  if(!P.llenar){ const off=s/2; for(const it of items) it.s-=off; }
 }
 
-/* ─────────── proyección ─────────── */
-let M=[1,0,0,0,1,0,0,0,1], F=1, scroll=0, t=0, dragX=0, dragY=0;
-function matrix(){
-  const ax=(P.giroX+dragY)*Math.PI/180, ay=(P.giroY+dragX)*Math.PI/180, az=P.giroZ*Math.PI/180;
+/* ─────────── cámara ─────────── */
+let R9=[1,0,0,0,1,0,0,0,1], F=1, phase=0;
+function matrix(ph){
+  const d2r=Math.PI/180, orb=P.orbita*Math.sin(ph*Math.PI*2);
+  const ax=P.giroX*d2r, ay=(P.giroY+orb)*d2r, az=P.giroZ*d2r;
   const cx=Math.cos(ax), sx=Math.sin(ax), cy=Math.cos(ay), sy=Math.sin(ay), cz=Math.cos(az), sz=Math.sin(az);
-  // R = Rz · Ry · Rx
-  M=[ cz*cy, cz*sy*sx-sz*cx, cz*sy*cx+sz*sx,
-      sz*cy, sz*sy*sx+cz*cx, sz*sy*cx-cz*sx,
-      -sy,   cy*sx,          cy*cx ];
+  R9=[ cz*cy, cz*sy*sx-sz*cx, cz*sy*cx+sz*sx,  sz*cy, sz*sy*sx+cz*cx, sz*sy*cx-cz*sx,  -sy, cy*sx, cy*cx ];
   F=(IH/2)/Math.tan(P.fov*Math.PI/360);
 }
-// Punto (u,v) de la letra → mundo, según el lugar en el anillo (ang, r) y la escala.
-// out = [x, y, z] en espacio de cámara
-const tmp=[0,0,0];
-function place(u,v,ang,r,sc){
-  let X,Y,Z,a;
-  if(P.modo==='vertical'){ a=ang+v*sc/r; const R=r*(1+P.onda*Math.sin(a*P.ondaFrec+t)); X=u*sc*(1+P.torsion*Math.sin(a)); Y=R*Math.sin(a); Z=R*Math.cos(a); }
-  else { a=ang+u*sc/r; const R=r*(1+P.onda*Math.sin(a*P.ondaFrec+t)); X=R*Math.sin(a); Y=v*sc*(1+P.torsion*Math.sin(a)); Z=R*Math.cos(a); }
-  tmp[0]=M[0]*X+M[1]*Y+M[2]*Z; tmp[1]=M[3]*X+M[4]*Y+M[5]*Z; tmp[2]=M[6]*X+M[7]*Y+M[8]*Z;
-  return tmp;
+const SM={p:[0,0,0],u:[0,0,0],n:[0,0,0]};
+// punto de letra (u,v) → espacio de cámara
+function world(u,v,s0,depth,sc,ph,out){
+  let s, side;
+  if(P.modo==='vertical'){ s=s0+v*sc; side=-u*sc; } else { s=s0+u*sc; side=v*sc; }
+  sample(s,SM);
+  const a=s/PATH.L*Math.PI*2;
+  side*=1+P.torsion*Math.sin(a);
+  const off=-depth+P.onda*P.radio*Math.sin(a*P.ondaFrec+ph*Math.PI*2);
+  let X=SM.p[0]+SM.u[0]*side+SM.n[0]*off, Y=SM.p[1]+SM.u[1]*side+SM.n[1]*off, Z=SM.p[2]+SM.u[2]*side+SM.n[2]*off;
+  // letras apiladas: el recorrido se para (90° en Z)
+  if(P.modo==='vertical'){ const t=X; X=-Y; Y=t; }
+  // pivote: se gira alrededor del frente del recorrido (0) o de su centro (1 = frente)
+  Z-=P.pivote*P.radio;
+  out[0]=R9[0]*X+R9[1]*Y+R9[2]*Z; out[1]=R9[3]*X+R9[4]*Y+R9[5]*Z; out[2]=R9[6]*X+R9[7]*Y+R9[8]*Z;
+  return out;
 }
 
-/* ─────────── escena: lista de copias (letra × capa) ordenadas por profundidad ─────────── */
-function buildList(){
-  // Una entrada por letra (ordenadas de lejos a cerca por su copia de
-  // adelante); dentro de cada letra, las capas van de atrás hacia adelante.
-  const L=Math.max(1,Math.round(P.capas)), letters=[];
-  const step=L>1?P.estela/(L-1):0, dstep=L>1?P.profundidad/(L-1):0, dir=P.dir;
+/* ─────────── escena de un cuadro ─────────── */
+const W3=[0,0,0];
+function hexRGB(h){ const n=parseInt(h.slice(1),16); return [n>>16&255,n>>8&255,n&255]; }
+function buildFrame(ph){
+  matrix(ph);
+  const L=Math.max(1,Math.round(P.capas)), sh=ph*repLen*Math.max(1,Math.round(P.avance))*P.dir;
+  const list=[];
   for(const it of items){
     if(!it.ch.trim()) continue;
     const g=shapeOf(it.ch); if(g.empty) continue;
-    const a0=it.s/P.radio+scroll, layers=[];
-    for(let k=L-1;k>=0;k--){
-      const f=L>1?k/(L-1):0;
-      layers.push({g,ang:a0-dir*k*step,r:Math.max(10,P.radio-k*dstep),sc:P.tam*(1-P.afinar*f),k});
+    const s0=it.s+sh;
+    if(!P.trasera){ // cara de espaldas: normal hacia afuera mirando lejos de la cámara
+      const c=world(0,0,s0,0,P.tam,ph,W3).slice(); sample(s0,SM);
+      let n=SM.n.slice(); if(P.modo==='vertical') n=[-n[1],n[0],n[2]];
+      const toCam=[-c[0],-c[1],P.dist-c[2]], nv=[R9[0]*n[0]+R9[1]*n[1]+R9[2]*n[2],R9[3]*n[0]+R9[4]*n[1]+R9[5]*n[2],R9[6]*n[0]+R9[7]*n[1]+R9[8]*n[2]];
+      if(dot(nv,norm(toCam))<-.05) continue;
     }
-    const z=place(0,0,a0,P.radio,P.tam)[2];
-    if(!P.trasera&&z<-P.radio*.15) continue;   // letras de la cara de atrás del anillo
-    letters.push({z,layers});
+    for(let k=0;k<L;k++){
+      const f=L>1?k/(L-1):0, s=s0-P.dir*k*P.separacion, d=k*P.haciaEje/Math.max(1,L-1), sc=P.tam*(1-P.afinar*f);
+      const c=world(0,0,s,d,sc,ph,W3);
+      list.push({g,s,d,sc,k,f,z:c[2]});
+    }
   }
-  letters.sort((a,b)=>a.z-b.z);
-  const list=[]; for(const l of letters) for(const e of l.layers) list.push(e);
+  list.sort((a,b)=>a.z-b.z||b.k-a.k);
   return list;
 }
-function project(x,y,z){
-  const zc=P.dist-z; if(zc<20) return null;
-  const s=F/zc; return [IW/2+P.centroX+x*s, IH/2+P.centroY-y*s];
-}
-function pathOf(e){
+function project(c){ const zc=P.dist-c[2]; if(zc<30) return false; const k=F/zc; c[0]=IW/2+P.centroX+c[0]*k; c[1]=IH/2+P.centroY-c[1]*k; c[2]=zc; return true; }
+function contours(e,ph){
   const parts=[];
   for(const c of e.g.cont){
-    const pts=[];
-    for(let i=0;i<c.length;i+=2){ const q=place(c[i],c[i+1],e.ang,e.r,e.sc), pp=project(q[0],q[1],q[2]); if(!pp){ pts.length=0; break; } pts.push(pp[0],pp[1]); }
-    if(pts.length>=6) parts.push(pts);
+    const pts=new Float32Array(c.length); let ok=true;
+    for(let i=0;i<c.length;i+=2){ const w=world(c[i],c[i+1],e.s,e.d,e.sc,ph,W3); if(!project(w)){ ok=false; break; } pts[i]=w[0]; pts[i+1]=w[1]; }
+    if(ok) parts.push(pts);
   }
   return parts;
 }
+function styleOf(e,zmin,zmax,bg,ln){
+  const zc=P.dist-e.z, t=zmax>zmin?(zc-zmin)/(zmax-zmin):0;
+  const fade=Math.min(1,P.niebla*t+P.desvanecer*e.f);
+  const r=Math.round(ln[0]+(bg[0]-ln[0])*fade), g=Math.round(ln[1]+(bg[1]-ln[1])*fade), b=Math.round(ln[2]+(bg[2]-ln[2])*fade);
+  const lw=P.persp?P.grosor*Math.min(3,Math.max(.25,P.dist/zc)):P.grosor;
+  return {col:`rgb(${r},${g},${b})`,lw};
+}
+function drawFrame(ctx,ph){
+  ctx.fillStyle=P.fondo; ctx.fillRect(0,0,IW,IH);
+  if(!font||!PATH) return;
+  const list=buildFrame(ph); if(!list.length) return;
+  let zmin=Infinity,zmax=-Infinity; for(const e of list){ const zc=P.dist-e.z; if(zc<zmin) zmin=zc; if(zc>zmax) zmax=zc; }
+  const bg=hexRGB(P.fondo), ln=hexRGB(P.linea);
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  for(const e of list){
+    const parts=contours(e,ph); if(!parts.length) continue;
+    const path=new Path2D();
+    for(const pts of parts){ path.moveTo(pts[0],pts[1]); for(let i=2;i<pts.length;i+=2) path.lineTo(pts[i],pts[i+1]); path.closePath(); }
+    const st=styleOf(e,zmin,zmax,bg,ln);
+    if(e.k===0&&P.solido){ ctx.fillStyle=st.col; ctx.fill(path,'nonzero'); }
+    else if(P.ocultar){ ctx.fillStyle=P.fondo; ctx.fill(path,'nonzero'); }
+    ctx.strokeStyle=st.col; ctx.lineWidth=st.lw; ctx.stroke(path);
+  }
+}
 
-/* ─────────── p5 ─────────── */
-let p5i=null;
+/* ─────────── p5: bucle en vivo ─────────── */
+let p5i=null, exporting=false;
 const sketch=p=>{
   p.setup=()=>{ const cv=p.createCanvas(IW,IH); cv.parent('sketch-holder'); p.pixelDensity(1); };
   p.draw=()=>{
-    const dt=Math.min(p.deltaTime,100)/1000;
-    if(!P.pausa){ scroll+=P.vel*P.dir*dt; t+=dt; }
-    const ctx=p.drawingContext;
-    ctx.fillStyle=P.fondo; ctx.fillRect(0,0,IW,IH);
-    if(!font) return;
-    matrix();
-    const list=buildList();
-    ctx.lineJoin='round'; ctx.lineWidth=P.grosor; ctx.strokeStyle=P.linea;
-    for(const e of list){
-      const parts=pathOf(e); if(!parts.length) continue;
-      const path=new Path2D();
-      for(const pts of parts){ path.moveTo(pts[0],pts[1]); for(let i=2;i<pts.length;i+=2) path.lineTo(pts[i],pts[i+1]); path.closePath(); }
-      if(e.k===0&&P.solido){ ctx.fillStyle=P.linea; ctx.fill(path,'nonzero'); }
-      else if(P.ocultar){ ctx.fillStyle=P.fondo; ctx.fill(path,'nonzero'); }
-      ctx.stroke(path);
-    }
+    if(exporting) return;
+    if(!P.pausa) phase=(phase+Math.min(p.deltaTime,100)/1000/Math.max(.5,P.duracion))%1;
+    drawFrame(p.drawingContext,phase);
   };
 };
 
-// SVG del cuadro actual (mismo orden de pintado)
+/* ─────────── exportar loop MP4 cuadro por cuadro ─────────── */
+function cargarMuxer(){
+  if(window.Mp4Muxer) return Promise.resolve();
+  return new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src='/tools/lib/mp4-muxer.min.js'; s.onload=ok; s.onerror=ko; document.head.appendChild(s); });
+}
+async function exportLoop(){
+  const btn=$('bLoop'), info=$('loopInfo');
+  if(exporting) return;
+  if(typeof VideoEncoder==='undefined'){ info.textContent='este navegador no puede exportar mp4 (usa chrome o edge)'; return; }
+  const FPS=60, n=Math.round(P.duracion*FPS), cv=document.querySelector('#sketch-holder canvas'), ctx=cv.getContext('2d');
+  let codec=null;
+  for(const c of ['avc1.640033','avc1.64002A','avc1.4D0033']){ try{ const r=await VideoEncoder.isConfigSupported({codec:c,width:IW,height:IH,bitrate:24e6,framerate:FPS}); if(r&&r.supported){ codec=c; break; } }catch(e){} }
+  if(!codec){ info.textContent='el navegador no codifica h.264 a este tamaño'; return; }
+  await cargarMuxer();
+  exporting=true; btn.disabled=true;
+  const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:IW,height:IH,frameRate:FPS},fastStart:'in-memory'});
+  let fallo=null;
+  const enc=new VideoEncoder({output:(ch,meta)=>muxer.addVideoChunk(ch,meta),error:e=>{ fallo=e; }});
+  enc.configure({codec,width:IW,height:IH,bitrate:24e6,framerate:FPS,bitrateMode:'variable',latencyMode:'quality',avc:{format:'avc'}});
+  try{
+    for(let i=0;i<n&&!fallo;i++){
+      drawFrame(ctx,i/n);                     // fase exacta: el cuadro n sería el 0
+      const vf=new VideoFrame(cv,{timestamp:Math.round(i*1e6/FPS),duration:Math.round(1e6/FPS)});
+      enc.encode(vf,{keyFrame:i%FPS===0}); vf.close();
+      if(enc.encodeQueueSize>8) await new Promise(r=>setTimeout(r,0));
+      if(i%6===0){ btn.textContent=`EXPORTANDO… ${Math.round(i/n*100)}%`; await new Promise(r=>setTimeout(r,0)); }
+    }
+    await enc.flush(); muxer.finalize();
+    if(fallo) throw fallo;
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([muxer.target.buffer],{type:'video/mp4'}));
+    a.download=`ticker3d-loop-${P.duracion}s.mp4`; a.click();
+    info.textContent=`listo: ${n} cuadros · ${P.duracion} s · 60 fps · loop exacto`;
+  }catch(e){ info.textContent='no se pudo exportar: '+(e&&e.message||e); }
+  enc.state!=='closed'&&enc.close();
+  exporting=false; btn.disabled=false; btn.textContent='● EXPORTAR LOOP MP4 (1080×1440)';
+}
+
 function exportSVG(){
-  matrix(); const list=buildList(), out=[];
+  const list=buildFrame(phase), out=[];
+  let zmin=Infinity,zmax=-Infinity; for(const e of list){ const zc=P.dist-e.z; if(zc<zmin) zmin=zc; if(zc>zmax) zmax=zc; }
+  const bg=hexRGB(P.fondo), ln=hexRGB(P.linea);
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${IW}" height="${IH}" viewBox="0 0 ${IW} ${IH}"><rect width="100%" height="100%" fill="${P.fondo}"/>`);
   for(const e of list){
-    const parts=pathOf(e); if(!parts.length) continue;
+    const parts=contours(e,phase); if(!parts.length) continue;
     const d=parts.map(pts=>{ let s='M'+pts[0].toFixed(1)+' '+pts[1].toFixed(1); for(let i=2;i<pts.length;i+=2) s+='L'+pts[i].toFixed(1)+' '+pts[i+1].toFixed(1); return s+'Z'; }).join('');
-    const fill=e.k===0&&P.solido?P.linea:(P.ocultar?P.fondo:'none');
-    out.push(`<path d="${d}" fill="${fill}" stroke="${P.linea}" stroke-width="${P.grosor}" stroke-linejoin="round"/>`);
+    const st=styleOf(e,zmin,zmax,bg,ln), fill=e.k===0&&P.solido?st.col:(P.ocultar?P.fondo:'none');
+    out.push(`<path d="${d}" fill="${fill}" stroke="${st.col}" stroke-width="${st.lw.toFixed(2)}" stroke-linejoin="round"/>`);
   }
   out.push('</svg>');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([out.join('')],{type:'image/svg+xml'})); a.download='ticker3d.svg'; a.click();
@@ -981,10 +1108,10 @@ function exportSVG(){
 /* ─────────── arrastrar para girar ─────────── */
 (function(){
   const h=$('sketch-holder'); let on=false, sx=0, sy=0, bx=0, by=0;
-  h.addEventListener('pointerdown',e=>{ on=true; sx=e.clientX; sy=e.clientY; bx=P.giroY; by=P.giroX; h.setPointerCapture(e.pointerId); });
-  h.addEventListener('pointermove',e=>{ if(!on) return; const k=IW/h.clientWidth*.12; P.giroY=bx+(e.clientX-sx)*k; P.giroX=by+(e.clientY-sy)*k; repaint(); });
-  const end=()=>{ on=false; }; h.addEventListener('pointerup',end); h.addEventListener('pointercancel',end);
   h.style.cursor='grab';
+  h.addEventListener('pointerdown',e=>{ on=true; sx=e.clientX; sy=e.clientY; bx=P.giroY; by=P.giroX; h.setPointerCapture(e.pointerId); h.style.cursor='grabbing'; });
+  h.addEventListener('pointermove',e=>{ if(!on) return; const k=IW/h.clientWidth*.12; P.giroY=bx+(e.clientX-sx)*k; P.giroX=by+(e.clientY-sy)*k; repaint(); });
+  const end=()=>{ on=false; h.style.cursor='grab'; }; h.addEventListener('pointerup',end); h.addEventListener('pointercancel',end);
 })();
 
 /* ═════════════════════════════════════════════════════════
@@ -993,6 +1120,7 @@ function exportSVG(){
 function relleno(el){ const v=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--val',v+'%'); }
 const fmt=v=>Number.isInteger(v)?String(v):(+v).toFixed(2);
 const painters=[]; const repaint=()=>painters.forEach(f=>f());
+const re=()=>layout();
 function slider(cont,key,label,min,max,step,cb){
   const r=document.createElement('div'); r.className='y-row';
   r.innerHTML=`<div class="y-lab"><span>${label}</span><input class="y-num" type="number" step="any"></div><input type="range" min="${min}" max="${max}" step="${step}">`;
@@ -1001,34 +1129,37 @@ function slider(cont,key,label,min,max,step,cb){
   pinta(); painters.push(pinta);
   s.addEventListener('input',()=>{ P[key]=parseFloat(s.value); num.value=fmt(P[key]); relleno(s); cb&&cb(); });
   num.addEventListener('change',()=>{ const v=parseFloat(num.value); if(Number.isFinite(v)) P[key]=v; pinta(); cb&&cb(); });
-  $(cont).appendChild(r);
+  $(cont).appendChild(r); return r;
 }
 function grupo(cont,opts,get,set,labels){
-  const bs=opts.map((o,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.textContent=labels?labels[i]:o; b.addEventListener('click',()=>{ set(o); pinta(); }); $(cont).appendChild(b); return b; });
-  const pinta=()=>bs.forEach((b,i)=>b.setAttribute('aria-pressed',opts[i]===get())); pinta(); painters.push(pinta);
+  const bs=opts.map((o,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.textContent=labels?labels[i]:o; b.addEventListener('click',()=>{ set(o); repaint(); }); $(cont).appendChild(b); return b; });
+  painters.push(()=>bs.forEach((b,i)=>b.setAttribute('aria-pressed',opts[i]===get())));
 }
-function toggle(id,key,cb){ const b=$(id); const pinta=()=>b.setAttribute('aria-pressed',P[key]); pinta(); painters.push(pinta); b.addEventListener('click',()=>{ P[key]=!P[key]; pinta(); cb&&cb(); }); }
+function toggle(id,key,cb){ const b=$(id); painters.push(()=>b.setAttribute('aria-pressed',!!P[key])); b.addEventListener('click',()=>{ P[key]=!P[key]; repaint(); cb&&cb(); }); }
 function colorRow(key,label){
   const f=document.createElement('label'); f.className='y-crow';
   f.innerHTML=`<span>${label}</span><input type="color"><input class="y-hex" type="text" maxlength="7" spellcheck="false">`;
   const sel=f.querySelector('input[type=color]'), hex=f.querySelector('.y-hex');
-  const pinta=()=>{ sel.value=P[key].toLowerCase(); hex.value=P[key].toUpperCase(); }; pinta(); painters.push(pinta);
-  sel.addEventListener('input',()=>{ P[key]=sel.value; hex.value=sel.value.toUpperCase(); $('sketch-holder').style.background=P.fondo; });
-  hex.addEventListener('change',()=>{ let v=hex.value.trim(); if(!v.startsWith('#')) v='#'+v; if(/^#[0-9a-fA-F]{6}$/.test(v)) P[key]=v; pinta(); });
+  painters.push(()=>{ sel.value=P[key].toLowerCase(); hex.value=P[key].toUpperCase(); $('sketch-holder').style.background=P.fondo; });
+  sel.addEventListener('input',()=>{ P[key]=sel.value; repaint(); });
+  hex.addEventListener('change',()=>{ let v=hex.value.trim(); if(!v.startsWith('#')) v='#'+v; if(/^#[0-9a-fA-F]{6}$/.test(v)) P[key]=v; repaint(); });
   $('cols').appendChild(f);
 }
-const re=()=>layout();
 
+// presets (conservan texto, fuente y colores)
+grupo('gPreset',Object.keys(PRESETS),()=>presetActivo,n=>{
+  const keep={texto:P.texto,mayus:P.mayus,fuente:P.fuente,fondo:P.fondo,linea:P.linea,duracion:P.duracion,pausa:P.pausa};
+  Object.assign(P,JSON.parse(JSON.stringify(BASE)),PRESETS[n],keep); presetActivo=n; re();
+});
 // texto
 const txt=$('tText'); txt.value=P.texto;
 txt.addEventListener('input',()=>{ P.texto=txt.value; re(); });
-toggle('tMayus','mayus',()=>{ txt.classList.toggle('min',!P.mayus); re(); });
-toggle('tFill','llenar',re);
-toggle('tBack','trasera');
+painters.push(()=>{ if(document.activeElement!==txt) txt.value=P.texto; txt.classList.toggle('min',!P.mayus); });
+toggle('tMayus','mayus',re); toggle('tFill','llenar',re);
 // tipografía
 function elegirFuente(id){
   const f=FUENTES.find(x=>x.id===id); if(!f) return;
-  P.fuente=id; repaint();
+  P.fuente=id; repaint(); $('fontName').textContent='';
   loadFont(id,f.url).then(setFont).catch(()=>{ $('fontName').textContent='× no se pudo cargar la fuente'; });
 }
 grupo('gFont',FUENTES.map(f=>f.id),()=>P.fuente,elegirFuente,FUENTES.map(f=>f.label));
@@ -1039,47 +1170,57 @@ $('fFont').addEventListener('change',async e=>{
   catch(err){ $('fontName').textContent='× no se pudo leer la fuente (usa .ttf, .otf o .woff)'; }
   e.target.value='';
 });
-slider('slType','tam','Tamaño de letra',60,700,1,re);
-slider('slType','espaciado','Espaciado',-.3,1,.01,re);
-// anillo
-grupo('gMode',['vertical','horizontal'],()=>P.modo,v=>{ P.modo=v; re(); },['VERTICAL','HORIZONTAL']);
-slider('slRing','radio','Radio del anillo',120,1400,1,re);
-slider('slRing','giroX','Giro X (°)',-180,180,1);
-slider('slRing','giroY','Giro Y (°)',-180,180,1);
-slider('slRing','giroZ','Giro Z (°)',-180,180,1);
+grupo('gMode',['vertical','horizontal'],()=>P.modo,v=>{ P.modo=v; re(); },['LETRAS APILADAS','EN FILA']);
+slider('slType','tam','Tamaño de letra',40,800,1,re);
+slider('slType','espaciado','Espaciado',-.4,1.5,.01,re);
+// recorrido
+grupo('gPath',['anillo','ola','nudo','ocho'],()=>P.recorrido,v=>{ P.recorrido=v; re(); },['ANILLO','OLA','NUDO','OCHO']);
+slider('slPath','radio','Radio',120,1400,1,re);
+slider('slPath','amp','Amplitud / grosor del nudo',0,600,1,re);
+slider('slPath','p','Vueltas (nudo)',1,5,1,re);
+slider('slPath','q','Ondas / enlaces',1,9,1,re);
 // cámara
-slider('slCam','dist','Distancia de cámara',500,4000,5);
+slider('slCam','giroX','Giro X (°)',-180,180,1);
+slider('slCam','giroY','Giro Y (°)',-180,180,1);
+slider('slCam','giroZ','Giro Z (°)',-180,180,1);
+slider('slCam','orbita','Órbita en el loop (°)',0,60,1);
+slider('slCam','pivote','Pivote: centro → frente',0,1,.01);
+slider('slCam','dist','Distancia de cámara',400,5000,5);
 slider('slCam','fov','Perspectiva (FOV)',10,120,1);
-slider('slCam','centroX','Mover X',-700,700,1);
-slider('slCam','centroY','Mover Y',-900,900,1);
-// movimiento
-slider('slMov','vel','Velocidad',0,3,.01);
-function dir(v){ P.dir=v; $('bFwd').setAttribute('aria-pressed',v>0); $('bBack').setAttribute('aria-pressed',v<0); }
-$('bFwd').addEventListener('click',()=>dir(1)); $('bBack').addEventListener('click',()=>dir(-1));
-toggle('bPause','pausa');
+slider('slCam','centroX','Mover X',-800,800,1);
+slider('slCam','centroY','Mover Y',-1000,1000,1);
 // estela
-slider('slTrail','capas','Capas (contornos)',1,120,1);
-slider('slTrail','estela','Largo de estela (en el anillo)',-2,2,.01);
-slider('slTrail','profundidad','Profundidad hacia el eje',-800,800,1);
+slider('slTrail','capas','Capas (contornos)',1,160,1);
+slider('slTrail','separacion','Separación entre líneas',1,60,.5);
+slider('slTrail','haciaEje','Hundir hacia el eje',-900,900,1);
 slider('slTrail','afinar','Afinar hacia atrás',-1,1,.01);
+slider('slTrail','desvanecer','Desvanecer estela',0,1,.01);
+// profundidad
+slider('slDepth','niebla','Niebla de profundidad',0,1,.01);
+toggle('tPersp','persp'); toggle('tBack','trasera');
 // distorsión
-slider('slWarp','onda','Onda del radio',0,.6,.005);
-slider('slWarp','ondaFrec','Frecuencia de onda',0,12,.1);
+slider('slWarp','onda','Onda',0,.5,.005);
+slider('slWarp','ondaFrec','Frecuencia de onda',0,12,1);
 slider('slWarp','torsion','Torsión',-1.5,1.5,.01);
 // color
-grupo('gPal',Object.keys(PALETAS),()=>{ const k=Object.keys(PALETAS).find(n=>PALETAS[n].fondo===P.fondo&&PALETAS[n].linea===P.linea); return k; },n=>{ Object.assign(P,PALETAS[n]); $('sketch-holder').style.background=P.fondo; repaint(); });
+grupo('gPal',Object.keys(PALETAS),()=>Object.keys(PALETAS).find(n=>PALETAS[n].fondo===P.fondo&&PALETAS[n].linea===P.linea),n=>{ Object.assign(P,PALETAS[n]); });
 colorRow('fondo','Fondo'); colorRow('linea','Línea');
 slider('slLine','grosor','Grosor de línea',.3,8,.1);
 toggle('tHide','ocultar'); toggle('tSolid','solido');
-
+// loop
+slider('slLoop','duracion','Duración del loop (s)',1,30,.5);
+slider('slLoop','avance','Repeticiones que avanza por loop',1,6,1);
+toggle('bPause','pausa');
+$('bRev').addEventListener('click',()=>{ P.dir*=-1; $('bRev').setAttribute('aria-pressed',P.dir<0); });
 // exportar
+$('bLoop').addEventListener('click',exportLoop);
 $('bPng').addEventListener('click',()=>p5i&&p5i.saveCanvas('ticker3d','png'));
 $('bSvg').addEventListener('click',exportSVG);
 const lienzo=()=>document.querySelector('#sketch-holder canvas');
-GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'ticker3d',manual:false,ancho:1080,alto:1920,aspecto:IW/IH,info:'reel',
+GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'ticker3d',etiqueta:'● GRABAR EN VIVO (REEL)',manual:false,ancho:1080,alto:1920,aspecto:IW/IH,info:'reel',
   ventana:()=>$('viewport'),zonaCursor:()=>$('sketch-holder'),dibujar(c,w,h){const cv=lienzo();if(cv)c.drawImage(cv,0,0,w,h);}});
-GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'ticker3d-pantalla',etiqueta:'● TODA LA VENTANA',info:'toda la ventana',fuente:'pestaña',manual:false});
 
+repaint();
 p5i=new p5(sketch);
 elegirFuente(P.fuente);
 
@@ -1128,7 +1269,7 @@ addEventListener('resize',fitStage); fitStage(); addEventListener('load',fitStag
   }
 })();
 
-window.__ticker=P;
+window.__ticker={P,drawFrame,layout,setPhase:v=>{phase=v;}};
 })();
   </script>
 
