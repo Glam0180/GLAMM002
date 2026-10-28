@@ -1,5 +1,17 @@
 export const TOOLS = [
   {
+    id: 'ticker-3d',
+    slug: 'ticker-3d',
+    name: 'Ticker 3D',
+    description: 'Tu texto corriendo sobre un anillo 3D, con estelas de contornos que se deforman con la perspectiva.',
+    category: 'typography',
+    status: 'live',
+    tech: ['p5.js', 'opentype.js', 'Canvas API'],
+    path: '/tools/ticker-3d',
+    index: '014',
+    thumbnail: '/tool-thumbnails/ticker-3d.webp',
+  },
+  {
     id: 'holocloth',
     slug: 'holocloth',
     name: 'Holocloth',
