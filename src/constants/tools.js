@@ -1,5 +1,17 @@
 export const TOOLS = [
   {
+    id: 'holocloth',
+    slug: 'holocloth',
+    name: 'Holocloth',
+    description: 'Tela holográfica con física: agárrala, arrúgala y mira cómo el foil cambia de color con la luz.',
+    category: 'interaction',
+    status: 'live',
+    tech: ['Three.js', 'WebGL', 'GLSL', 'Verlet'],
+    path: '/tools/holocloth',
+    index: '013',
+    thumbnail: '/tool-thumbnails/holocloth.webp',
+  },
+  {
     id: 'justice',
     slug: 'justice',
     name: 'Justice',
