@@ -597,8 +597,9 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     /* ═════════ HOLOCLOTH ═════════ */
     #holoStage { position: relative; overflow: hidden; background: #0b0c12; touch-action: none; }
     #holoStage canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
-    #holoStage.grab canvas { cursor: grab; }
-    #holoStage.grabbing canvas { cursor: grabbing; }
+    /* manito pixel art (igual que Yummy): dedo apuntando; al agarrar, pinch */
+    #holoStage canvas, #holoStage.grab canvas { cursor: url(/tools/cursor-point.png) 9 1, pointer; }
+    #holoStage.grabbing canvas, #holoStage.crumple canvas { cursor: url(/tools/cursor-pinch.png) 9 5, pointer; }
     #holoStage.move canvas { cursor: move; }
     #holoStage.pick canvas { cursor: crosshair; }
     .holo-loading {
@@ -1360,7 +1361,7 @@ const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), plane=new THREE.Plane(
 let grabbing=false, dragDecal=false, pid=null, offU=0, offV=0, picking=false, focusV=null, pickRelease=null, space=false;
 function setPtr(e){ const r=renderer.domElement.getBoundingClientRect(); ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1); }
 function hitCloth(){ ray.setFromCamera(ndc,camera); geo.computeBoundingSphere(); const h=ray.intersectObject(mesh,false); return h.length?h[0]:null; }
-function cursor(c){ host.classList.remove('grab','grabbing','move','pick'); if(c) host.classList.add(c); }
+function cursor(c){ host.classList.remove('grab','grabbing','move','pick','crumple'); if(c) host.classList.add(c); }
 function endInteraction(){
   if(pid!==null&&renderer.domElement.hasPointerCapture(pid)) renderer.domElement.releasePointerCapture(pid);
   grabbing=false; dragDecal=false; pid=null; sim&&sim.endGrab(); controls.enabled=true;
@@ -1372,7 +1373,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   if(e.button!==1||crumpleId!==null) return;
   e.preventDefault(); setPtr(e);
   const h=hitCloth(); sim.startAttract(h?h.point:sim.centroid(),S.phys.crumple);
-  crumpleId=e.pointerId; renderer.domElement.setPointerCapture(e.pointerId); cursor('pick');
+  crumpleId=e.pointerId; renderer.domElement.setPointerCapture(e.pointerId); cursor('crumple');
 });
 const endCrumple=e=>{ if(e.pointerId!==crumpleId) return; sim.stopAttract(); crumpleId=null; if(renderer.domElement.hasPointerCapture(e.pointerId)) renderer.domElement.releasePointerCapture(e.pointerId); cursor(null); };
 renderer.domElement.addEventListener('pointerup',endCrumple); renderer.domElement.addEventListener('pointercancel',endCrumple);
