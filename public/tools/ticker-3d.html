@@ -1217,8 +1217,8 @@ $('bLoop').addEventListener('click',exportLoop);
 $('bPng').addEventListener('click',()=>p5i&&p5i.saveCanvas('ticker3d','png'));
 $('bSvg').addEventListener('click',exportSVG);
 const lienzo=()=>document.querySelector('#sketch-holder canvas');
-GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'ticker3d',etiqueta:'● GRABAR EN VIVO (REEL)',manual:false,ancho:1080,alto:1920,aspecto:IW/IH,info:'reel',
-  ventana:()=>$('viewport'),zonaCursor:()=>$('sketch-holder'),dibujar(c,w,h){const cv=lienzo();if(cv)c.drawImage(cv,0,0,w,h);}});
+GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'ticker3d',etiqueta:'● GRABAR EN VIVO',manual:false,ancho:IW,alto:IH,aspecto:IW/IH,info:'lienzo',
+  dibujar(c,w,h){const cv=lienzo();if(cv)c.drawImage(cv,0,0,w,h);}});
 
 repaint();
 p5i=new p5(sketch);

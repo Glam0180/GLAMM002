@@ -1298,10 +1298,11 @@ const bloom=new UnrealBloomPass(new THREE.Vector2(IW,IH),.18,.85,1); composer.ad
 composer.addPass(new OutputPass());
 const grain=new ShaderPass(GrainShader); composer.addPass(grain);
 
-let PR=Math.min(devicePixelRatio,2);
+let PR=Math.min(devicePixelRatio,2), recording=false;
 function resize(){
   const w=host.clientWidth||IW/2, h=host.clientHeight||IH/2;
-  renderer.setPixelRatio(PR); renderer.setSize(w,h,false); composer.setPixelRatio(PR); composer.setSize(w,h);
+  const pr=recording?IW/w:PR;
+  renderer.setPixelRatio(pr); composer.setPixelRatio(pr); renderer.setSize(w,h,false); composer.setSize(w,h);
   camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 new ResizeObserver(resize).observe(host);
@@ -1555,9 +1556,11 @@ function chips(){
 
 /* ─────────── grabar ─────────── */
 const lienzo=()=>renderer.domElement;
-GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'holocloth',manual:false,ancho:1080,alto:1920,aspecto:IW/IH,info:'reel',
-  ventana:()=>$('viewport'),zonaCursor:()=>host,dibujar(c,w,h){ c.drawImage(lienzo(),0,0,w,h); }});
-GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'holocloth-pantalla',etiqueta:'● TODA LA VENTANA',info:'toda la ventana',fuente:'pestaña',manual:false});
+// Solo el lienzo, 1080×1440. Mientras se graba, el render interno sube a
+// exactamente 1080×1440 para que el video salga nítido (no escalado).
+GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'holocloth',manual:false,ancho:IW,alto:IH,aspecto:IW/IH,info:'lienzo',
+  zonaCursor:()=>host,dibujar(c,w,h){ c.drawImage(lienzo(),0,0,w,h); },
+  alIniciar(){ recording=true; resize(); }, alTerminar(){ recording=false; resize(); }});
 
 /* ─────────── arranque ─────────── */
 buildCloth(1); resize(); apply();
