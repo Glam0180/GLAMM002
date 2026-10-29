@@ -906,7 +906,7 @@ const FINISH={
   Satin: {roughness:.3, clearcoat:.45, coatRoughness:.3},
   Matte: {roughness:.62, clearcoat:.06, coatRoughness:.7},
 };
-const RENDER0={background:'#000000',exposure:.5,environment:.73,bloom:.05,bloomThreshold:1.41,noise:.08,toneMapping:'Neutral',occlusion:true,occlusionStrength:1,dof:false,dofAperture:40,dofBlur:.04};
+const RENDER0={background:'#000000',exposure:.5,environment:.73,bloom:.05,bloomThreshold:1.41,noise:0,toneMapping:'Neutral',occlusion:true,occlusionStrength:1,dof:false,dofAperture:40,dofBlur:.04};
 const PRESETS={
   Holo:{finish:'Matte',baseColor:'#20242d',holoIntensity:3.78,holoScale:400,bandFreq:1.1,saturation:1,hueShift:.37,sparkle:.73,specTint:.33,iridescence:.81,metalness:1,sheen:0,bump:3,bumpTiling:3,...FINISH.Matte},
   Chrome:{finish:'Glossy',baseColor:'#dfe3e8',holoIntensity:0,holoScale:400,bandFreq:1.1,saturation:1,hueShift:.37,sparkle:.2,specTint:0,iridescence:0,metalness:1,sheen:0,bump:.05,bumpTiling:3,...FINISH.Glossy,roughness:.04,coatRoughness:.04},
