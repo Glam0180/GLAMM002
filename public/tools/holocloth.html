@@ -595,7 +595,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
   </style>
   <style>
     /* ═════════ HOLOCLOTH ═════════ */
-    #holoStage { position: relative; overflow: hidden; background: #0b0c12; touch-action: none; }
+    #holoStage { position: relative; overflow: hidden; background: #000; touch-action: none; }
     #holoStage canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
     /* manito pixel art (igual que Yummy): dedo apuntando; al agarrar, pinch */
     #holoStage canvas, #holoStage.grab canvas { cursor: url(/tools/cursor-point.png) 9 1, pointer; }
@@ -604,7 +604,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     #holoStage.pick canvas { cursor: crosshair; }
     .holo-loading {
       position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
-      background: #0b0c12; color: rgba(255,255,255,.6); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+      background: #000; color: rgba(255,255,255,.6); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
       transition: opacity .5s ease; pointer-events: none;
     }
     #sidebar { width: 236px; }
@@ -906,15 +906,15 @@ const FINISH={
   Satin: {roughness:.3, clearcoat:.45, coatRoughness:.3},
   Matte: {roughness:.62, clearcoat:.06, coatRoughness:.7},
 };
-const RENDER0={background:'#0b0c12',exposure:.5,environment:.73,bloom:.05,bloomThreshold:1.41,noise:.345,toneMapping:'Neutral',occlusion:true,occlusionStrength:1,dof:false,dofAperture:40,dofBlur:.04};
+const RENDER0={background:'#000000',exposure:.5,environment:.73,bloom:.05,bloomThreshold:1.41,noise:.345,toneMapping:'Neutral',occlusion:true,occlusionStrength:1,dof:false,dofAperture:40,dofBlur:.04};
 const PRESETS={
   Holo:{finish:'Matte',baseColor:'#20242d',holoIntensity:3.78,holoScale:400,bandFreq:1.1,saturation:1,hueShift:.37,sparkle:.73,specTint:.33,iridescence:.81,metalness:1,sheen:0,bump:3,bumpTiling:3,...FINISH.Matte},
   Chrome:{finish:'Glossy',baseColor:'#dfe3e8',holoIntensity:0,holoScale:400,bandFreq:1.1,saturation:1,hueShift:.37,sparkle:.2,specTint:0,iridescence:0,metalness:1,sheen:0,bump:.05,bumpTiling:3,...FINISH.Glossy,roughness:.04,coatRoughness:.04},
   'Black Cloth':{finish:'Satin',baseColor:'#101114',holoIntensity:.1,holoScale:8,bandFreq:.2,saturation:0,hueShift:0,sparkle:0,specTint:.82,iridescence:0,metalness:.43,sheen:.08,bump:0,bumpTiling:3,...FINISH.Satin,roughness:.83,clearcoat:.22,coatRoughness:.32},
 };
 const S={
-  performance:'High', preset:'Holo',
-  mat:{...PRESETS.Holo},
+  performance:'High', preset:'Chrome',
+  mat:{...PRESETS.Chrome},
   phys:{viscosity:.6, stiffness:1, iterations:14, smoothing:.045, grabRadius:.27, crumple:14},
   img:{useImage:true, edit:false, scale:.35, rotation:0, opacity:1, cornerRadius:0},
   render:{...RENDER0},
@@ -1566,7 +1566,11 @@ GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'holocloth',manua
 buildCloth(1); resize(); apply();
 setBump(scratchesCanvas());
 renderer.setAnimationLoop(frame);
-defaultPoster().then(img=>{ setClothImage(img); apply(); $('holoLoading').style.opacity=0; }).catch(()=>{ $('holoLoading').style.opacity=0; });
+// Imagen por defecto: la ilustración de GLAM; si no carga, el póster generado.
+const cargarImg=src=>new Promise((ok,ko)=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=ko; im.src=src; });
+cargarImg('/tools/holocloth-media/default.webp').catch(()=>defaultPoster())
+  .then(img=>{ setClothImage(img); apply(); $('holoLoading').style.opacity=0; })
+  .catch(()=>{ $('holoLoading').style.opacity=0; });
 window.__holo={S,sim:()=>sim,apply,exportPNG};
   </script>
 
