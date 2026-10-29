@@ -1013,11 +1013,9 @@ function fitStage(){
 addEventListener('resize',fitStage);
 
 /* ─── grabar (post IG 1080×1440, 60 fps) ─── */
-// Video vertical 1080×1920 (9:16, reel/historia): la ventana del viewport
-// centrada, con el arte 1080×1440 pintado directo desde sus lienzos (nítido).
-GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'wall',manual:false,ancho:1080,alto:1920,aspecto:1080/1440,info:'reel',
-  ventana:()=>$('viewport'),zonaCursor:()=>stage,dibujar(c,w,h){componer(c,w,h);}});
-GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'wall-pantalla',etiqueta:'● TODA LA VENTANA',info:'toda la ventana',fuente:'pestaña',manual:false});
+// Solo el lienzo, bloqueado a 1080×1440: el arte se pinta directo desde sus lienzos (nítido).
+GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'wall',manual:false,ancho:1080,alto:1440,aspecto:1080/1440,info:'lienzo',
+  zonaCursor:()=>stage,dibujar(c,w,h){componer(c,w,h);}});
 
 /* ─── arranque: muro limpio + póster, anclas en las esquinas del póster ─── */
 // anclas por defecto del archivo original, llevadas al lienzo 1080×1440

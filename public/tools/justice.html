@@ -1344,9 +1344,8 @@ addEventListener('resize',fitStage); fitStage(); addEventListener('load',fitStag
 
 /* ─────────── EXPORTAR ─────────── */
 const lienzo=()=>document.querySelector('#sketch-holder canvas');
-GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'justice',manual:false,ancho:1080,alto:1920,aspecto:IW/IH,info:'reel',
-  ventana:()=>$('viewport'),zonaCursor:()=>$('sketch-holder'),dibujar(c,w,h){const cv=lienzo();if(cv)c.drawImage(cv,0,0,w,h);}});
-GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'justice-pantalla',etiqueta:'● TODA LA VENTANA',info:'toda la ventana',fuente:'pestaña',manual:false});
+GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'justice',manual:false,ancho:1080,alto:1440,aspecto:IW/IH,info:'lienzo',
+  zonaCursor:()=>$('sketch-holder'),dibujar(c,w,h){const cv=lienzo();if(cv)c.drawImage(cv,0,0,w,h);}});
 $('jPng').addEventListener('click',()=>{ if(p5i) p5i.saveCanvas('justice','png'); });
 
 /* ─────────── INFO PANEL (arrastrable / minimizable / cerrable) ─────────── */
