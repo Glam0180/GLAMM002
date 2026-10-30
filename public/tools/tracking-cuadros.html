@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracking en cuadros</title>
+<style>
+  :root { --bg:#111214; --panel:#1a1b1f; --line:#2a2c32; --txt:#e9eaee; --dim:#9a9ca6; --acc:#3f6bff; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--txt); font: 12px/1.35 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #app { display: flex; height: 100vh; }
+  #stageWrap { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 18px; position: relative; }
+  #cv { display: block; max-width: 100%; max-height: 100%; height: auto; width: auto; box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+  #overlay { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; pointer-events: none; text-align: center; padding: 20px; }
+  #overlay .msg { background: rgba(0,0,0,.65); padding: 10px 14px; border-radius: 8px; font-size: 13px; }
+  #overlay .bar { width: 260px; height: 4px; background: rgba(255,255,255,.15); border-radius: 2px; overflow: hidden; }
+  #overlay .bar i { display: block; height: 100%; width: 0; background: #fff; }
+  #panel { width: 290px; flex: none; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 14px 14px 30px; }
+  h1 { font-size: 13px; letter-spacing: .04em; margin-bottom: 2px; }
+  .sub { color: var(--dim); font-size: 11px; margin-bottom: 10px; }
+  h2 { font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--dim); margin: 16px 0 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .row { margin-bottom: 9px; }
+  .lab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+  .lab input[type=number] { width: 58px; background: #0f1013; color: var(--txt); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; font: inherit; text-align: right; }
+  input[type=range] { width: 100%; accent-color: var(--acc); }
+  .crow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+  .crow input[type=color] { width: 34px; height: 22px; border: 1px solid var(--line); border-radius: 4px; background: none; padding: 0; cursor: pointer; }
+  .crow .hex { width: 76px; background: #0f1013; color: var(--txt); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; font: inherit; text-transform: uppercase; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .btns.tres { grid-template-columns: 1fr 1fr 1fr; }
+  button { font: inherit; background: #23252b; color: var(--txt); border: 1px solid var(--line); border-radius: 6px; padding: 7px 6px; cursor: pointer; }
+  button:hover { border-color: #444851; }
+  button[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: #fff; }
+  button.full { width: 100%; margin-bottom: 6px; }
+  button:disabled { opacity: .45; cursor: default; }
+  .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .chips label { display: flex; align-items: center; gap: 6px; background: #15161a; border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; cursor: pointer; font-size: 11px; }
+  .note { color: var(--dim); font-size: 10.5px; margin-top: 4px; }
+  #timeline { width: 100%; }
+  @media (max-width: 760px) { #app { flex-direction: column; height: auto; } #stageWrap { height: 70vh; } #panel { width: 100%; border-left: none; border-top: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stageWrap">
+    <canvas id="cv"></canvas>
+    <div id="overlay"><div class="msg" id="msg">cargando MediaPipe…</div><div class="bar"><i id="prog"></i></div></div>
+  </div>
+  <aside id="panel">
+    <h1>Tracking en cuadros</h1>
+    <div class="sub">MediaPipe Pose · el video se analiza cuadro por cuadro y solo se dibuja el tracking.</div>
+
+    <div class="btns tres">
+      <button id="bPlay" aria-pressed="true">▶ / ❚❚</button>
+      <button id="bLoop" aria-pressed="true">LOOP</button>
+      <button id="bVideo">SUBIR VIDEO</button>
+    </div>
+    <input type="file" id="fVideo" accept="video/*" hidden>
+    <input type="range" id="timeline" min="0" max="1" step="0.0001" value="0">
+
+    <h2>Puntos</h2>
+    <div class="chips" id="chips"></div>
+
+    <h2>Tamaño de los cuadros</h2>
+    <div id="sTam"></div>
+
+    <h2>Movimiento</h2>
+    <div id="sMov"></div>
+
+    <h2>Estilo</h2>
+    <div id="cols"></div>
+    <div class="btns">
+      <button id="tFill" aria-pressed="true">RELLENO</button>
+      <button id="tLines" aria-pressed="false">LÍNEAS ENTRE PUNTOS</button>
+    </div>
+    <div id="sStyle"></div>
+
+    <h2>Encuadre</h2>
+    <div class="btns">
+      <button id="tMirror" aria-pressed="false">ESPEJO</button>
+      <button id="bFit">CENTRAR CUERPO</button>
+    </div>
+    <div id="sFrame"></div>
+
+    <h2>Análisis</h2>
+    <div class="btns tres" id="gModel"></div>
+    <div class="note">heavy = más preciso y más lento. Cambiar el modelo vuelve a analizar el video.</div>
+
+    <h2>Exportar</h2>
+    <button class="full" id="bMp4">● EXPORTAR MP4 (cuadro por cuadro)</button>
+    <button class="full" id="bPng">↓ PNG del cuadro</button>
+    <div class="note" id="expInfo">sin audio · mismo tamaño y duración que el video</div>
+  </aside>
+</div>
+
+<video id="vid" playsinline muted preload="auto" style="display:none"></video>
+
+<script type="module">
+let PoseLandmarker=null, FilesetResolver=null;
+for(const u of ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs','https://unpkg.com/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs']){
+  try{ ({PoseLandmarker,FilesetResolver}=await import(u)); break; }catch(e){ console.warn('no cargó',u,e); }
+}
+
+const $=id=>document.getElementById(id);
+const VIDEO_DEFAULT='/tools/tracking-media/dance.mp4';
+// Servidores de respaldo: si uno falla se prueba el siguiente
+const WASMS=['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm','https://unpkg.com/@mediapipe/tasks-vision@0.10.14/wasm'];
+const MODELOS={};
+for(const m of ['lite','full','heavy']) MODELOS[m]=[
+  `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${m}/float16/latest/pose_landmarker_${m}.task`,
+  `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${m}/float16/1/pose_landmarker_${m}.task`,
+];
+
+/* ═══════════ Puntos a seguir (índices de MediaPipe Pose, 33 puntos) ═══════════
+   Cada cuadro tiene un tamaño base distinto y gira siguiendo un segmento del cuerpo. */
+const PUNTOS=[
+  {id:'cabeza',   nombre:'Cabeza',      idx:[0,7,8],     grupo:'torso', base:1.30, eje:[7,8]},
+  {id:'pecho',    nombre:'Pecho',       idx:[11,12],     grupo:'torso', base:1.55, eje:[11,12]},
+  {id:'cadera',   nombre:'Cadera',      idx:[23,24],     grupo:'torso', base:1.20, eje:[23,24]},
+  {id:'codoI',    nombre:'Codo izq.',   idx:[13],        grupo:'art',   base:.70,  eje:[11,13]},
+  {id:'codoD',    nombre:'Codo der.',   idx:[14],        grupo:'art',   base:.62,  eje:[12,14]},
+  {id:'manoI',    nombre:'Mano izq.',   idx:[15,17,19],  grupo:'ext',   base:.52,  eje:[13,15]},
+  {id:'manoD',    nombre:'Mano der.',   idx:[16,18,20],  grupo:'ext',   base:.46,  eje:[14,16]},
+  {id:'rodillaI', nombre:'Rodilla izq.',idx:[25],        grupo:'art',   base:.85,  eje:[23,25]},
+  {id:'rodillaD', nombre:'Rodilla der.',idx:[26],        grupo:'art',   base:.78,  eje:[24,26]},
+  {id:'pieI',     nombre:'Pie izq.',    idx:[27,29,31],  grupo:'ext',   base:.66,  eje:[29,31]},
+  {id:'pieD',     nombre:'Pie der.',    idx:[28,30,32],  grupo:'ext',   base:.60,  eje:[30,32]},
+];
+const LINEAS=[['cabeza','pecho'],['pecho','cadera'],['pecho','codoI'],['codoI','manoI'],['pecho','codoD'],['codoD','manoD'],['cadera','rodillaI'],['rodillaI','pieI'],['cadera','rodillaD'],['rodillaD','pieD']];
+
+const P={
+  fondo:'#1FC45A', cuadro:'#1E40FF', linea:'#1E40FF',
+  tam:95, torso:1, art:1, ext:1, profundidad:.25, pulso:0,
+  suavizado:1.5, rotacion:1, estela:0, sepEstela:2, velocidad:1,
+  relleno:true, grosor:6, esquinas:0, opacidad:1, lineas:false, grosorLinea:3,
+  zoom:1, offX:0, offY:0, espejo:false, videoFantasma:0,
+  modelo:'full', loop:true, play:true,
+};
+const activos=Object.fromEntries(PUNTOS.map(p=>[p.id,true]));
+
+/* ═══════════ estado ═══════════ */
+const vid=$('vid'), cv=$('cv'), ctx=cv.getContext('2d');
+let W=1080, H=1920, FPS=30, N=0, raw=[], smooth=[], analizado=false, t=0, pose=null, poseModelo=null, tsBase=0, analizando=false;
+
+function msg(text,p){ $('overlay').style.display=text?'flex':'none'; $('msg').textContent=text||''; $('prog').style.width=(p==null?0:Math.round(p*100))+'%'; $('prog').parentElement.style.display=p==null?'none':''; }
+
+async function crearPose(modelo){
+  if(pose&&poseModelo===modelo) return pose;
+  // 1) el modelo se descarga una vez (con respaldo) y se pasa como bytes
+  msg('descargando modelo '+modelo+'…');
+  let buf=null, ultimo='';
+  for(const url of MODELOS[modelo]){
+    try{ const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status); buf=new Uint8Array(await r.arrayBuffer()); break; }
+    catch(e){ ultimo=url.split('/')[2]+' ('+(e.message||e)+')'; }
+  }
+  if(!buf) throw new Error('no se pudo descargar el modelo desde '+ultimo+'. Revisa tu conexión o abre el HTML desde el navegador (no desde una vista previa).');
+  // 2) el motor (wasm), también con respaldo
+  msg('cargando MediaPipe…');
+  let pl=null, err='';
+  for(const w of WASMS){
+    try{
+      const fs=await FilesetResolver.forVisionTasks(w);
+      const opts=d=>({baseOptions:{modelAssetBuffer:buf,delegate:d},runningMode:'VIDEO',numPoses:1,minPoseDetectionConfidence:.5,minPosePresenceConfidence:.5,minTrackingConfidence:.5});
+      try{ pl=await PoseLandmarker.createFromOptions(fs,opts('GPU')); }
+      catch(e){ pl=await PoseLandmarker.createFromOptions(fs,opts('CPU')); }
+      break;
+    }catch(e){ err=w.split('/')[2]+' ('+(e.message||e)+')'; }
+  }
+  if(!pl) throw new Error('no se pudo cargar MediaPipe desde '+err);
+  pose=pl; poseModelo=modelo; tsBase=0; return pose;
+}
+
+function seek(time){ return new Promise(ok=>{ const done=()=>{ vid.removeEventListener('seeked',done); ok(); }; vid.addEventListener('seeked',done); vid.currentTime=time; }); }
+
+async function analizar(){
+  if(analizando) return; analizando=true; analizado=false;
+  try{
+    await crearPose(P.modelo);
+    if(vid.readyState<1) await new Promise(ok=>vid.addEventListener('loadedmetadata',ok,{once:true}));
+    W=1080; H=Math.round(1080*vid.videoHeight/vid.videoWidth/2)*2; cv.width=W; cv.height=H;
+    N=Math.max(1,Math.floor(vid.duration*FPS));
+    raw=new Array(N).fill(null);
+    for(let i=0;i<N;i++){
+      await seek(Math.min(vid.duration-0.001,(i+.5)/FPS));
+      tsBase+=Math.round(1000/FPS);
+      const r=pose.detectForVideo(vid,tsBase);
+      if(r.landmarks&&r.landmarks[0]){ const a=new Float32Array(33*4); r.landmarks[0].forEach((l,k)=>{ a[k*4]=l.x; a[k*4+1]=l.y; a[k*4+2]=l.z; a[k*4+3]=l.visibility??1; }); raw[i]=a; }
+      if(i%3===0){ msg(`analizando movimiento… ${i+1}/${N}`,i/N); dibujarAnalisis(); }
+    }
+    // huecos: se copia el cuadro detectado más cercano
+    let last=raw.find(Boolean)||new Float32Array(33*4);
+    for(let i=0;i<N;i++){ if(raw[i]) last=raw[i]; else raw[i]=last; }
+    suavizar(); centrarCuerpo(); analizado=true; t=0; msg('');
+  }catch(e){ console.error(e); msg('no se pudo analizar: '+(e.message||e)); }
+  analizando=false;
+}
+function dibujarAnalisis(){ ctx.fillStyle=P.fondo; ctx.fillRect(0,0,W,H); }
+
+// suavizado gaussiano en el tiempo (hacia atrás y adelante: sin retraso)
+function suavizar(){
+  const s=P.suavizado; smooth=new Array(N);
+  if(s<.05){ smooth=raw.map(a=>a.slice()); return; }
+  const R=Math.ceil(s*3), k=[]; let sum=0; for(let j=-R;j<=R;j++){ const w=Math.exp(-j*j/(2*s*s)); k.push(w); sum+=w; }
+  for(let i=0;i<N;i++){
+    const o=new Float32Array(33*4);
+    for(let j=-R;j<=R;j++){ const f=P.loop?((i+j)%N+N)%N:Math.min(N-1,Math.max(0,i+j)), w=k[j+R]/sum, a=raw[f]; for(let c=0;c<o.length;c++) o[c]+=a[c]*w; }
+    smooth[i]=o;
+  }
+}
+
+/* ═══════════ dibujo ═══════════ */
+function frameAt(time){
+  const fi=Math.min(N-1-1e-6,Math.max(0,time*FPS-.5)), i0=Math.floor(fi), i1=Math.min(N-1,i0+1), f=fi-i0;
+  const a=smooth[i0], b=smooth[i1], o=new Float32Array(33*4);
+  for(let c=0;c<o.length;c++) o[c]=a[c]+(b[c]-a[c])*f;
+  return o;
+}
+function toCanvas(lm,k){
+  let x=lm[k*4], y=lm[k*4+1];
+  if(P.espejo) x=1-x;
+  x=(x-.5)*P.zoom*W+W/2+P.offX*W; y=(y-.5)*P.zoom*H+H/2+P.offY*H;
+  return [x,y];
+}
+function centro(lm,idx){ let x=0,y=0,z=0; for(const k of idx){ const p=toCanvas(lm,k); x+=p[0]; y+=p[1]; z+=lm[k*4+2]; } return [x/idx.length,y/idx.length,z/idx.length]; }
+function cuadros(lm,time){
+  const out={};
+  for(const p of PUNTOS){
+    if(!activos[p.id]) continue;
+    const [x,y,z]=centro(lm,p.idx);
+    const g=p.grupo==='torso'?P.torso:p.grupo==='art'?P.art:P.ext;
+    const prof=Math.max(.6,Math.min(2.5,1-z*P.profundidad*2));
+    const pul=1+P.pulso*.25*Math.sin(time*6+p.base*9);
+    const s=P.tam*p.base*g*prof*pul*P.zoom;
+    const a=toCanvas(lm,p.eje[0]), b=toCanvas(lm,p.eje[1]);
+    const ang=Math.atan2(b[1]-a[1],b[0]-a[0])*P.rotacion;
+    out[p.id]={x,y,s,ang};
+  }
+  return out;
+}
+function dibujar(time){
+  ctx.globalAlpha=1; ctx.fillStyle=P.fondo; ctx.fillRect(0,0,W,H);
+  if(P.videoFantasma>0&&vid.readyState>=2){ ctx.globalAlpha=P.videoFantasma; ctx.drawImage(vid,0,0,W,H); ctx.globalAlpha=1; }
+  if(!analizado) return;
+  const dur=N/FPS;
+  // estela: cuadros anteriores, cada vez más transparentes
+  for(let e=Math.round(P.estela);e>=0;e--){
+    let tt=time-e*P.sepEstela/FPS; if(P.loop) tt=((tt%dur)+dur)%dur; else if(tt<0) continue;
+    const lm=frameAt(tt), q=cuadros(lm,tt), alpha=P.opacidad*(e===0?1:Math.pow(1-e/(Math.round(P.estela)+1),1.4)*.8);
+    ctx.globalAlpha=alpha;
+    if(P.lineas&&e===0){
+      ctx.strokeStyle=P.linea; ctx.lineWidth=P.grosorLinea*P.zoom; ctx.lineCap='round'; ctx.beginPath();
+      for(const [a,b] of LINEAS){ if(q[a]&&q[b]){ ctx.moveTo(q[a].x,q[a].y); ctx.lineTo(q[b].x,q[b].y); } }
+      ctx.stroke();
+    }
+    for(const p of PUNTOS){
+      const c=q[p.id]; if(!c) continue;
+      ctx.save(); ctx.translate(c.x,c.y); ctx.rotate(c.ang);
+      const r=Math.min(c.s/2,P.esquinas*c.s/2);
+      ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(-c.s/2,-c.s/2,c.s,c.s,r); else ctx.rect(-c.s/2,-c.s/2,c.s,c.s);
+      if(P.relleno){ ctx.fillStyle=P.cuadro; ctx.fill(); }
+      else { ctx.strokeStyle=P.cuadro; ctx.lineWidth=P.grosor*P.zoom; ctx.stroke(); }
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ═══════════ bucle ═══════════ */
+let prevT=performance.now();
+function loop(now){
+  const dt=Math.min(.1,(now-prevT)/1000); prevT=now;
+  if(analizado&&!exportando){
+    const dur=N/FPS;
+    if(P.play){ t+=dt*P.velocidad; if(t>=dur){ if(P.loop) t%=dur; else { t=dur-1e-3; P.play=false; pinta(); } } }
+    if(P.videoFantasma>0&&Math.abs(vid.currentTime-t)>.05&&!vid.seeking) vid.currentTime=t;
+    $('timeline').value=t/dur;
+    dibujar(t);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ═══════════ exportar ═══════════ */
+let exportando=false;
+function cargarMuxer(){ if(window.Mp4Muxer) return Promise.resolve(); return new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.1/build/mp4-muxer.min.js'; s.onload=ok; s.onerror=ko; document.head.appendChild(s); }); }
+async function exportarMp4(){
+  if(!analizado||exportando) return;
+  const info=$('expInfo'), btn=$('bMp4');
+  if(typeof VideoEncoder==='undefined'){ info.textContent='tu navegador no exporta mp4: usa Chrome o Edge'; return; }
+  const OUT=60, n=Math.round(N/FPS*OUT);
+  let codec=null; for(const c of ['avc1.640033','avc1.64002A','avc1.4D0033']){ try{ const r=await VideoEncoder.isConfigSupported({codec:c,width:W,height:H,bitrate:16e6,framerate:OUT}); if(r&&r.supported){ codec=c; break; } }catch(e){} }
+  if(!codec){ info.textContent='el navegador no codifica h.264 a este tamaño'; return; }
+  await cargarMuxer();
+  exportando=true; btn.disabled=true; const fant=P.videoFantasma; P.videoFantasma=0;
+  const mux=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:W,height:H,frameRate:OUT},fastStart:'in-memory'});
+  let err=null; const enc=new VideoEncoder({output:(c,m)=>mux.addVideoChunk(c,m),error:e=>{err=e;}});
+  enc.configure({codec,width:W,height:H,bitrate:16e6,framerate:OUT,latencyMode:'quality',avc:{format:'avc'}});
+  try{
+    for(let i=0;i<n&&!err;i++){
+      dibujar(i/OUT);
+      const vf=new VideoFrame(cv,{timestamp:Math.round(i*1e6/OUT),duration:Math.round(1e6/OUT)});
+      enc.encode(vf,{keyFrame:i%OUT===0}); vf.close();
+      if(enc.encodeQueueSize>8) await new Promise(r=>setTimeout(r,0));
+      if(i%6===0){ btn.textContent=`EXPORTANDO… ${Math.round(i/n*100)}%`; await new Promise(r=>setTimeout(r,0)); }
+    }
+    await enc.flush(); mux.finalize(); if(err) throw err;
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([mux.target.buffer],{type:'video/mp4'})); a.download='tracking-cuadros.mp4'; a.click();
+    info.textContent=`listo: ${W}×${H} · ${(N/FPS).toFixed(2)} s · 60 fps`;
+  }catch(e){ info.textContent='no se pudo exportar: '+(e.message||e); }
+  if(enc.state!=='closed') enc.close();
+  P.videoFantasma=fant; exportando=false; btn.disabled=false; btn.textContent='● EXPORTAR MP4 (cuadro por cuadro)';
+}
+
+/* ═══════════ panel ═══════════ */
+const pintores=[]; function pinta(){ pintores.forEach(f=>f()); }
+const fmt=v=>Number.isInteger(v)?String(v):(+v).toFixed(2);
+function slider(cont,key,label,min,max,step,cb){
+  const r=document.createElement('div'); r.className='row';
+  r.innerHTML=`<div class="lab"><span>${label}</span><input type="number" step="any"></div><input type="range" min="${min}" max="${max}" step="${step}">`;
+  const s=r.querySelector('input[type=range]'), n=r.querySelector('input[type=number]');
+  const p=()=>{ n.value=fmt(P[key]); s.value=P[key]; }; p(); pintores.push(p);
+  s.addEventListener('input',()=>{ P[key]=parseFloat(s.value); n.value=fmt(P[key]); cb&&cb(); });
+  n.addEventListener('change',()=>{ const v=parseFloat(n.value); if(Number.isFinite(v)) P[key]=v; p(); cb&&cb(); });
+  $(cont).appendChild(r);
+}
+function toggle(id,key,cb){ const b=$(id); pintores.push(()=>b.setAttribute('aria-pressed',!!P[key])); b.addEventListener('click',()=>{ P[key]=!P[key]; pinta(); cb&&cb(); }); }
+function color(key,label){
+  const r=document.createElement('div'); r.className='crow';
+  r.innerHTML=`<span>${label}</span><span><input type="color"> <input class="hex" maxlength="7"></span>`;
+  const c=r.querySelector('input[type=color]'), h=r.querySelector('.hex');
+  const p=()=>{ c.value=P[key].toLowerCase(); h.value=P[key].toUpperCase(); }; p(); pintores.push(p);
+  c.addEventListener('input',()=>{ P[key]=c.value; h.value=c.value.toUpperCase(); });
+  h.addEventListener('change',()=>{ let v=h.value.trim(); if(!v.startsWith('#')) v='#'+v; if(/^#[0-9a-f]{6}$/i.test(v)) P[key]=v; p(); });
+  $('cols').appendChild(r);
+}
+PUNTOS.forEach(p=>{ const l=document.createElement('label'); l.innerHTML=`<input type="checkbox" checked> ${p.nombre}`; l.querySelector('input').addEventListener('change',e=>{ activos[p.id]=e.target.checked; }); $('chips').appendChild(l); });
+
+slider('sTam','tam','Tamaño general (px)',10,300,1);
+slider('sTam','torso','Cabeza, pecho y cadera ×',0,3,.01);
+slider('sTam','art','Codos y rodillas ×',0,3,.01);
+slider('sTam','ext','Manos y pies ×',0,3,.01);
+slider('sTam','profundidad','Más grande al acercarse',0,2,.01);
+slider('sTam','pulso','Pulso de tamaño',0,2,.01);
+
+slider('sMov','suavizado','Suavizado del movimiento',0,6,.1,()=>{ if(analizado) suavizar(); });
+slider('sMov','rotacion','Giro con el cuerpo',0,1,.01);
+slider('sMov','estela','Estela (copias)',0,30,1);
+slider('sMov','sepEstela','Separación de estela (cuadros)',.5,8,.5);
+slider('sMov','velocidad','Velocidad de reproducción',.1,2,.05);
+
+color('fondo','Fondo'); color('cuadro','Cuadros'); color('linea','Líneas');
+toggle('tFill','relleno'); toggle('tLines','lineas');
+slider('sStyle','grosor','Grosor del contorno',1,40,.5);
+slider('sStyle','esquinas','Esquinas redondeadas',0,1,.01);
+slider('sStyle','opacidad','Opacidad',.05,1,.01);
+slider('sStyle','grosorLinea','Grosor de líneas',1,30,.5);
+slider('sStyle','videoFantasma','Ver video detrás (para revisar)',0,1,.01);
+
+toggle('tMirror','espejo');
+slider('sFrame','zoom','Zoom',.3,3,.01);
+slider('sFrame','offX','Mover X',-1,1,.005);
+slider('sFrame','offY','Mover Y',-1,1,.005);
+function centrarCuerpo(){
+  if(!smooth.length) return;
+  // centra la caja de todos los puntos a lo largo del video
+  let x0=1,x1=0,y0=1,y1=0; for(const a of smooth) for(const p of PUNTOS) for(const k of p.idx){ const x=P.espejo?1-a[k*4]:a[k*4], y=a[k*4+1]; x0=Math.min(x0,x); x1=Math.max(x1,x); y0=Math.min(y0,y); y1=Math.max(y1,y); }
+  const bw=(x1-x0)*W, bh=(y1-y0)*H; P.zoom=Math.min(3,.82*Math.min(W/bw,H/bh));
+  P.offX=-((x0+x1)/2-.5)*P.zoom; P.offY=-((y0+y1)/2-.5)*P.zoom; pinta();
+}
+$('bFit').addEventListener('click',centrarCuerpo);
+
+['lite','full','heavy'].forEach(m=>{ const b=document.createElement('button'); b.textContent=m.toUpperCase(); pintores.push(()=>b.setAttribute('aria-pressed',P.modelo===m)); b.addEventListener('click',()=>{ if(P.modelo===m||analizando) return; P.modelo=m; pinta(); analizar(); }); $('gModel').appendChild(b); });
+
+$('bPlay').addEventListener('click',()=>{ P.play=!P.play; pinta(); });
+pintores.push(()=>$('bPlay').setAttribute('aria-pressed',P.play));
+toggle('bLoop','loop',()=>{ if(analizado) suavizar(); });
+$('timeline').addEventListener('input',e=>{ if(analizado){ t=parseFloat(e.target.value)*N/FPS; P.play=false; pinta(); } });
+$('bVideo').addEventListener('click',()=>$('fVideo').click());
+$('fVideo').addEventListener('change',e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; vid.src=URL.createObjectURL(f); vid.load(); analizar(); e.target.value=''; });
+$('bMp4').addEventListener('click',exportarMp4);
+$('bPng').addEventListener('click',()=>{ const a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='tracking-cuadros.png'; a.click(); });
+
+pinta();
+cv.width=W; cv.height=H; dibujarAnalisis();
+if(!PoseLandmarker){ msg('no se pudo cargar MediaPipe (jsdelivr / unpkg). Revisa tu conexión o abre el HTML en Chrome, no en una vista previa.'); throw new Error('sin MediaPipe'); }
+vid.src=VIDEO_DEFAULT; vid.load();
+analizar();
+window.__trk={P,analizado:()=>analizado,dibujar,usarDatos(arr){ raw=arr.map(a=>a?Float32Array.from(a):null); N=raw.length; let l=raw.find(Boolean); for(let i=0;i<N;i++){ if(raw[i]) l=raw[i]; else raw[i]=l; } suavizar(); centrarCuerpo(); analizado=true; analizando=false; msg(''); }};
+</script>
+</body>
+</html>

@@ -1,5 +1,17 @@
 export const TOOLS = [
   {
+    id: 'tracking-cuadros',
+    slug: 'tracking-cuadros',
+    name: 'Tracking en cuadros',
+    description: 'Sube un video de alguien bailando: MediaPipe sigue el cuerpo y solo se ven cuadros que se mueven con él.',
+    category: 'interaction',
+    status: 'live',
+    tech: ['MediaPipe', 'Pose', 'Canvas API'],
+    path: '/tools/tracking-cuadros',
+    index: '015',
+    thumbnail: '/tool-thumbnails/tracking-cuadros.webp',
+  },
+  {
     id: 'ticker-3d',
     slug: 'ticker-3d',
     name: 'Ticker 3D',
