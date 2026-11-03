@@ -1156,10 +1156,11 @@ function lineasDibujar(p,ph){
     const ang=(i+.15+.7*azar(i+3))/n*Math.PI*2;             // repartidas alrededor del punto de fuga
     const q=((azar(i+7)+ph*K)%1+1)%1;                       // avance 0→1 de esta línea
     // viaja del punto de fuga hacia la cámara: distancia 1/(1-q) como un objeto que se acerca a velocidad constante
-    const z=Math.max(.02,1-q), rh=R*.03/z, rt=rh*(1-P.lineasLargo*(.7+.6*azar(i+13)));
+    // nace EN el punto de fuga (radio 0) y se acerca: radio ∝ q/(1-q), como algo que viene desde el fondo
+    const z=Math.max(.02,1-q), rh=R*.05*q/z, rt=rh*(1-P.lineasLargo*(.7+.6*azar(i+13)));
     if(rt>R*1.1) continue;                                  // ya pasó junto a la cámara
     const ac=Math.min(1,rh/R);
-    const alfa=Math.min(1,q/.25);
+    const alfa=Math.min(1,Math.pow(q/.6,2));                // aparece poco a poco desde el fondo, sin saltos
     const cx=Math.cos(ang), cy=Math.sin(ang), g=P.lineasGrosor*(.4+1.6*ac)*.5;
     const hx=vp[0]+cx*rh, hy=vp[1]+cy*rh, tx=vp[0]+cx*rt, ty=vp[1]+cy*rt;
     lineaSh.setUniform('uAlfa',alfa*.95);
