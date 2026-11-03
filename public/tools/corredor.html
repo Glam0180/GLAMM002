@@ -747,6 +747,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div class="y-btns" id="gPal"></div>
             <div id="cols" class="y-row"></div>
             <div id="slCol"></div>
+            <button type="button" class="cam-btn" id="tHalf">HALFTONE EN SOMBRAS</button>
+            <div id="slHalf"></div>
             <div class="y-sec">carro</div>
             <button type="button" class="cam-btn" id="tCarro">CARRO VISIBLE</button>
             <div id="carCols" class="y-row"></div>
@@ -838,6 +840,7 @@ const BASE={
   // color
   fondo:'#A3F50A', tinta:'#FE5858', cielo:'#A3F50A', nieblaColor:'#0A0A0A', niebla:.38, nieblaInicio:4.5, degradadoCielo:.89,
   sombra:.35, sombraAlto:2.5,   // sombra en las paredes desde el suelo
+  halftone:true, htTam:9, htAng:45,   // la sombra de las paredes como trama de puntos (px, °)
   // líneas de velocidad: salen del punto de fuga y pasan junto a la cámara
   lineas:30, lineasLargo:.91, lineasGrosor:10.9, lineasVel:9, lineasColor:'#000000',
   // carro deportivo low-poly: se queda frente a la cámara y el pasillo corre bajo él
@@ -876,15 +879,22 @@ varying vec2 vUv;
 varying float vDepth;
 varying float vY;
 uniform sampler2D uTex;
-uniform float uPared, uSombra, uSombraAlto;
+uniform float uPared, uSombra, uSombraAlto, uHalftone, uHtTam, uHtAng;
 uniform float uScroll, uNiebla, uNieblaInicio;
 uniform vec3 uFondo, uTinta, uNieblaCol;
 void main(){
   float papel=texture2D(uTex,vec2(vUv.x-uScroll,vUv.y)).r;   // 1 = fondo, 0 = letra
   vec3 col=mix(uTinta,uFondo,papel);
   // sombra suave en las paredes: más oscura junto al suelo (y = 1) y se va subiendo
-  float sombra=uPared*uSombra*(1.0-smoothstep(0.0,max(.001,uSombraAlto),1.0-vY));
-  col*=1.0-sombra;
+  float caida=uPared*(1.0-smoothstep(0.0,max(.001,uSombraAlto),1.0-vY));
+  if(uHalftone>.5){
+    // halftone: trama de puntos en pantalla; el radio crece con la sombra (grande junto al suelo, nada arriba)
+    float cs=cos(uHtAng), sn=sin(uHtAng);
+    vec2 q=mat2(cs,-sn,sn,cs)*gl_FragCoord.xy/uHtTam;
+    float r=sqrt(clamp(caida*uSombra*2.2,0.0,1.0))*.72, d=length(fract(q)-.5), aa=1.0/uHtTam;
+    float punto=(1.0-smoothstep(r-aa,r+aa,d))*step(.03,r);
+    col*=1.0-punto*.8;
+  } else col*=1.0-caida*uSombra;
   float f=smoothstep(uNieblaInicio,uNieblaInicio*2.5,vDepth)*uNiebla;
   gl_FragColor=vec4(mix(col,uNieblaCol,f),1.0);
 }`;
@@ -1254,6 +1264,7 @@ function dibujarEscena(p,ph){
   sh.setUniform('uNieblaCol',hexRGB(P.nieblaColor));
   sh.setUniform('uNiebla',P.niebla); sh.setUniform('uNieblaInicio',P.nieblaInicio);
   sh.setUniform('uSombra',P.sombra); sh.setUniform('uSombraAlto',P.sombraAlto);
+  sh.setUniform('uHalftone',P.halftone?1:0); sh.setUniform('uHtTam',Math.max(2,P.htTam)); sh.setUniform('uHtAng',P.htAng*Math.PI/180);
 
   const w=P.ancho, h=1, L=P.largo, sc=ph*Math.round(P.avance)*P.sentido;
   const xR=w*P.extension, anchoSuelo=w+xR;                  // el suelo va de la pared izquierda a la derecha
@@ -1437,6 +1448,10 @@ slider('slCol','nieblaInicio','Inicio de la niebla',2,80,.5);
 slider('slCol','degradadoCielo','Niebla en el cielo (altura)',0,1.2,.01);
 slider('slCol','sombra','Sombra en las paredes',0,1,.01);
 slider('slCol','sombraAlto','Alto de la sombra',.1,10,.05);
+$('tHalf').addEventListener('click',()=>{ P.halftone=!P.halftone; repaint(); });
+painters.push(()=>$('tHalf').setAttribute('aria-pressed',!!P.halftone));
+slider('slHalf','htTam','Tamaño de trama (px)',3,40,.5);
+slider('slHalf','htAng','Ángulo de trama (°)',0,90,1);
 // carro
 $('tCarro').addEventListener('click',()=>{ P.carro=!P.carro; repaint(); });
 painters.push(()=>$('tCarro').setAttribute('aria-pressed',!!P.carro));
