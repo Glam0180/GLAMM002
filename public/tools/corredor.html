@@ -1056,7 +1056,9 @@ function carroDibujar(p,ph,mundo){
   const vueltas8=Math.round(dist/(2*Math.PI*RUEDA_R*esc)*8);
   const giro=-ph*vueltas8*Math.PI/4;
   const cl=Math.cos(ladeo), sl=Math.sin(ladeo);
-  const W=(x,y,z)=>{ const xr=x*cl-(y-.5)*sl, yr=(y-.5)*cl+x*sl+.5; return [cx+xr*esc*-fz, cy-(yr*esc)-bob*esc, cz+z*esc*fz]; };
+  // al acelerar el carro se estira a lo largo y se aplasta un poco (suave, vuelve al soltar)
+  const st=suave(boost), estZ=1+.28*st, estY=1-.1*st;
+  const W=(x,y,z)=>{ const xr=x*cl-(y-.5)*sl, yr=(y-.5)*cl+x*sl+.5; return [cx+xr*esc*-fz, cy-(yr*estY*esc)-bob*esc, cz+z*estZ*esc*fz]; };
   const tris=[];
   const tri=(A,B,C,col,cen,emis)=>tris.push([A,B,C,col,cen,emis]);
   const quad=(A,B,C,D,col,cen,emis)=>{ tri(A,B,C,col,cen,emis); tri(A,C,D,col,cen,emis); };
@@ -1103,7 +1105,7 @@ function carroDibujar(p,ph,mundo){
   }
   // sombra en el suelo
   p.shader(sombraSh); sombraSh.setUniform('uAlfa',.35);
-  const sw=1.25*esc, sz=CARRO_LARGO*.62*esc;
+  const sw=1.25*esc, sz=CARRO_LARGO*.62*esc*estZ;
   p.beginShape(p.TRIANGLE_STRIP);
   p.vertex(cx-sw,cy-.002,cz-sz,0,0); p.vertex(cx+sw,cy-.002,cz-sz,1,0);
   p.vertex(cx-sw,cy-.002,cz+sz,0,1); p.vertex(cx+sw,cy-.002,cz+sz,1,1);
