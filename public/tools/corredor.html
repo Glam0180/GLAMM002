@@ -784,7 +784,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         <ol class="ip__steps">
           <li>escribe el texto de cada superficie: pared izquierda, suelo y pared derecha</li>
           <li>elige tipografía, punto de fuga, rotación y perspectiva</li>
-          <li>haz click o mantén presionado el lienzo para acelerar</li>
+          <li>mantén presionado el lienzo para acelerar poco a poco</li>
           <li>ajusta colores, cielo, niebla, el carro y cuántas palabras avanza el loop</li>
           <li>exporta el loop mp4 exacto o un png</li>
         </ol>
@@ -1139,17 +1139,18 @@ function carroDibujar(p,ph,mundo){
    'lineasVel' veces por loop: el loop cierra. Van encima del pasillo y
    debajo del carro. */
 /* ═════════ ACELERACIÓN (click o mantener sobre el lienzo) ═════════
-   El largo de la palabra sube suave desde su valor hasta el máximo del
-   slider y las partículas pasan más rápido; al soltar vuelve. 'boost'
+   Mientras se mantiene presionado, el largo de la palabra sube poco a
+   poco hacia el máximo del slider y las partículas pasan más rápido; un
+   click corto apenas acelera. Al soltar vuelve suave. 'boost'
    va de 0 a 1. Las partículas integran su avance extra para no saltar.
    Al exportar el loop la aceleración se apaga: el MP4 sigue exacto. */
-const ACEL={subida:1.3, minimo:1.6, bajada:1.8, velMax:4, estirarMax:4};
+const ACEL={subida:2.5, bajada:1.8, velMax:4, estirarMax:4};   // segundos manteniendo presionado para llegar al máximo / para volver
 let boost=0, presionado=false, tPress=-1e9, extraLin=0, boostAntes=0, tAcel=0;
 const suave=x=>x*x*(3-2*x);
 const estirarEf=()=>P.estirar+(Math.max(P.estirar,ACEL.estirarMax)-P.estirar)*suave(boost);
 function actualizarAceleracion(dt){
-  const activo=presionado||(performance.now()/1000-tPress)<ACEL.minimo;
-  boost=activo?Math.min(1,boost+dt/ACEL.subida):Math.max(0,boost-dt/ACEL.bajada);
+  // progresivo: solo sube mientras se mantiene presionado; al soltar baja desde donde quedó
+  boost=presionado?Math.min(1,boost+dt/ACEL.subida):Math.max(0,boost-dt/ACEL.bajada);
   const K=Math.max(1,Math.round(P.lineasVel));
   extraLin=(extraLin+dt/Math.max(.5,P.duracion)*K*(ACEL.velMax-1)*suave(boost))%1;
 }
