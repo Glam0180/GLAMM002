@@ -833,7 +833,7 @@ const BASE={
   fondo:'#A3F50A', tinta:'#FE5858', cielo:'#A3F50A', nieblaColor:'#0A0A0A', niebla:.38, nieblaInicio:4.5, degradadoCielo:.89,
   sombra:.35, sombraAlto:2.5,   // sombra en las paredes desde el suelo
   // líneas de velocidad: salen del punto de fuga y pasan junto a la cámara
-  lineas:8, lineasLargo:.3, lineasGrosor:7, lineasVel:3, lineasColor:'#FFFFFF',
+  lineas:8, lineasLargo:.3, lineasGrosor:7, lineasVel:10, lineasColor:'#FFFFFF',
   // carro deportivo low-poly: se queda frente a la cámara y el pasillo corre bajo él
   carro:true, carroColor:'#A9A7C7', carroDist:1.9, carroX:0, carroEscala:1, carroPixel:5, carroRebote:.5,
 };
@@ -1371,7 +1371,7 @@ colorRow('lineasColor','Color','linCols');
 slider('slLin','lineas','Cantidad',0,30,1);
 slider('slLin','lineasLargo','Largo',.05,1,.01);
 slider('slLin','lineasGrosor','Grosor (px)',.5,12,.1);
-slider('slLin','lineasVel','Velocidad (vueltas por loop)',1,8,1);
+slider('slLin','lineasVel','Velocidad (pasadas por loop)',1,40,1);
 // loop
 slider('slLoop','duracion','Duración del loop (s)',1,30,.5);
 slider('slLoop','avance','Palabras que avanza por loop',0,12,1);
