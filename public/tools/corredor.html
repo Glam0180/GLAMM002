@@ -737,6 +737,10 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div class="y-btns" id="gPal"></div>
             <div id="cols" class="y-row"></div>
             <div id="slCol"></div>
+            <div class="y-sec">carro</div>
+            <button type="button" class="cam-btn" id="tCarro">CARRO VISIBLE</button>
+            <div id="carCols" class="y-row"></div>
+            <div id="slCar"></div>
             <div class="y-sec">loop</div>
             <div id="slLoop"></div>
             <div class="y-btns">
@@ -770,7 +774,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
           <li>escribe el texto de cada superficie: pared izquierda, suelo y pared derecha</li>
           <li>elige tipografía, condénsala y estira las palabras</li>
           <li>mueve el punto de fuga, la rotación y la perspectiva</li>
-          <li>ajusta colores, cielo, niebla y cuántas palabras avanza el loop</li>
+          <li>ajusta colores, cielo, niebla, el carro y cuántas palabras avanza el loop</li>
           <li>exporta el loop mp4 exacto o un png</li>
         </ol>
       </div>
@@ -819,6 +823,8 @@ const BASE={
   // color
   fondo:'#A3F50A', tinta:'#FE5858', cielo:'#A3F50A', nieblaColor:'#0A0A0A', niebla:.38, nieblaInicio:4.5, degradadoCielo:.89,
   sombra:.35, sombraAlto:2.5,   // sombra en las paredes desde el suelo
+  // carro deportivo low-poly: se queda frente a la cámara y el pasillo corre bajo él
+  carro:true, carroColor:'#A9A7C7', carroDist:1.9, carroX:0, carroEscala:1, carroRebote:.5,
 };
 const P=JSON.parse(JSON.stringify(BASE));
 
@@ -889,6 +895,39 @@ void main(){
   gl_FragColor=vec4(mix(uCielo,col,uNiebla),1.0);
 }`;
 
+/* carro: color por vértice (sombreado plano calculado en JS) + la misma niebla */
+const CAR_VERT=`
+precision highp float;
+attribute vec3 aPosition;
+attribute vec4 aVertexColor;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+varying vec4 vCol;
+varying float vDepth;
+void main(){
+  vec4 mv=uModelViewMatrix*vec4(aPosition,1.0);
+  vDepth=-mv.z; vCol=aVertexColor;
+  gl_Position=uProjectionMatrix*mv;
+}`;
+const CAR_FRAG=`
+precision highp float;
+varying vec4 vCol;
+varying float vDepth;
+uniform vec3 uNieblaCol;
+uniform float uNiebla, uNieblaInicio;
+void main(){
+  float f=smoothstep(uNieblaInicio,uNieblaInicio*2.5,vDepth)*uNiebla;
+  gl_FragColor=vec4(mix(vCol.rgb,uNieblaCol,f),1.0);
+}`;
+const SOMBRA_FRAG=`
+precision highp float;
+varying vec2 vUv;
+uniform float uAlfa;
+void main(){
+  float d=length((vUv-.5)*2.0);
+  gl_FragColor=vec4(0.0,0.0,0.0,uAlfa*(1.0-smoothstep(.45,1.0,d)));
+}`;
+let carSh=null, sombraSh=null;
 let skySh=null;
 let p5i=null, sh=null, tex=[null,null,null], aspectoTex=[8,8,8], repsTex=[1,1,1], phase=0, exporting=false;
 let regen=true, generando=false;
@@ -956,6 +995,109 @@ function cara(p,esquina,largo,filas,aspecto,reps,altoFila,dir){
   p.endShape();
 }
 
+/* ═════════ CARRO LOW-POLY ═════════
+   Coordenadas propias: x a lo ancho, y hacia arriba, z hacia adelante
+   (morro en +z), en "metros" de carro (≈4.6 de largo). Cada cara se
+   sombrea plana en JS (normal por triángulo + luz fija) y se pinta con
+   color por vértice; la niebla la pone el shader. */
+const CARRO_LARGO=4.6, CARRO_ANCHO=2;
+// secciones de la carrocería baja: [z, ancho estribo, y estribo, ancho hombro, y hombro, ancho cintura, y cintura]
+const SEC=[
+  [-2.25,.84,.30, .92,.52, .80,.74],
+  [-1.45,.92,.22,1.06,.48, .86,.78],
+  [ -.30,.84,.20, .92,.44, .80,.68],
+  [ 1.35,.92,.22,1.04,.44, .86,.56],
+  [ 2.32,.76,.20, .84,.30, .70,.38],
+];
+const LUZ=(()=>{ const v=[-.45,-1,.55], l=Math.hypot(...v); return v.map(x=>x/l); })();   // hacia la luz (y hacia abajo en p5)
+const RUEDA_R=.36;
+function carroDibujar(p,ph,mundo){
+  const {cx,cy,cz,esc,fz}=mundo;
+  const a=ph*Math.PI*2;
+  // rebote y vaivén con frecuencias enteras por loop: cierra igual que el texto
+  const nb=Math.max(1,Math.round(P.duracion*2.2));
+  const bob=P.carroRebote*.035*(Math.sin(a*nb)*.6+Math.sin(a*nb*2+1.3)*.4);
+  const ladeo=P.carroRebote*.012*Math.sin(a*Math.max(1,Math.round(nb/2)));
+  // giro de ruedas: distancia que avanza el suelo por loop / circunferencia, a múltiplos de 1/8 (ruedas de 8 lados)
+  const largoPalabraSuelo=2*P.altoFilas*aspectoTex[1]*P.estirar;
+  const dist=Math.abs(Math.round(P.avance))*largoPalabraSuelo;
+  const vueltas8=Math.round(dist/(2*Math.PI*RUEDA_R*esc)*8);
+  const giro=-ph*vueltas8*Math.PI/4;
+  const cl=Math.cos(ladeo), sl=Math.sin(ladeo);
+  const W=(x,y,z)=>{ const xr=x*cl-(y-.5)*sl, yr=(y-.5)*cl+x*sl+.5; return [cx+xr*esc*-fz, cy-(yr*esc)-bob*esc, cz+z*esc*fz]; };
+  const tris=[];
+  const tri=(A,B,C,col,cen,emis)=>tris.push([A,B,C,col,cen,emis]);
+  const quad=(A,B,C,D,col,cen,emis)=>{ tri(A,B,C,col,cen,emis); tri(A,C,D,col,cen,emis); };
+  const body=hexRGB(P.carroColor), vidrio=[.13,.13,.18], negro=[.06,.06,.07], rin=[.32,.32,.36], luz=hexRGB('#FF2A1A'), bajo=body.map(c=>c*.55);
+  // carrocería baja
+  for(let i=0;i<SEC.length-1;i++){
+    const A=SEC[i], B=SEC[i+1], zc=(A[0]+B[0])/2, cen=[0,.3,zc];
+    for(const sg of [1,-1]){
+      quad([sg*A[1],A[2],A[0]],[sg*B[1],B[2],B[0]],[sg*B[3],B[4],B[0]],[sg*A[3],A[4],A[0]],body,cen);
+      quad([sg*A[3],A[4],A[0]],[sg*B[3],B[4],B[0]],[sg*B[5],B[6],B[0]],[sg*A[5],A[6],A[0]],body,cen);
+    }
+    quad([A[5],A[6],A[0]],[B[5],B[6],B[0]],[-B[5],B[6],B[0]],[-A[5],A[6],A[0]],body,cen);   // capó / tapa trasera
+  }
+  for(const [S,cen] of [[SEC[0],[0,.5,0]],[SEC[SEC.length-1],[0,.5,0]]]){                   // trasera y morro
+    quad([S[1],S[2],S[0]],[S[3],S[4],S[0]],[-S[3],S[4],S[0]],[-S[1],S[2],S[0]],bajo,cen);
+    quad([S[3],S[4],S[0]],[S[5],S[6],S[0]],[-S[5],S[6],S[0]],[-S[3],S[4],S[0]],body,cen);
+  }
+  // cabina
+  const rb=[.76,.78,-1.45], rr=[.54,1.02,-.55], rf=[.54,1.04,.10], wb=[.80,.60,1.10], m=v=>[-v[0],v[1],v[2]], cc=[0,.8,-.2];
+  quad(m(rb),rb,rr,m(rr),vidrio,cc);           // vidrio trasero
+  quad(m(rr),rr,rf,m(rf),body,cc);             // techo
+  quad(m(rf),rf,wb,m(wb),vidrio,cc);           // parabrisas
+  for(const sg of [1,-1]){ const f=v=>[sg*v[0],v[1],v[2]]; quad(f(rb),f(rr),f(rf),f(wb),vidrio,cc); }
+  // alerón
+  const caja=(x0,y0,z0,x1,y1,z1,col)=>{ const c=[(x0+x1)/2,(y0+y1)/2,(z0+z1)/2];
+    const v=(i,j,k)=>[[x0,x1][i],[y0,y1][j],[z0,z1][k]];
+    quad(v(0,0,0),v(1,0,0),v(1,1,0),v(0,1,0),col,c); quad(v(0,0,1),v(1,0,1),v(1,1,1),v(0,1,1),col,c);
+    quad(v(0,0,0),v(0,0,1),v(0,1,1),v(0,1,0),col,c); quad(v(1,0,0),v(1,0,1),v(1,1,1),v(1,1,0),col,c);
+    quad(v(0,1,0),v(1,1,0),v(1,1,1),v(0,1,1),col,c); quad(v(0,0,0),v(1,0,0),v(1,0,1),v(0,0,1),col,c); };
+  caja(-.98,.98,-2.42,.98,1.03,-2.02,negro);
+  caja(-.5,.72,-2.24,-.42,.98,-2.16,negro); caja(.42,.72,-2.24,.5,.98,-2.16,negro);
+  // luces traseras (emisivas)
+  for(const sg of [1,-1]) quad([sg*.18,.58,-2.27],[sg*.80,.60,-2.27],[sg*.78,.68,-2.27],[sg*.18,.67,-2.27],luz,[0,.5,0],true);
+  // ruedas: prismas de 8 lados
+  const N=8;
+  for(const [xw,zw] of [[.88,1.35],[-.88,1.35],[.88,-1.45],[-.88,-1.45]]){
+    const t=.3, xo=xw+Math.sign(xw)*t/2, xi=xw-Math.sign(xw)*t/2, cen=[xw,RUEDA_R,zw];
+    const pt=(x,k,r)=>{ const th=k*2*Math.PI/N+giro; return [x,RUEDA_R+r*Math.sin(th),zw+r*Math.cos(th)]; };
+    for(let k=0;k<N;k++){
+      quad(pt(xo,k,RUEDA_R),pt(xo,k+1,RUEDA_R),pt(xi,k+1,RUEDA_R),pt(xi,k,RUEDA_R),negro,cen);
+      tri([xo,RUEDA_R,zw],pt(xo,k,RUEDA_R*.62),pt(xo,k+1,RUEDA_R*.62),rin,cen);                // rin
+      quad(pt(xo,k,RUEDA_R*.62),pt(xo,k,RUEDA_R),pt(xo,k+1,RUEDA_R),pt(xo,k+1,RUEDA_R*.62),negro,cen);
+    }
+  }
+  // sombra en el suelo
+  p.shader(sombraSh); sombraSh.setUniform('uAlfa',.55);
+  const sw=1.25*esc, sz=CARRO_LARGO*.62*esc;
+  p.beginShape(p.TRIANGLE_STRIP);
+  p.vertex(cx-sw,cy-.002,cz-sz,0,0); p.vertex(cx+sw,cy-.002,cz-sz,1,0);
+  p.vertex(cx-sw,cy-.002,cz+sz,0,1); p.vertex(cx+sw,cy-.002,cz+sz,1,1);
+  p.endShape();
+  // carro
+  p.shader(carSh);
+  carSh.setUniform('uNieblaCol',hexRGB(P.nieblaColor)); carSh.setUniform('uNiebla',P.niebla); carSh.setUniform('uNieblaInicio',P.nieblaInicio);
+  p.beginShape(p.TRIANGLES);
+  for(const [A,B,C,col,cen,emis] of tris){
+    const a1=W(...A), b1=W(...B), c1=W(...C), ce=W(...cen);
+    let col2=col;
+    if(!emis){
+      const u=[b1[0]-a1[0],b1[1]-a1[1],b1[2]-a1[2]], v=[c1[0]-a1[0],c1[1]-a1[1],c1[2]-a1[2]];
+      let n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]]; const l=Math.hypot(...n)||1; n=n.map(x=>x/l);
+      const mc=[(a1[0]+b1[0]+c1[0])/3-ce[0],(a1[1]+b1[1]+c1[1])/3-ce[1],(a1[2]+b1[2]+c1[2])/3-ce[2]];
+      if(n[0]*mc[0]+n[1]*mc[1]+n[2]*mc[2]<0) n=n.map(x=>-x);   // normal hacia afuera
+      const d=Math.max(0,n[0]*LUZ[0]+n[1]*LUZ[1]+n[2]*LUZ[2]), cielo=Math.max(0,-n[1]);
+      const k=.32+.62*d+.14*cielo;
+      col2=col.map(c=>Math.min(1,c*k));
+    }
+    p.fill(col2[0]*255,col2[1]*255,col2[2]*255);
+    p.vertex(...a1); p.vertex(...b1); p.vertex(...c1);
+  }
+  p.endShape();
+}
+
 function dibujar(p,ph){
   p.background(P.cielo);
   if(!tex[0]) return;
@@ -997,6 +1139,11 @@ function dibujar(p,ph){
     sh.setUniform('uScroll',c.dir*sc/repsTex[i]);              // avanza palabras enteras: sin salto
     cara(p,c.esq,L,c.filas,aspectoTex[i],repsTex[i],c.fila,c.dir);
   }
+  if(P.carro){
+    // centrado en el suelo, a 'carroDist' de la cámara; mira hacia donde avanza el pasillo
+    const esc=anchoSuelo*.62*P.carroEscala/CARRO_ANCHO;
+    carroDibujar(p,ph,{cx:(xR-w)/2+P.carroX*anchoSuelo, cy:h, cz:-P.carroDist, esc, fz:P.sentido<0?-1:1});
+  }
   p.resetShader();
 }
 
@@ -1007,6 +1154,8 @@ const sketch=p=>{
     p.pixelDensity(1); p.noStroke(); p.textureMode(p.NORMAL); p.textureWrap(p.REPEAT,p.REPEAT);
     sh=p.createShader(VERT,FRAG);
     skySh=p.createShader(SKY_VERT,SKY_FRAG);
+    carSh=p.createShader(CAR_VERT,CAR_FRAG);
+    sombraSh=p.createShader(VERT,SOMBRA_FRAG);
   };
   p.draw=()=>{
     if(regen&&!generando){ regen=false; hacerTexturas(p); }
@@ -1073,14 +1222,14 @@ function grupo(cont,opts,get,set,labels){
   const bs=opts.map((o,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.textContent=labels?labels[i]:o; b.addEventListener('click',()=>{ set(o); repaint(); }); $(cont).appendChild(b); return b; });
   painters.push(()=>bs.forEach((b,i)=>b.setAttribute('aria-pressed',opts[i]===get())));
 }
-function colorRow(key,label){
+function colorRow(key,label,cont){
   const f=document.createElement('label'); f.className='y-crow';
   f.innerHTML=`<span>${label}</span><input type="color"><input class="y-hex" type="text" maxlength="7" spellcheck="false">`;
   const sel=f.querySelector('input[type=color]'), hex=f.querySelector('.y-hex');
   painters.push(()=>{ sel.value=P[key].toLowerCase(); hex.value=P[key].toUpperCase(); $('sketch-holder').style.background=P.cielo; });
   sel.addEventListener('input',()=>{ P[key]=sel.value.toUpperCase(); repaint(); });
   hex.addEventListener('change',()=>{ let v=hex.value.trim(); if(!v.startsWith('#')) v='#'+v; if(/^#[0-9a-fA-F]{6}$/.test(v)) P[key]=v.toUpperCase(); repaint(); });
-  $('cols').appendChild(f);
+  $(cont||'cols').appendChild(f);
 }
 
 // textos
@@ -1119,6 +1268,14 @@ slider('slCol','nieblaInicio','Inicio de la niebla',2,80,.5);
 slider('slCol','degradadoCielo','Niebla en el cielo (altura)',0,1.2,.01);
 slider('slCol','sombra','Sombra en las paredes',0,1,.01);
 slider('slCol','sombraAlto','Alto de la sombra',.1,10,.05);
+// carro
+$('tCarro').addEventListener('click',()=>{ P.carro=!P.carro; repaint(); });
+painters.push(()=>$('tCarro').setAttribute('aria-pressed',!!P.carro));
+colorRow('carroColor','Carrocería','carCols');
+slider('slCar','carroDist','Distancia a la cámara',.5,20,.05);
+slider('slCar','carroX','Mover a los lados',-.5,.5,.01);
+slider('slCar','carroEscala','Tamaño',.2,2,.01);
+slider('slCar','carroRebote','Rebote',0,2,.01);
 // loop
 slider('slLoop','duracion','Duración del loop (s)',1,30,.5);
 slider('slLoop','avance','Palabras que avanza por loop',0,12,1);

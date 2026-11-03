@@ -3,7 +3,7 @@ export const TOOLS = [
     id: 'corredor',
     slug: 'corredor',
     name: 'Corredor tipográfico',
-    description: 'Un pasillo 3D abierto al cielo: tu texto corre por las paredes y el suelo hacia un punto de fuga que se pierde en la niebla.',
+    description: 'Un carro deportivo low-poly avanzando por un pasillo 3D: tu texto corre por paredes y suelo hacia un punto de fuga en la niebla.',
     category: 'typography',
     status: 'live',
     tech: ['p5.js', 'WebGL', 'GLSL'],
