@@ -726,6 +726,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
               <button type="button" class="cam-btn" id="tInvSuelo">INVERTIR SUELO</button>
               <button type="button" class="cam-btn" id="tInvDer">INVERTIR DERECHA</button>
             </div>
+            <button type="button" class="cam-btn" id="tVolSuelo">VOLTEAR SUELO (VERTICAL)</button>
           </div>
         </div>
 
@@ -826,12 +827,13 @@ const BASE={
   // corredor
   ancho:.3, largo:46, extension:2.2, altoFilas:.99,
   franjasPared:7, altoPared:1.4,
-  invSuelo:false, invDerecha:false,  // la E del suelo y la M de la pared derecha llegan primero a la cámara  // las paredes llevan N franjas; arriba queda abierto (cielo)
+  invSuelo:false, invDerecha:false,  // la E del suelo y la M de la pared derecha llegan primero a la cámara
+  voltearSuelo:true,                  // espejo vertical del texto del suelo  // las paredes llevan N franjas; arriba queda abierto (cielo)
   // color
   fondo:'#A3F50A', tinta:'#FE5858', cielo:'#A3F50A', nieblaColor:'#0A0A0A', niebla:.38, nieblaInicio:4.5, degradadoCielo:.89,
   sombra:.35, sombraAlto:2.5,   // sombra en las paredes desde el suelo
   // líneas de velocidad: salen del punto de fuga y pasan junto a la cámara
-  lineas:6, lineasLargo:.5, lineasGrosor:9, lineasVel:2, lineasColor:'#FFFFFF',
+  lineas:8, lineasLargo:.3, lineasGrosor:7, lineasVel:3, lineasColor:'#FFFFFF',
   // carro deportivo low-poly: se queda frente a la cámara y el pasillo corre bajo él
   carro:true, carroColor:'#A9A7C7', carroDist:1.9, carroX:0, carroEscala:1, carroPixel:5, carroRebote:.5,
 };
@@ -1153,9 +1155,11 @@ function lineasDibujar(p,ph){
   for(let i=0;i<n;i++){
     const ang=(i+.15+.7*azar(i+3))/n*Math.PI*2;             // repartidas alrededor del punto de fuga
     const q=((azar(i+7)+ph*K)%1+1)%1;                       // avance 0→1 de esta línea
-    const ac=q*q*q;                                         // acelera al acercarse, como en perspectiva
-    const rh=R*(.04+1.1*ac), rt=Math.max(R*.01,rh*(1-P.lineasLargo*(.7+.6*azar(i+13))));
-    const alfa=Math.min(1,q/.15)*(1-Math.min(1,Math.max(0,(q-.85)/.15)));
+    // viaja del punto de fuga hacia la cámara: distancia 1/(1-q) como un objeto que se acerca a velocidad constante
+    const z=Math.max(.02,1-q), rh=R*.03/z, rt=rh*(1-P.lineasLargo*(.7+.6*azar(i+13)));
+    if(rt>R*1.1) continue;                                  // ya pasó junto a la cámara
+    const ac=Math.min(1,rh/R);
+    const alfa=Math.min(1,q/.25);
     const cx=Math.cos(ang), cy=Math.sin(ang), g=P.lineasGrosor*(.4+1.6*ac)*.5;
     const hx=vp[0]+cx*rh, hy=vp[1]+cy*rh, tx=vp[0]+cx*rt, ty=vp[1]+cy*rt;
     lineaSh.setUniform('uAlfa',alfa*.95);
@@ -1194,7 +1198,7 @@ function dibujar(p,ph){
   // p5 WEBGL: y hacia abajo. Suelo en y = +h; arriba de las paredes no hay nada: se ve el cielo.
   const caras=[
     {esq:(s,t)=>[-w, top+hp*t, -s], filas:hp/fp, fila:fp, dir:1, pared:1},        // pared izquierda
-    {esq:(s,t)=>[xR-anchoSuelo*t, h, -s], filas:1, fila:2*h*P.altoFilas, dir:P.invSuelo?-1:1, voltear:P.invSuelo, pared:0},  // suelo: una fila que llena todo el ancho
+    {esq:(s,t)=>[xR-anchoSuelo*t, h, -s], filas:1, fila:2*h*P.altoFilas, dir:P.invSuelo?-1:1, voltear:P.invSuelo!==P.voltearSuelo, pared:0},  // suelo: una fila que llena todo el ancho
     {esq:(s,t)=>[xR, top+hp*t, -s], filas:hp/fp, fila:fp, dir:-1, pared:1},       // pared derecha
   ];
   for(let i=0;i<3;i++){
@@ -1342,6 +1346,8 @@ slider('slGeo','franjasPared','Franjas en las paredes',1,8,1);
 slider('slGeo','altoPared','Alto de franja (paredes)',.2,3,.01);
 $('tInvSuelo').addEventListener('click',()=>{ P.invSuelo=!P.invSuelo; repaint(); });
 painters.push(()=>$('tInvSuelo').setAttribute('aria-pressed',!!P.invSuelo));
+$('tVolSuelo').addEventListener('click',()=>{ P.voltearSuelo=!P.voltearSuelo; repaint(); });
+painters.push(()=>$('tVolSuelo').setAttribute('aria-pressed',!!P.voltearSuelo));
 $('tInvDer').addEventListener('click',()=>{ P.invDerecha=!P.invDerecha; repaint(); regenerar(); });
 painters.push(()=>$('tInvDer').setAttribute('aria-pressed',!!P.invDerecha));
 // color
