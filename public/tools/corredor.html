@@ -745,6 +745,9 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <button type="button" class="cam-btn" id="tCarro">CARRO VISIBLE</button>
             <div id="carCols" class="y-row"></div>
             <div id="slCar"></div>
+            <div class="y-sec">líneas de velocidad</div>
+            <div id="linCols" class="y-row"></div>
+            <div id="slLin"></div>
             <div class="y-sec">loop</div>
             <div id="slLoop"></div>
             <div class="y-btns">
@@ -823,12 +826,14 @@ const BASE={
   // corredor
   ancho:.3, largo:46, extension:2.2, altoFilas:.99,
   franjasPared:7, altoPared:1.4,
-  invSuelo:true, invDerecha:true,   // invierte el texto del suelo (180°) y el de la pared derecha  // las paredes llevan N franjas; arriba queda abierto (cielo)
+  invSuelo:false, invDerecha:false,  // la E del suelo y la M de la pared derecha llegan primero a la cámara  // las paredes llevan N franjas; arriba queda abierto (cielo)
   // color
   fondo:'#A3F50A', tinta:'#FE5858', cielo:'#A3F50A', nieblaColor:'#0A0A0A', niebla:.38, nieblaInicio:4.5, degradadoCielo:.89,
   sombra:.35, sombraAlto:2.5,   // sombra en las paredes desde el suelo
+  // líneas de velocidad: salen del punto de fuga y pasan junto a la cámara
+  lineas:6, lineasLargo:.5, lineasGrosor:9, lineasVel:2, lineasColor:'#FFFFFF',
   // carro deportivo low-poly: se queda frente a la cámara y el pasillo corre bajo él
-  carro:true, carroColor:'#A9A7C7', carroDist:1.9, carroX:0, carroEscala:1, carroRebote:.5,
+  carro:true, carroColor:'#A9A7C7', carroDist:1.9, carroX:0, carroEscala:1, carroPixel:5, carroRebote:.5,
 };
 const P=JSON.parse(JSON.stringify(BASE));
 
@@ -929,9 +934,27 @@ varying vec2 vUv;
 uniform float uAlfa;
 void main(){
   float d=length((vUv-.5)*2.0);
-  gl_FragColor=vec4(0.0,0.0,0.0,uAlfa*(1.0-smoothstep(.45,1.0,d)));
+  gl_FragColor=vec4(0.0,0.0,0.0,uAlfa*step(d,.85));
 }`;
-let carSh=null, sombraSh=null;
+const LINEA_FRAG=`
+precision highp float;
+varying vec2 vUv;
+uniform vec3 uCol;
+uniform float uAlfa;
+void main(){ gl_FragColor=vec4(uCol,uAlfa*(1.0-vUv.x)); }`;   // cabeza opaca, cola que se desvanece
+/* el carro se pinta en un búfer de baja resolución y se pega a pantalla completa sin suavizado: pixelado */
+const PIX_VERT=`
+precision highp float;
+attribute vec3 aPosition;
+attribute vec2 aTexCoord;
+varying vec2 vUv;
+void main(){ vUv=aTexCoord; gl_Position=vec4(aPosition.xy,0.0,1.0); }`;
+const PIX_FRAG=`
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D uTex;
+void main(){ gl_FragColor=texture2D(uTex,vUv); }`;
+let carSh=null, sombraSh=null, lineaSh=null, pixSh=null, gCarro=null, gPix=0;
 let skySh=null;
 let p5i=null, sh=null, tex=[null,null,null], aspectoTex=[8,8,8], repsTex=[1,1,1], phase=0, exporting=false;
 let regen=true, generando=false;
@@ -1074,7 +1097,7 @@ function carroDibujar(p,ph,mundo){
     }
   }
   // sombra en el suelo
-  p.shader(sombraSh); sombraSh.setUniform('uAlfa',.55);
+  p.shader(sombraSh); sombraSh.setUniform('uAlfa',.35);
   const sw=1.25*esc, sz=CARRO_LARGO*.62*esc;
   p.beginShape(p.TRIANGLE_STRIP);
   p.vertex(cx-sw,cy-.002,cz-sz,0,0); p.vertex(cx+sw,cy-.002,cz-sz,1,0);
@@ -1093,7 +1116,7 @@ function carroDibujar(p,ph,mundo){
       const mc=[(a1[0]+b1[0]+c1[0])/3-ce[0],(a1[1]+b1[1]+c1[1])/3-ce[1],(a1[2]+b1[2]+c1[2])/3-ce[2]];
       if(n[0]*mc[0]+n[1]*mc[1]+n[2]*mc[2]<0) n=n.map(x=>-x);   // normal hacia afuera
       const d=Math.max(0,n[0]*LUZ[0]+n[1]*LUZ[1]+n[2]*LUZ[2]), cielo=Math.max(0,-n[1]);
-      const k=.32+.62*d+.14*cielo;
+      const k=Math.round((.32+.62*d+.14*cielo)*3)/3;   // 3-4 tonos planos
       col2=col.map(c=>Math.min(1,c*k));
     }
     p.fill(col2[0]*255,col2[1]*255,col2[2]*255);
@@ -1102,17 +1125,55 @@ function carroDibujar(p,ph,mundo){
   p.endShape();
 }
 
+/* ═════════ LÍNEAS DE VELOCIDAD ═════════
+   Trazos vectoriales delgados en pantalla: nacen en el punto de fuga
+   (la dirección del pasillo proyectada con la misma cámara) y se abren
+   hacia los bordes acelerando, como en perspectiva. Cada línea sale
+   'lineasVel' veces por loop: el loop cierra. Van encima del pasillo y
+   debajo del carro. */
+const azar=n=>{ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); };
+function puntoDeFuga(){
+  // dirección (0,0,-1) con los mismos giros que la cámara: rotateZ · rotateX · rotateY(-yaw)
+  const d2r=Math.PI/180, y=-P.yaw*d2r, x=P.pitch*d2r, z=P.roll*d2r;
+  let v=[-Math.sin(y), 0, -Math.cos(y)];                  // Ry · (0,0,-1)
+  v=[v[0], v[1]*Math.cos(x)-v[2]*Math.sin(x), v[1]*Math.sin(x)+v[2]*Math.cos(x)];   // Rx
+  v=[v[0]*Math.cos(z)-v[1]*Math.sin(z), v[0]*Math.sin(z)+v[1]*Math.cos(z), v[2]];   // Rz
+  if(v[2]>=-1e-4) return null;                             // detrás de la cámara
+  const t=Math.tan(P.fov*d2r/2);
+  return [IW/2+(v[0]/-v[2])/(t*IW/IH)*IW/2, IH/2+(v[1]/-v[2])/t*IH/2];
+}
+function lineasDibujar(p,ph){
+  const n=Math.max(0,Math.round(P.lineas)); if(!n) return;
+  const vp=puntoDeFuga(); if(!vp) return;
+  const K=Math.max(1,Math.round(P.lineasVel)), R=Math.hypot(IW,IH);
+  const ndc=(x,y)=>[x/IW*2-1, 1-y/IH*2];
+  const gl=p.drawingContext;
+  p.shader(lineaSh); lineaSh.setUniform('uCol',hexRGB(P.lineasColor));
+  gl.disable(gl.DEPTH_TEST);
+  for(let i=0;i<n;i++){
+    const ang=(i+.15+.7*azar(i+3))/n*Math.PI*2;             // repartidas alrededor del punto de fuga
+    const q=((azar(i+7)+ph*K)%1+1)%1;                       // avance 0→1 de esta línea
+    const ac=q*q*q;                                         // acelera al acercarse, como en perspectiva
+    const rh=R*(.04+1.1*ac), rt=Math.max(R*.01,rh*(1-P.lineasLargo*(.7+.6*azar(i+13))));
+    const alfa=Math.min(1,q/.15)*(1-Math.min(1,Math.max(0,(q-.85)/.15)));
+    const cx=Math.cos(ang), cy=Math.sin(ang), g=P.lineasGrosor*(.4+1.6*ac)*.5;
+    const hx=vp[0]+cx*rh, hy=vp[1]+cy*rh, tx=vp[0]+cx*rt, ty=vp[1]+cy*rt;
+    lineaSh.setUniform('uAlfa',alfa*.95);
+    p.beginShape(p.TRIANGLES);
+    p.vertex(...ndc(hx-cy*g,hy+cx*g),0,0,0); p.vertex(...ndc(hx+cy*g,hy-cx*g),0,0,1); p.vertex(...ndc(tx,ty),0,1,.5);
+    p.endShape();
+  }
+  gl.enable(gl.DEPTH_TEST);
+}
+
 function dibujar(p,ph){
   p.background(P.cielo);
   if(!tex[0]) return;
   const d2r=Math.PI/180, a=ph*Math.PI*2;
   // el exportador llama esto fuera de draw(): sin reiniciar, las rotaciones se acumulan cuadro a cuadro
-  p.resetMatrix();
-  p.perspective(P.fov*d2r,IW/IH,.01,4000);
-  p.camera(0,0,0,0,0,-1,0,1,0);
-  p.rotateZ(P.roll*d2r);
-  p.rotateX(P.pitch*d2r);
-  p.rotateY(-P.yaw*d2r);
+  const camara=(r,giros)=>{ r.resetMatrix(); r.perspective(P.fov*d2r,IW/IH,.01,4000); r.camera(0,0,0,0,0,-1,0,1,0);
+    r.rotateZ(P.roll*d2r); r.rotateX(P.pitch*d2r); r.rotateY(-P.yaw*d2r); if(!giros) r.translate(-P.camX,-P.camY,0); };
+  camara(p,true);
   // cielo
   p.shader(skySh);
   skySh.setUniform('uCielo',hexRGB(P.cielo)); skySh.setUniform('uNieblaCol',hexRGB(P.nieblaColor));
@@ -1142,10 +1203,28 @@ function dibujar(p,ph){
     sh.setUniform('uScroll',c.dir*sc/repsTex[i]);              // avanza palabras enteras: sin salto
     cara(p,c.esq,L,c.filas,aspectoTex[i],repsTex[i],c.fila,c.dir,!!c.voltear);
   }
+  lineasDibujar(p,ph);
   if(P.carro){
     // centrado en el suelo, a 'carroDist' de la cámara; mira hacia donde avanza el pasillo
     const esc=anchoSuelo*.62*P.carroEscala/CARRO_ANCHO;
-    carroDibujar(p,ph,{cx:(xR-w)/2+P.carroX*anchoSuelo, cy:h, cz:-P.carroDist, esc, fz:P.sentido<0?-1:1});
+    const px=Math.max(1,Math.round(P.carroPixel));
+    if(!gCarro||gPix!==px){                               // búfer de baja resolución para el carro
+      if(gCarro) gCarro.remove();
+      gCarro=p.createGraphics(Math.round(IW/px),Math.round(IH/px),p.WEBGL); gPix=px;
+      gCarro.pixelDensity(1); gCarro.noStroke(); gCarro.textureMode(p.NORMAL);
+      carSh=gCarro.createShader(CAR_VERT,CAR_FRAG); sombraSh=gCarro.createShader(VERT,SOMBRA_FRAG);
+    }
+    gCarro.clear(); camara(gCarro,false);
+    carroDibujar(gCarro,ph,{cx:(xR-w)/2+P.carroX*anchoSuelo, cy:h, cz:-P.carroDist, esc, fz:P.sentido<0?-1:1});
+    // pegar el búfer a pantalla completa, con filtro NEAREST (pixeles duros) y sin prueba de profundidad
+    const gl=p.drawingContext, t=p._renderer.getTexture(gCarro);
+    t.setInterpolation(p.NEAREST,p.NEAREST);
+    p.shader(pixSh); pixSh.setUniform('uTex',gCarro);
+    gl.disable(gl.DEPTH_TEST);
+    p.beginShape(p.TRIANGLE_STRIP);
+    p.vertex(-1,-1,0,0,1); p.vertex(1,-1,0,1,1); p.vertex(-1,1,0,0,0); p.vertex(1,1,0,1,0);
+    p.endShape();
+    gl.enable(gl.DEPTH_TEST);
   }
   p.resetShader();
 }
@@ -1157,8 +1236,8 @@ const sketch=p=>{
     p.pixelDensity(1); p.noStroke(); p.textureMode(p.NORMAL); p.textureWrap(p.REPEAT,p.REPEAT);
     sh=p.createShader(VERT,FRAG);
     skySh=p.createShader(SKY_VERT,SKY_FRAG);
-    carSh=p.createShader(CAR_VERT,CAR_FRAG);
-    sombraSh=p.createShader(VERT,SOMBRA_FRAG);
+    lineaSh=p.createShader(PIX_VERT,LINEA_FRAG);
+    pixSh=p.createShader(PIX_VERT,PIX_FRAG);
   };
   p.draw=()=>{
     if(regen&&!generando){ regen=false; hacerTexturas(p); }
@@ -1281,6 +1360,12 @@ slider('slCar','carroDist','Distancia a la cámara',.5,20,.05);
 slider('slCar','carroX','Mover a los lados',-.5,.5,.01);
 slider('slCar','carroEscala','Tamaño',.2,2,.01);
 slider('slCar','carroRebote','Rebote',0,2,.01);
+slider('slCar','carroPixel','Pixelado',1,16,1);
+colorRow('lineasColor','Color','linCols');
+slider('slLin','lineas','Cantidad',0,30,1);
+slider('slLin','lineasLargo','Largo',.05,1,.01);
+slider('slLin','lineasGrosor','Grosor (px)',.5,12,.1);
+slider('slLin','lineasVel','Velocidad (vueltas por loop)',1,8,1);
 // loop
 slider('slLoop','duracion','Duración del loop (s)',1,30,.5);
 slider('slLoop','avance','Palabras que avanza por loop',0,12,1);
@@ -1348,7 +1433,7 @@ addEventListener('resize',fitStage); fitStage(); addEventListener('load',fitStag
   }
 })();
 
-window.__cor={P,dibujar:ph=>p5i&&dibujar(p5i,ph),setPhase:v=>{phase=v;},listo:()=>!!tex[0]};
+window.__cor={P,dibujar:ph=>p5i&&dibujar(p5i,ph),setPhase:v=>{phase=v;},listo:()=>!!tex[0],regen:()=>regenerar()};
 })();
   </script>
 
