@@ -597,6 +597,9 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
     /* ═════════ CORREDOR TIPOGRÁFICO ═════════ */
     #sketch-holder { position: relative; overflow: hidden; background: #A3F50A; }
     #sketch-holder canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
+    /* cursor del laboratorio: mano que apunta; al acelerar, mano que pellizca */
+    #sketch-holder { cursor: url(/tools/cursor-point.png) 9 1, pointer; touch-action: none; -webkit-user-select: none; user-select: none; }
+    #sketch-holder.acel { cursor: url(/tools/cursor-pinch.png) 9 5, pointer; }
     #sidebar { width: 236px; }
     .y-panel { gap: 10px; padding: 12px 12px 14px; }
     .y-sec {
@@ -780,8 +783,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         <p class="ip__desc">un pasillo 3d abierto al cielo: pared izquierda, suelo y pared derecha llevan texto que corre hacia el punto de fuga y se pierde en la niebla. loop exacto.</p>
         <ol class="ip__steps">
           <li>escribe el texto de cada superficie: pared izquierda, suelo y pared derecha</li>
-          <li>elige tipografía, condénsala y estira las palabras</li>
-          <li>mueve el punto de fuga, la rotación y la perspectiva</li>
+          <li>elige tipografía, punto de fuga, rotación y perspectiva</li>
+          <li>haz click o mantén presionado el lienzo para acelerar</li>
           <li>ajusta colores, cielo, niebla, el carro y cuántas palabras avanza el loop</li>
           <li>exporta el loop mp4 exacto o un png</li>
         </ol>
@@ -835,7 +838,7 @@ const BASE={
   // líneas de velocidad: salen del punto de fuga y pasan junto a la cámara
   lineas:8, lineasLargo:.3, lineasGrosor:7, lineasVel:10, lineasColor:'#FFFFFF',
   // carro deportivo low-poly: se queda frente a la cámara y el pasillo corre bajo él
-  carro:true, carroColor:'#A9A7C7', carroDist:1.9, carroX:0, carroEscala:1, carroPixel:5, carroRebote:.5,
+  carro:true, carroColor:'#A9A7C7', carroDist:1.25, carroX:0, carroEscala:.61, carroPixel:1, carroRebote:.42,
 };
 const P=JSON.parse(JSON.stringify(BASE));
 
@@ -1011,7 +1014,7 @@ async function hacerTexturas(p){
 /* ─────────── geometría: una cara del pasillo, subdividida a lo largo ─────────── */
 // esquina(s, t): punto 3D a lo largo (s = profundidad) y a través (t = 0..1)
 function cara(p,esquina,largo,filas,aspecto,reps,altoFila,dir,voltear){
-  const largoPalabra=altoFila*aspecto*P.estirar;       // proporción real de la palabra
+  const largoPalabra=altoFila*aspecto*estirarEf();     // proporción real de la palabra (se estira al acelerar)
   p.beginShape(p.TRIANGLE_STRIP);
   const N=120;
   for(let i=0;i<=N;i++){
@@ -1133,6 +1136,21 @@ function carroDibujar(p,ph,mundo){
    hacia los bordes acelerando, como en perspectiva. Cada línea sale
    'lineasVel' veces por loop: el loop cierra. Van encima del pasillo y
    debajo del carro. */
+/* ═════════ ACELERACIÓN (click o mantener sobre el lienzo) ═════════
+   El largo de la palabra sube suave desde su valor hasta el máximo del
+   slider y las partículas pasan más rápido; al soltar vuelve. 'boost'
+   va de 0 a 1. Las partículas integran su avance extra para no saltar.
+   Al exportar el loop la aceleración se apaga: el MP4 sigue exacto. */
+const ACEL={subida:1.3, minimo:1.6, bajada:1.8, velMax:4, estirarMax:4};
+let boost=0, presionado=false, tPress=-1e9, extraLin=0, boostAntes=0, tAcel=0;
+const suave=x=>x*x*(3-2*x);
+const estirarEf=()=>P.estirar+(Math.max(P.estirar,ACEL.estirarMax)-P.estirar)*suave(boost);
+function actualizarAceleracion(dt){
+  const activo=presionado||(performance.now()/1000-tPress)<ACEL.minimo;
+  boost=activo?Math.min(1,boost+dt/ACEL.subida):Math.max(0,boost-dt/ACEL.bajada);
+  const K=Math.max(1,Math.round(P.lineasVel));
+  extraLin=(extraLin+dt/Math.max(.5,P.duracion)*K*(ACEL.velMax-1)*suave(boost))%1;
+}
 const azar=n=>{ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); };
 function puntoDeFuga(){
   // dirección (0,0,-1) con los mismos giros que la cámara: rotateZ · rotateX · rotateY(-yaw)
@@ -1154,7 +1172,7 @@ function lineasDibujar(p,ph){
   gl.disable(gl.DEPTH_TEST);
   for(let i=0;i<n;i++){
     const ang=(i+.15+.7*azar(i+3))/n*Math.PI*2;             // repartidas alrededor del punto de fuga
-    const q=((azar(i+7)+ph*K)%1+1)%1;                       // avance 0→1 de esta línea
+    const q=((azar(i+7)+ph*K+extraLin)%1+1)%1;              // avance 0→1 de esta línea (+ extra al acelerar)
     // viaja del punto de fuga hacia la cámara: distancia 1/(1-q) como un objeto que se acerca a velocidad constante
     // nace EN el punto de fuga (radio 0) y se acerca: radio ∝ q/(1-q), como algo que viene desde el fondo
     const z=Math.max(.02,1-q), rh=R*.05*q/z, rt=rh*(1-P.lineasLargo*(.7+.6*azar(i+13)));
@@ -1247,7 +1265,13 @@ const sketch=p=>{
   p.draw=()=>{
     if(regen&&!generando){ regen=false; hacerTexturas(p); }
     if(exporting) return;
-    if(!P.pausa) phase=(phase+Math.min(p.deltaTime,100)/1000/Math.max(.5,P.duracion))%1;
+    const dt=Math.min(p.deltaTime,100)/1000;
+    if(!P.pausa) phase=(phase+dt/Math.max(.5,P.duracion))%1;
+    // la aceleración va en tiempo real (no depende de los cuadros por segundo)
+    const ahora=performance.now()/1000, dtReal=Math.min(.25,ahora-(tAcel||ahora)); tAcel=ahora;
+    actualizarAceleracion(dtReal);
+    if(boost>0||boostAntes>0) mostrarEstirar();             // el slider de largo acompaña la aceleración
+    boostAntes=boost;
     dibujar(p,phase);
   };
 };
@@ -1266,6 +1290,7 @@ async function exportLoop(){
   for(const c of ['avc1.640033','avc1.64002A','avc1.4D0033']){ try{ const r=await VideoEncoder.isConfigSupported({codec:c,width:IW,height:IH,bitrate:24e6,framerate:FPS}); if(r&&r.supported){ codec=c; break; } }catch(e){} }
   if(!codec){ info.textContent='el navegador no codifica h.264 a este tamaño'; return; }
   try{ await cargarMuxer(); }catch(e){ info.textContent='no se pudo cargar el exportador'; return; }
+  boost=0; presionado=false; tPress=-1e9; $('sketch-holder').classList.remove('acel'); mostrarEstirar();
   exporting=true; btn.disabled=true;
   const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:IW,height:IH,frameRate:FPS},fastStart:'in-memory'});
   let fallo=null;
@@ -1330,7 +1355,14 @@ grupo('gFont',FUENTES.map(f=>f.id),()=>P.fuente,id=>{ P.fuente=id; regenerar(); 
 slider('slType','condensar','Condensar letras',.3,1.5,.01,regenerar);
 slider('slType','interletra','Interletra',-.15,.4,.005,regenerar);
 slider('slType','altoLetra','Alto de letra en la franja',.4,1.1,.01,regenerar);
-slider('slType','estirar','Largo de la palabra',.2,4,.01);
+const filaEstirar=slider('slType','estirar','Largo de la palabra',.2,ACEL.estirarMax,.01);
+function mostrarEstirar(){ const r=filaEstirar.querySelector('input[type=range]'), n=filaEstirar.querySelector('.y-num'), v=estirarEf(); r.value=v; relleno(r); if(document.activeElement!==n) n.value=fmt(+v.toFixed(2)); }
+(function(){
+  const h=$('sketch-holder');
+  const soltar=()=>{ presionado=false; h.classList.remove('acel'); };
+  h.addEventListener('pointerdown',e=>{ if(exporting) return; presionado=true; tPress=performance.now()/1000; h.classList.add('acel'); try{ h.setPointerCapture(e.pointerId); }catch(_){} });
+  h.addEventListener('pointerup',soltar); h.addEventListener('pointercancel',soltar); h.addEventListener('lostpointercapture',soltar);
+})();
 // cámara
 slider('slCam','yaw','Punto de fuga X (giro)',-70,70,.5);
 slider('slCam','pitch','Punto de fuga Y (inclinación)',-45,45,.5);
@@ -1440,7 +1472,7 @@ addEventListener('resize',fitStage); fitStage(); addEventListener('load',fitStag
   }
 })();
 
-window.__cor={P,dibujar:ph=>p5i&&dibujar(p5i,ph),setPhase:v=>{phase=v;},listo:()=>!!tex[0],regen:()=>regenerar()};
+window.__cor={P,dibujar:ph=>p5i&&dibujar(p5i,ph),setPhase:v=>{phase=v;},listo:()=>!!tex[0],regen:()=>regenerar(),boost:()=>boost};
 })();
   </script>
 
