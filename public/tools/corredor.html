@@ -843,7 +843,7 @@ const BASE={
   invSuelo:false, invDerecha:false,  // la E del suelo y la M de la pared derecha llegan primero a la cámara
   voltearSuelo:true,                  // espejo vertical del texto del suelo
   // capa de ajuste de tono sobre toda la composición (°); el aleatorio salta cada 'tonoCada' s
-  tono:41, tonoAleatorio:true, tonoCada:.8,
+  tono:41, tonoAleatorio:true, tonoCada:1,
   // color
   fondo:'#543DFF', tinta:'#F34949', cielo:'#000000', nieblaColor:'#0A0A0A', niebla:.38, nieblaInicio:4.5, degradadoCielo:.89,
   sombra:.35, sombraAlto:2.5,   // sombra en las paredes desde el suelo
@@ -1262,11 +1262,31 @@ function lineasDibujar(p,ph){
   gl.enable(gl.DEPTH_TEST);
 }
 
+/* tono aleatorio: un tono nuevo cada 'tonoCada' s del loop (1 s por defecto), sincronizado con la animación.
+   Los tonos de una vuelta salen del ángulo áureo (todos distintos y repartidos en el círculo) en orden
+   aleatorio, con al menos 90° entre dos seguidos (y entre el último y el primero). En vivo se genera una
+   secuencia nueva en cada vuelta; al exportar se usa la de ese momento, así el MP4 queda exacto. */
+let tonosVuelta=[];
+const distTono=(a,b)=>{ const d=Math.abs(a-b)%360; return Math.min(d,360-d); };
+function generarTonos(n,previo){
+  const base=Math.random()*360, h=[...Array(n)].map((_,k)=>(base+k*137.50776)%360);
+  const req=n<2?0:Math.min(90,180*(1-1/n));
+  let mejor=h.slice(), mejorMin=-1;
+  for(let t=0;t<400;t++){
+    const o=h.slice(); for(let i=o.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [o[i],o[j]]=[o[j],o[i]]; }
+    let m=Infinity; for(let i=0;i<n;i++) m=Math.min(m,distTono(o[i],o[(i+1)%n]));
+    if(previo!=null) m=Math.min(m,distTono(previo,o[0]));
+    if(m>mejorMin){ mejor=o; mejorMin=m; } if(m>=req) break;
+  }
+  return mejor;
+}
+const tramosTono=()=>Math.max(1,Math.ceil(P.duracion/Math.max(.1,P.tonoCada)-1e-6));
 function tonoActual(ph){
   if(!P.tonoAleatorio) return P.tono;
-  const n=Math.max(1,Math.round(P.duracion/Math.max(.1,P.tonoCada)));   // saltos enteros por loop
-  const k=Math.min(n-1,Math.floor((((ph%1)+1)%1)*n));
-  return P.tono+(k===0?0:360*azar(k*7.31+.5));                     // el primer tramo usa el tono base
+  const n=tramosTono();
+  if(tonosVuelta.length!==n) tonosVuelta=generarTonos(n,null);
+  const k=Math.min(n-1,Math.floor((((ph%1)+1)%1)*P.duracion/Math.max(.1,P.tonoCada)));
+  return P.tono+tonosVuelta[k];
 }
 function dibujar(p,ph){
   const giro=((tonoActual(ph)%360)+360)%360;
@@ -1362,7 +1382,8 @@ const sketch=p=>{
     if(regen&&!generando){ regen=false; hacerTexturas(p); }
     if(exporting) return;
     const dt=Math.min(p.deltaTime,100)/1000;
-    if(!P.pausa) phase=(phase+dt/Math.max(.5,P.duracion))%1;
+    if(!P.pausa){ const antes=phase; phase=(phase+dt/Math.max(.5,P.duracion))%1;
+      if(phase<antes&&P.tonoAleatorio){ const n=tramosTono(); tonosVuelta=generarTonos(n,tonosVuelta.length?tonosVuelta[tonosVuelta.length-1]:null); } }
     // la aceleración va en tiempo real (no depende de los cuadros por segundo)
     const ahora=performance.now()/1000, dtReal=Math.min(.25,ahora-(tAcel||ahora)); tAcel=ahora;
     actualizarAceleracion(dtReal);
@@ -1482,7 +1503,7 @@ painters.push(()=>$('tInvSuelo').setAttribute('aria-pressed',!!P.invSuelo));
 slider('slTono','tono','Tono (°)',-180,180,1);
 $('tTonoAl').addEventListener('click',()=>{ P.tonoAleatorio=!P.tonoAleatorio; repaint(); });
 painters.push(()=>$('tTonoAl').setAttribute('aria-pressed',!!P.tonoAleatorio));
-slider('slTonoAl','tonoCada','Cambiar cada (s)',.1,5,.05);
+slider('slTonoAl','tonoCada','Cambiar cada (s)',.25,5,.25);
 $('tVolSuelo').addEventListener('click',()=>{ P.voltearSuelo=!P.voltearSuelo; repaint(); });
 painters.push(()=>$('tVolSuelo').setAttribute('aria-pressed',!!P.voltearSuelo));
 $('tInvDer').addEventListener('click',()=>{ P.invDerecha=!P.invDerecha; repaint(); regenerar(); });
@@ -1581,6 +1602,7 @@ addEventListener('resize',fitStage); fitStage(); addEventListener('load',fitStag
 })();
 
 window.__cor={P,dibujar:ph=>p5i&&dibujar(p5i,ph),setPhase:v=>{phase=v;},listo:()=>!!tex[0],regen:()=>regenerar(),boost:()=>boost};
+window.__tono=ph=>tonoActual(ph); window.__genTonos=generarTonos;
 })();
   </script>
 
