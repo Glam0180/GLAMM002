@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <script src="/tools/glam-invert.js"></script>
+  <script src="/tools/glam-rec.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:wght@900&family=Bodoni+Moda:opsz,wght@6..96,800&family=Anton&family=Archivo+Black&display=swap" rel="stylesheet">
+  <title>STUDIO GLAM — CORREDOR TIPOGRÁFICO</title>
+  <style>
+/* Tema alterno (switch): fondo #00E9B4, ventanas #E64CDF, líneas y texto negros.
+   --g-red = color de acento (líneas, texto, barras); --g-black = superficie.
+   En las barras de título se vuelve a cruzar el par para que queden
+   magenta con texto negro. */
+:root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb))}
+:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red-dark:#CC0000}
+html.glam-alt{--g-red-rgb:0,0,0;--g-black-rgb:230,76,223;--g-red-dark:#3a3a3a}
+html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red-rgb:230,76,223;--g-black-rgb:0,0,0;--g-red-dark:#b93ab3}
+html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{background:#00E9B4}
+
+    /* Space Mono — mismo design system que CANICAS.3D */
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+    }
+
+    :root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar) {
+      --red: var(--g-red);
+      --red-dark: var(--g-red-dark);
+      --red-dim: rgba(var(--g-red-rgb), 0.55);
+      --red-faint: rgba(var(--g-red-rgb), 0.18);
+      --red-ghost: rgba(var(--g-red-rgb), 0.10);
+      --black: var(--g-black);
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--black);
+      font-family: 'Space Mono', monospace;
+      border: 1px solid var(--red);
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(var(--g-red-rgb), 0.55) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 128px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .2;
+      mix-blend-mode: overlay;
+    }
+
+    ::selection {
+      background: var(--black);
+      color: var(--red);
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--red); }
+    ::-webkit-scrollbar-thumb { background: var(--black); }
+
+    /* ───────── MASTER BAR ───────── */
+    #master-bar {
+      position: fixed;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      height: 28px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    #master-bar .slz {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+    }
+
+    #master-bar .dot5 {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .mhouse {
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #master-bar .mtitle {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--black);
+      text-transform: uppercase;
+    }
+
+    #master-bar .msep {
+      color: rgba(var(--g-black-rgb), .3);
+      font-size: 9px;
+    }
+
+    #master-bar .msub {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .55);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #master-bar .mright {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mctrl {
+      width: 20px;
+      height: 16px;
+      background: var(--black);
+      border: 1px solid rgba(var(--g-red-rgb), .25);
+      color: var(--red);
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mctrl:hover { background: var(--red-dark); }
+    .mctrl--close:hover { background: var(--red-dark); }
+
+    /* ───────── STAGE / FRAME ───────── */
+    #stage {
+      position: fixed;
+      top: 32px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    /* En fila, como canicas-3d: viewport a la izquierda y sidebar a la
+       derecha. El ancho/alto exactos los fija fitStage() para que el
+       canvas llene su ventana sin dejar franjas negras. */
+    #frame {
+      width: min(calc(100vw - 72px), 1180px);
+      height: min(calc(100vh - 72px), 900px);
+      background: var(--black);
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      gap: 5px;
+      position: relative;
+    }
+
+    /* Ventana del viewport: su ancho lo fija fitStage a partir del canvas,
+       asi que el canvas la llena de borde a borde. */
+    #viewport {
+      flex: none;
+      min-width: 0;
+    }
+
+    /* La barra de titulo lleva un border-bottom negro de 2px. Sobre el
+       panel negro del sidebar no se nota, pero aqui cae justo entre la
+       barra y la ilustracion y se lee como una linea negra separandolas.
+       Se quita solo en el viewport. */
+    #sidebar {
+      width: 210px;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: 0;
+    }
+    #sidebar > .win { flex: 1; min-height: 0; }
+
+    /* ───────── COMPONENTE VENTANA ───────── */
+    .win {
+      background: var(--black);
+      border: 2px solid var(--red);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .win__bar {
+      height: 22px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .win__bar .slz {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+    }
+
+    .win__bar-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .win__bar-title {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--black);
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win__bar-sub {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .win__bar-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .win__ctrl {
+      width: 16px;
+      height: 13px;
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 7px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .win__ctrl:hover {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    /* ───────── COMPOSICIÓN DAISY (canvas 1080×1350 + panel) ───────── */
+    .daisy-main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Zona donde vive el canvas 1080×1350 — se centra y se ajusta por JS
+       (fitStage) manteniendo siempre la proporción 4:5, sin deformarse. */
+    .daisy-canvas-wrap {
+      flex: 1;
+      display: block;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    /* La ilustracion va a ras de la ventana: pegada a la barra de titulo
+       arriba y al borde de .win por los otros tres lados. El unico trazo
+       visible es el de la propia ventana.
+       Ocupa el hueco ENTERO en vez de ser una caja de tamano fijo
+       centrada dentro de el: al centrarla, cualquier sobrante de
+       redondeo se repartia mitad arriba y mitad abajo y aparecia como un
+       hueco sobre la ilustracion. Quien mantiene la proporcion 4:5 es
+       fitStage, dimensionando la ventana; el canvas solo la rellena. */
+    .daisy-canvas {
+      position: relative;
+      background: var(--g-black);
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    .daisy-canvas video,
+    .daisy-canvas canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Orden de capas (de abajo hacia arriba):
+       1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
+       2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
+       3) #variasCanvas → varias flores con alfa, SIEMPRE visible
+       4) #stemCanvas   → el tallo, se dibuja y se arrastra
+       5) #unoCanvas    → la flor grande, anclada por su CENTRO a la
+                          punta del tallo, asi que se mueve con el.
+                          Tallo y flor van por ENCIMA del resto del arte
+       6) #handsCanvas  → esqueleto de las manos y medidor del pinch
+
+       UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
+       secuencia termina su ciclo parando en el frame 0, que es la imagen
+       estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
+    #bg1Canvas    { z-index: 1; }
+    #bg2Canvas    { z-index: 2; opacity: 0; }
+    #variasCanvas { z-index: 3; }
+    #stemCanvas   { z-index: 4; }
+    #unoCanvas    { z-index: 5; }
+    /* UI de las manos: va encima de todo y no intercepta el raton */
+    #handsCanvas  { z-index: 6; pointer-events: none; }
+
+    .daisy-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--black);
+      color: var(--red-dim);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 20px;
+      transition: opacity .4s ease;
+    }
+
+    /* ───────── PANEL DE CONTROL LATERAL ───────── */
+    /* Ya no es una columna dentro del viewport: ahora es el cuerpo de su
+       propia ventana en el sidebar, asi que ni ancho fijo ni borde
+       izquierdo separandola del canvas. */
+    .daisy-panel {
+      flex: 1;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .daisy-btn {
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 10px 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .daisy-btn:hover:not(:disabled) {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    .daisy-btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .daisy-status {
+      font-size: 9px;
+      line-height: 1.5;
+      letter-spacing: .03em;
+      color: var(--red-dim);
+    }
+
+    .daisy-meter-label {
+      font-size: 8px;
+      letter-spacing: .1em;
+      color: var(--red-dim);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .daisy-meter-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(var(--g-red-rgb), .12);
+      border: 1px solid var(--red-faint);
+    }
+
+    .daisy-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--red);
+      transition: width .08s linear;
+    }
+
+    /* ───────── CAMARA (control por manos) ───────── */
+    .cam-wrap { display: flex; flex-direction: column; gap: 7px; }
+    .cam-btn {
+      font-size: 8px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--red); background: var(--g-black); border: 1px solid var(--red);
+      padding: 5px 6px; cursor: pointer;
+    }
+    .cam-btn:hover, .cam-btn.on { background: var(--red); color: var(--g-black); }
+    .cam-box {
+      display: none; position: relative; width: 100%; aspect-ratio: 4 / 3;
+      border: 1px solid var(--red-faint); overflow: hidden; background: var(--g-black);
+    }
+    .cam-box video, .cam-box canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      /* espejo: mover la mano a la derecha lleva la flor a la derecha.
+         El overlay lleva el mismo espejo que el video, asi se dibuja con
+         las coordenadas del detector sin invertirlas a mano. */
+      transform: scaleX(-1); display: block;
+    }
+    .cam-ayuda {
+      font-size: 7px; line-height: 1.7; letter-spacing: .06em;
+      color: var(--red-dim); text-transform: uppercase;
+    }
+
+
+
+    /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
+    @media (max-width: 768px) {
+      html, body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      #stage {
+        position: relative;
+        top: 32px;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        height: auto;
+        min-height: calc(100vh - 32px);
+        padding: 10px;
+      }
+
+      #frame {
+        width: 100%;
+        height: auto;
+        min-height: calc(100vh - 52px);
+        padding: 10px;
+        flex-direction: column;
+      }
+
+      /* en mobile el viewport y el sidebar se apilan a ancho completo */
+      #viewport, #sidebar { width: 100% !important; flex: none; }
+
+      .daisy-main {
+        flex-direction: column;
+        overflow: visible;
+      }
+
+      .daisy-canvas-wrap {
+        flex: none;
+        padding: 0;
+      }
+
+      /* En desktop el alto sale de height:100% sobre un hueco que
+         fitStage ya dimensiono. Aqui fitStage no corre y el padre no
+         tiene alto propio en la pila vertical (colapsaba a 0), asi que
+         se fija por ancho y el aspect-ratio 4:5 deriva el alto. */
+      .daisy-canvas {
+        width: 100%;
+        height: auto;
+        /* proporcion del arte YA recortado (SRC_H - ART_CROP_TOP) */
+        aspect-ratio: 810 / 995;
+      }
+
+      .daisy-panel {
+        width: 100%;
+      }
+
+    }
+    /* ───────── INFO PANEL (arrastrable, minimizable, cerrable) ─────────
+       Vive fuera de #daisyCanvas: su área de arrastre está acotada a
+       .win pero SIN poder entrar nunca al rectángulo del canvas. */
+    .ip {
+      position: absolute;
+      top: 30px;
+      left: 10px;
+      width: min(240px, calc(100% - 16px));
+      background: var(--g-black);
+      border: 2px solid var(--red);
+      z-index: 40;
+      box-shadow: 0 6px 18px rgba(var(--g-black-rgb), .5);
+      user-select: none;
+    }
+
+    .ip__bar {
+      height: 20px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      cursor: grab;
+      touch-action: none;
+    }
+    .ip__bar:active { cursor: grabbing; }
+
+    .ip__slz { font-size: 8px; font-weight: 700; color: rgba(var(--g-black-rgb), .5); }
+    .ip__dot { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
+    .ip__title {
+      font-size: 9px; font-weight: 700; letter-spacing: .1em;
+      color: var(--black); text-transform: lowercase;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ip__ctrls { display: flex; gap: 4px; margin-left: auto; }
+    .ip__ctrl {
+      width: 15px; height: 13px; background: var(--black);
+      border: 1px solid rgba(var(--g-red-rgb), .4); color: var(--red);
+      font-size: 8px; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; cursor: pointer;
+    }
+    .ip__ctrl:hover { background: var(--red); color: var(--black); }
+
+    .ip__body { padding: 9px 11px 11px; max-height: 220px; overflow-y: auto; }
+    .ip__desc {
+      font-size: 9px; line-height: 1.5; letter-spacing: .04em;
+      color: var(--red); text-transform: lowercase; margin-bottom: 7px;
+    }
+    .ip__steps { list-style: none; counter-reset: ip-step; display: flex; flex-direction: column; gap: 5px; }
+    .ip__steps li {
+      counter-increment: ip-step; font-size: 8px; line-height: 1.5;
+      letter-spacing: .04em; color: var(--red-dim); text-transform: lowercase;
+      display: flex; gap: 6px;
+    }
+    .ip__steps li::before { content: counter(ip-step) "."; color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+    /* Burbuja unificada: tanto minimizar como cerrar colapsan aquí */
+    .ip-bubble {
+      position: absolute; width: 26px; height: 26px;
+      background: var(--g-black); border: 2px solid var(--red); color: var(--red);
+      font-size: 13px; font-weight: 700; cursor: pointer; z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(var(--g-black-rgb), .5);
+    }
+    .ip-bubble:hover { background: var(--red); color: var(--black); }
+
+    @media (max-width: 640px) {
+      .ip { width: min(72vw, 210px); }
+      .ip__body { max-height: 160px; }
+    }
+  </style>
+  <style>
+    /* ═════════ CORREDOR TIPOGRÁFICO ═════════ */
+    #sketch-holder { position: relative; overflow: hidden; background: #A3F50A; }
+    #sketch-holder canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
+    #sidebar { width: 236px; }
+    .y-panel { gap: 10px; padding: 12px 12px 14px; }
+    .y-sec {
+      font-size: 8px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--red); display: flex; align-items: center; gap: 6px; margin-top: 2px;
+    }
+    .y-sec::after { content: ''; flex: 1; height: 1px; background: var(--red-faint); }
+    .y-row { display: flex; flex-direction: column; gap: 4px; }
+    .y-lab {
+      font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--red-dim);
+      display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    }
+    .y-num, .y-hex {
+      width: 54px; flex: none; font: inherit; font-size: 9px; letter-spacing: .04em; text-align: right;
+      color: var(--red); background: var(--black); border: 1px solid var(--red-faint); padding: 2px 4px; outline: none;
+      font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+    }
+    .y-num::-webkit-inner-spin-button, .y-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .y-hex { width: 62px; text-transform: uppercase; text-align: left; }
+    .y-num:focus, .y-hex:focus { border-color: var(--red); }
+    .y-panel input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 3px; margin: 3px 0; outline: none; cursor: pointer;
+      background: linear-gradient(to right, var(--red) var(--val, 50%), rgba(var(--g-red-rgb), .2) var(--val, 50%));
+    }
+    .y-panel input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 9px; height: 9px;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-thumb {
+      width: 9px; height: 9px; border-radius: 0;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-track { height: 3px; background: rgba(var(--g-red-rgb), .2); }
+    .y-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .y-btns.tres { grid-template-columns: 1fr 1fr 1fr; }
+    .y-btns .cam-btn { width: 100%; padding-left: 2px; padding-right: 2px; }
+    .cam-btn[aria-pressed="true"] { background: var(--red); color: var(--g-black); }
+    .y-hint { font-size: 7px; line-height: 1.7; letter-spacing: .06em; color: var(--red-dim); text-transform: uppercase; }
+    .y-tl { font-size: 7px; letter-spacing: .1em; color: var(--red-dim); text-transform: uppercase; margin-bottom: -6px; }
+    .y-txt {
+      width: 100%; font: inherit; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--red); background: var(--black); border: 1px solid var(--red-faint); padding: 5px 6px; outline: none;
+    }
+    .y-txt:focus { border-color: var(--red); }
+    .y-crow { display: flex; align-items: center; gap: 6px; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--red-dim); }
+    .y-crow span { flex: 1; }
+    .y-crow input[type=color] {
+      -webkit-appearance: none; appearance: none; width: 26px; height: 16px; padding: 0; cursor: pointer;
+      border: 1px solid var(--red); background: var(--black);
+    }
+    .y-crow input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+    .y-crow input[type=color]::-webkit-color-swatch { border: none; }
+    .y-crow input[type=color]::-moz-color-swatch { border: none; }
+    @media (max-width: 768px) {
+      .daisy-canvas { aspect-ratio: 1080 / 1440; }
+      #sidebar { flex-direction: column; }
+      #sidebar > .win { flex: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="master-bar">
+    <span class="slz">///</span>
+    <div class="dot5"></div>
+    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button" aria-label="Volver al inicio" title="Volver al inicio">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+    <span class="mtitle">STUDIO GLAM</span>
+    <span class="msep">—</span>
+    <span class="msub">CORREDOR TIPOGRÁFICO</span>
+    <div class="mright">
+      <div class="mctrl">—</div>
+      <div class="mctrl">□</div>
+      <div class="mctrl mctrl--close" id="mclose" role="button" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</div>
+    </div>
+    <span class="slz">///</span>
+  </div>
+
+  <div id="stage">
+    <div id="frame">
+      <div class="win" id="viewport">
+        <div class="win__bar">
+          <span class="slz">///</span>
+          <div class="win__bar-dot"></div>
+          <span class="win__bar-title">VIEWPORT.CORREDOR</span>
+          <div class="win__bar-controls">
+            <div class="win__ctrl">—</div>
+            <div class="win__ctrl">□</div>
+            <div class="win__ctrl" id="wclose" role="button" aria-label="Cerrar" title="Cerrar">✕</div>
+          </div>
+        </div>
+        <div class="daisy-main">
+          <div class="daisy-canvas-wrap">
+            <!-- Lienzo 1080×1440: pasillo 3D con tres franjas de texto hacia un punto de fuga (p5.js WebGL) -->
+            <div class="daisy-canvas" id="sketch-holder" aria-label="Pasillo 3D visto desde adentro, con texto corriendo por techo, pared y piso hacia el punto de fuga"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sidebar">
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">PROPIEDADES</span>
+            <div class="win__bar-controls"><div class="win__ctrl">—</div><div class="win__ctrl">□</div></div>
+          </div>
+          <div class="daisy-panel y-panel">
+            <div class="y-sec">textos (3 franjas)</div>
+            <div class="y-tl">arriba · techo</div>
+            <input id="t0" class="y-txt" type="text" maxlength="40" spellcheck="false" autocomplete="off">
+            <div class="y-tl">medio · pared</div>
+            <input id="t1" class="y-txt" type="text" maxlength="40" spellcheck="false" autocomplete="off">
+            <div class="y-tl">abajo · piso</div>
+            <input id="t2" class="y-txt" type="text" maxlength="40" spellcheck="false" autocomplete="off">
+            <div class="y-sec">tipografía</div>
+            <div class="y-btns" id="gFont"></div>
+            <div id="slType"></div>
+            <div class="y-sec">punto de fuga y cámara</div>
+            <div id="slCam"></div>
+            <div class="y-sec">corredor</div>
+            <div id="slGeo"></div>
+          </div>
+        </div>
+
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">COLOR, LOOP Y EXPORTAR</span>
+            <div class="win__bar-controls"><div class="win__ctrl">—</div><div class="win__ctrl">□</div></div>
+          </div>
+          <div class="daisy-panel y-panel">
+            <div class="y-sec">color</div>
+            <div class="y-btns" id="gPal"></div>
+            <div id="cols" class="y-row"></div>
+            <div id="slCol"></div>
+            <div class="y-sec">loop</div>
+            <div id="slLoop"></div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="bPause">PAUSA</button>
+              <button type="button" class="cam-btn" id="bRev">INVERTIR</button>
+            </div>
+            <button type="button" class="cam-btn" id="bReset">↺ VALORES POR DEFECTO</button>
+            <div class="y-sec">exportar</div>
+            <button type="button" class="cam-btn" id="bLoop">● EXPORTAR LOOP MP4 (1080×1440)</button>
+            <div class="y-hint" id="loopInfo">cuadro por cuadro, sin saltos: el último empalma con el primero</div>
+            <div class="cam-wrap" id="recSlot"></div>
+            <button type="button" class="cam-btn" id="bPng">↓ PNG</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ip" id="infoPanel">
+      <div class="ip__bar" id="infoPanelBar">
+        <span class="ip__slz">///</span>
+        <span class="ip__dot"></span>
+        <span class="ip__title">cómo usar — corredor tipográfico</span>
+        <div class="ip__ctrls">
+          <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
+          <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
+        </div>
+      </div>
+      <div class="ip__body">
+        <p class="ip__desc">un pasillo 3d visto desde adentro: techo, pared y piso llevan una franja de texto que corre hacia el punto de fuga. loop exacto.</p>
+        <ol class="ip__steps">
+          <li>escribe el texto de cada franja: techo, pared y piso</li>
+          <li>elige tipografía, condénsala y estira las palabras</li>
+          <li>mueve el punto de fuga, la rotación y la perspectiva</li>
+          <li>ajusta colores, niebla y cuántas palabras avanza el loop</li>
+          <li>exporta el loop mp4 exacto o un png</li>
+        </ol>
+      </div>
+    </div>
+    <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.13/p5.min.js"></script>
+  <script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+function goHome(){ try{ if(window.top&&window.top!==window) window.top.location.href='/'; else window.location.href='/'; }catch(e){ window.location.href='/'; } }
+$('mhouse').addEventListener('click',goHome); $('mclose').addEventListener('click',goHome); $('wclose').addEventListener('click',goHome);
+
+/* ═════════════════════════════════════════════════════════
+   CORREDOR TIPOGRÁFICO · kinetic perspective warp
+   ---------------------------------------------------------
+   Un pasillo 3D de sección cuadrada visto desde adentro. Techo, pared
+   izquierda y piso llevan cada uno una franja de texto que corre a lo
+   largo del pasillo, hacia el punto de fuga. La cámara se balancea:
+   el punto de fuga se mueve y las letras se estiran y se encogen.
+   Loop: todo depende de una fase 0→1. En una vuelta el texto avanza
+   un número entero de palabras y el balanceo vuelve a su inicio, así
+   el último cuadro empalma con el primero.
+   ═════════════════════════════════════════════════════════ */
+const IW=1080, IH=1440;
+
+const BASE={
+  textos:['MOTION','EMOTION','MOTION'],
+  fuente:'archivo',
+  condensar:1.21,          // ancho de las letras (1 = normal)
+  interletra:-.02,
+  altoLetra:1.04,          // qué parte de la franja ocupa la letra
+  estirar:.42,             // largo de cada palabra a lo largo del pasillo
+  // cámara
+  yaw:5, pitch:-5.5, roll:-45,
+  balanceoX:0, balanceoY:0,      // grados que se mueve el punto de fuga en el loop
+  fov:109,
+  camX:0, camY:.17,              // posición de la cámara dentro del pasillo
+  // movimiento
+  duracion:9.5, avance:5, sentido:-1, pausa:false,
+  // corredor
+  ancho:3, largo:60, extension:2.1, altoFilas:.99,
+  // color
+  fondo:'#A3F50A', tinta:'#FE5858', niebla:1, nieblaInicio:19.5,
+};
+const P=JSON.parse(JSON.stringify(BASE));
+
+const FUENTES=[
+  {id:'playfair', label:'PLAYFAIR', fam:'"Playfair Display"', peso:'900'},
+  {id:'bodoni',   label:'BODONI',   fam:'"Bodoni Moda"',      peso:'800'},
+  {id:'anton',    label:'ANTON',    fam:'"Anton"',            peso:'400'},
+  {id:'archivo',  label:'ARCHIVO',  fam:'"Archivo Black"',    peso:'400'},
+];
+const PALETAS={ LIMA:['#A3F50A','#FE5858'], GLAM:['#000000','#FF0100'], PAPEL:['#FFFFFF','#0A0A0A'], NEGRO:['#0A0A0A','#FFFFFF'] };
+
+/* ─────────── shaders: la textura es una máscara; color y niebla los pone el shader ─────────── */
+const VERT=`
+precision highp float;
+attribute vec3 aPosition;
+attribute vec2 aTexCoord;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+varying vec2 vUv;
+varying float vDepth;
+void main(){
+  vec4 mv=uModelViewMatrix*vec4(aPosition,1.0);
+  vDepth=-mv.z;
+  vUv=aTexCoord;
+  gl_Position=uProjectionMatrix*mv;
+}`;
+const FRAG=`
+precision highp float;
+varying vec2 vUv;
+varying float vDepth;
+uniform sampler2D uTex;
+uniform float uScroll, uNiebla, uNieblaInicio;
+uniform vec3 uFondo, uTinta;
+void main(){
+  float papel=texture2D(uTex,vec2(vUv.x-uScroll,vUv.y)).r;   // 1 = fondo, 0 = letra
+  vec3 col=mix(uTinta,uFondo,papel);
+  float f=smoothstep(uNieblaInicio,uNieblaInicio*2.5,vDepth)*uNiebla;
+  gl_FragColor=vec4(mix(col,uFondo,f),1.0);
+}`;
+
+let p5i=null, sh=null, tex=[null,null,null], aspectoTex=[8,8,8], repsTex=[1,1,1], phase=0, exporting=false;
+let regen=true, generando=false;
+const hexRGB=h=>{ const n=parseInt(h.slice(1),16); return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255]; };
+
+/* ─────────── textura de una franja: la palabra repetida, sin costura ─────────── */
+function fuenteActual(){ return FUENTES.find(f=>f.id===P.fuente)||FUENTES[0]; }
+function crearTextura(p,texto){
+  const TH=512, f=fuenteActual();
+  const tam=TH*P.altoLetra*1.18;
+  const med=document.createElement('canvas').getContext('2d');
+  med.font=`${f.peso} ${tam}px ${f.fam}`;
+  const frase=(texto||' ').toUpperCase()+' ';
+  let ancho=0; for(const c of frase) ancho+=(med.measureText(c).width+P.interletra*tam)*P.condensar;
+  ancho=Math.max(1,ancho);
+  // ancho de la textura: múltiplo entero de la frase (sin costura); al menos 2048
+  const reps=Math.max(1,Math.ceil(2048/ancho)), TW=Math.min(8192,Math.round(ancho*reps));
+  const img=p.createImage(TW,TH), ctx=img.drawingContext;
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,TW,TH);
+  ctx.save(); ctx.fillStyle='#000000'; ctx.font=`${f.peso} ${tam}px ${f.fam}`; ctx.textBaseline='alphabetic';
+  const k=TW/(ancho*reps);
+  ctx.translate(0,TH*.5+tam*.36); ctx.scale(P.condensar*k,1);
+  let x=0;
+  for(let r=0;r<reps;r++) for(const c of frase){ ctx.fillText(c,x,0); x+=med.measureText(c).width+P.interletra*tam; }
+  ctx.restore();
+  img.setModified(true);
+  return {img,aspecto:TW/TH,reps};
+}
+function mipmaps(p,img){
+  try{
+    const gl=p.drawingContext, t=p._renderer.getTexture(img);
+    t.update(); gl.bindTexture(gl.TEXTURE_2D,t.glTex);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+    const ext=gl.getExtension('EXT_texture_filter_anisotropic');
+    if(ext) gl.texParameterf(gl.TEXTURE_2D,ext.TEXTURE_MAX_ANISOTROPY_EXT,gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT));
+    gl.bindTexture(gl.TEXTURE_2D,null);
+  }catch(e){ console.warn('mipmaps',e); }
+}
+const regenerar=()=>{ regen=true; };
+async function hacerTexturas(p){
+  generando=true;
+  const f=fuenteActual();
+  try{ await document.fonts.load(`${f.peso} 100px ${f.fam}`,P.textos.join('')); }catch(e){}
+  for(let i=0;i<3;i++){ const r=crearTextura(p,P.textos[i]); tex[i]=r.img; aspectoTex[i]=r.aspecto/r.reps; repsTex[i]=r.reps; mipmaps(p,r.img); }
+  generando=false;
+}
+
+/* ─────────── geometría: una cara del pasillo, subdividida a lo largo ─────────── */
+// esquina(s, t): punto 3D a lo largo (s = profundidad) y a través (t = 0..1)
+function cara(p,esquina,largo,anchoCara,aspecto,reps,altoFila){
+  const largoPalabra=altoFila*aspecto*P.estirar;       // proporción real de la palabra
+  const filas=anchoCara/altoFila;
+  p.beginShape(p.TRIANGLE_STRIP);
+  const N=120;
+  for(let i=0;i<=N;i++){
+    const s=Math.pow(i/N,1.6)*largo;                    // más cortes cerca de la cámara
+    const u=s/largoPalabra/reps;                         // la textura trae 'reps' palabras
+    const a=esquina(s,0), b=esquina(s,1);
+    p.vertex(a[0],a[1],a[2],u,0);
+    p.vertex(b[0],b[1],b[2],u,filas);
+  }
+  p.endShape();
+}
+
+function dibujar(p,ph){
+  p.background(P.fondo);
+  if(!tex[0]) return;
+  const d2r=Math.PI/180, a=ph*Math.PI*2;
+  // el exportador llama esto fuera de draw(): sin reiniciar, las rotaciones se acumulan cuadro a cuadro
+  p.resetMatrix();
+  p.perspective(P.fov*d2r,IW/IH,.01,2000);
+  p.camera(0,0,0,0,0,-1,0,1,0);
+  // balanceo del punto de fuga: cierra en el loop
+  p.rotateZ(P.roll*d2r);
+  p.rotateX((P.pitch+P.balanceoY*Math.sin(a+Math.PI/2))*d2r);
+  p.rotateY(-(P.yaw+P.balanceoX*Math.sin(a))*d2r);
+  p.translate(-P.camX,-P.camY,0);
+
+  p.shader(sh);
+  sh.setUniform('uFondo',hexRGB(P.fondo));
+  sh.setUniform('uTinta',hexRGB(P.tinta));
+  sh.setUniform('uNiebla',P.niebla); sh.setUniform('uNieblaInicio',P.nieblaInicio);
+
+  const w=P.ancho, h=1, L=P.largo, sc=ph*Math.round(P.avance)*P.sentido, ext=w+w*P.extension;
+  // techo (y = -h), pared izquierda (x = -w), piso (y = +h). p5 WEBGL: y hacia abajo.
+  const caras=[
+    {esq:(s,t)=>[-w+ext*t,-h,-s], ancho:ext},                  // techo
+    {esq:(s,t)=>[-w,-h+2*h*t,-s], ancho:2*h},                  // pared
+    {esq:(s,t)=>[w*P.extension-ext*t,h,-s], ancho:ext},        // piso
+  ];
+  for(let i=0;i<3;i++){
+    sh.setUniform('uTex',tex[i]);
+    sh.setUniform('uScroll',sc/repsTex[i]);                   // avanza palabras enteras: sin salto
+    cara(p,caras[i].esq,L,caras[i].ancho,aspectoTex[i],repsTex[i],2*h*P.altoFilas);
+  }
+  p.resetShader();
+}
+
+/* ─────────── p5: bucle en vivo ─────────── */
+const sketch=p=>{
+  p.setup=()=>{
+    const cv=p.createCanvas(IW,IH,p.WEBGL); cv.parent('sketch-holder');
+    p.pixelDensity(1); p.noStroke(); p.textureMode(p.NORMAL); p.textureWrap(p.REPEAT,p.REPEAT);
+    sh=p.createShader(VERT,FRAG);
+  };
+  p.draw=()=>{
+    if(regen&&!generando){ regen=false; hacerTexturas(p); }
+    if(exporting) return;
+    if(!P.pausa) phase=(phase+Math.min(p.deltaTime,100)/1000/Math.max(.5,P.duracion))%1;
+    dibujar(p,phase);
+  };
+};
+
+/* ─────────── exportar loop MP4 cuadro por cuadro ─────────── */
+function cargarMuxer(){
+  if(window.Mp4Muxer) return Promise.resolve();
+  return new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src='/tools/lib/mp4-muxer.min.js'; s.onload=ok; s.onerror=ko; document.head.appendChild(s); });
+}
+async function exportLoop(){
+  const btn=$('bLoop'), info=$('loopInfo');
+  if(exporting||!p5i) return;
+  if(typeof VideoEncoder==='undefined'){ info.textContent='este navegador no puede exportar mp4 (usa chrome o edge)'; return; }
+  const FPS=60, n=Math.round(P.duracion*FPS), cv=document.querySelector('#sketch-holder canvas');
+  let codec=null;
+  for(const c of ['avc1.640033','avc1.64002A','avc1.4D0033']){ try{ const r=await VideoEncoder.isConfigSupported({codec:c,width:IW,height:IH,bitrate:24e6,framerate:FPS}); if(r&&r.supported){ codec=c; break; } }catch(e){} }
+  if(!codec){ info.textContent='el navegador no codifica h.264 a este tamaño'; return; }
+  try{ await cargarMuxer(); }catch(e){ info.textContent='no se pudo cargar el exportador'; return; }
+  exporting=true; btn.disabled=true;
+  const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:IW,height:IH,frameRate:FPS},fastStart:'in-memory'});
+  let fallo=null;
+  const enc=new VideoEncoder({output:(ch,meta)=>muxer.addVideoChunk(ch,meta),error:e=>{ fallo=e; }});
+  enc.configure({codec,width:IW,height:IH,bitrate:24e6,framerate:FPS,bitrateMode:'variable',latencyMode:'quality',avc:{format:'avc'}});
+  try{
+    for(let i=0;i<n&&!fallo;i++){
+      dibujar(p5i,i/n);                       // fase exacta: el cuadro n sería el 0
+      const vf=new VideoFrame(cv,{timestamp:Math.round(i*1e6/FPS),duration:Math.round(1e6/FPS)});
+      enc.encode(vf,{keyFrame:i%FPS===0}); vf.close();
+      if(enc.encodeQueueSize>8) await new Promise(r=>setTimeout(r,0));
+      if(i%6===0){ btn.textContent=`EXPORTANDO… ${Math.round(i/n*100)}%`; await new Promise(r=>setTimeout(r,0)); }
+    }
+    await enc.flush(); muxer.finalize();
+    if(fallo) throw fallo;
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([muxer.target.buffer],{type:'video/mp4'}));
+    a.download=`corredor-loop-${P.duracion}s.mp4`; a.click();
+    info.textContent=`listo: ${n} cuadros · ${P.duracion} s · 60 fps · loop exacto`;
+  }catch(e){ info.textContent='no se pudo exportar: '+(e&&e.message||e); }
+  enc.state!=='closed'&&enc.close();
+  exporting=false; btn.disabled=false; btn.textContent='● EXPORTAR LOOP MP4 (1080×1440)';
+}
+
+/* ═════════════════════════════════════════════════════════
+   PANEL
+   ═════════════════════════════════════════════════════════ */
+function relleno(el){ const v=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--val',v+'%'); }
+const fmt=v=>Number.isInteger(v)?String(v):(+v).toFixed(2);
+const painters=[]; const repaint=()=>painters.forEach(f=>f());
+function slider(cont,key,label,min,max,step,cb){
+  const r=document.createElement('div'); r.className='y-row';
+  r.innerHTML=`<div class="y-lab"><span>${label}</span><input class="y-num" type="number" step="any"></div><input type="range" min="${min}" max="${max}" step="${step}">`;
+  const s=r.querySelector('input[type=range]'), num=r.querySelector('.y-num');
+  const pinta=()=>{ num.value=fmt(P[key]); s.value=Math.min(max,Math.max(min,P[key])); relleno(s); };
+  pinta(); painters.push(pinta);
+  s.addEventListener('input',()=>{ P[key]=parseFloat(s.value); num.value=fmt(P[key]); relleno(s); cb&&cb(); });
+  num.addEventListener('change',()=>{ const v=parseFloat(num.value); if(Number.isFinite(v)) P[key]=v; pinta(); cb&&cb(); });
+  $(cont).appendChild(r); return r;
+}
+function grupo(cont,opts,get,set,labels){
+  const bs=opts.map((o,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.textContent=labels?labels[i]:o; b.addEventListener('click',()=>{ set(o); repaint(); }); $(cont).appendChild(b); return b; });
+  painters.push(()=>bs.forEach((b,i)=>b.setAttribute('aria-pressed',opts[i]===get())));
+}
+function colorRow(key,label){
+  const f=document.createElement('label'); f.className='y-crow';
+  f.innerHTML=`<span>${label}</span><input type="color"><input class="y-hex" type="text" maxlength="7" spellcheck="false">`;
+  const sel=f.querySelector('input[type=color]'), hex=f.querySelector('.y-hex');
+  painters.push(()=>{ sel.value=P[key].toLowerCase(); hex.value=P[key].toUpperCase(); $('sketch-holder').style.background=P.fondo; });
+  sel.addEventListener('input',()=>{ P[key]=sel.value.toUpperCase(); repaint(); });
+  hex.addEventListener('change',()=>{ let v=hex.value.trim(); if(!v.startsWith('#')) v='#'+v; if(/^#[0-9a-fA-F]{6}$/.test(v)) P[key]=v.toUpperCase(); repaint(); });
+  $('cols').appendChild(f);
+}
+
+// textos
+for(let i=0;i<3;i++){
+  const el=$('t'+i);
+  el.addEventListener('input',()=>{ P.textos[i]=el.value; regenerar(); });
+  painters.push(()=>{ if(document.activeElement!==el) el.value=P.textos[i]; });
+}
+// tipografía
+grupo('gFont',FUENTES.map(f=>f.id),()=>P.fuente,id=>{ P.fuente=id; regenerar(); },FUENTES.map(f=>f.label));
+slider('slType','condensar','Condensar letras',.3,1.5,.01,regenerar);
+slider('slType','interletra','Interletra',-.15,.4,.005,regenerar);
+slider('slType','altoLetra','Alto de letra en la franja',.4,1.1,.01,regenerar);
+slider('slType','estirar','Largo de la palabra',.2,4,.01);
+// cámara
+slider('slCam','yaw','Punto de fuga X (giro)',-70,70,.5);
+slider('slCam','pitch','Punto de fuga Y (inclinación)',-45,45,.5);
+slider('slCam','roll','Rotación (°)',-180,180,.5);
+slider('slCam','balanceoX','Balanceo horizontal (°)',0,40,.5);
+slider('slCam','balanceoY','Balanceo vertical (°)',0,40,.5);
+slider('slCam','fov','Perspectiva (FOV)',30,130,1);
+slider('slCam','camX','Cámara cerca de la pared',-.95,.95,.01);
+slider('slCam','camY','Cámara arriba / abajo',-.95,.95,.01);
+// corredor
+slider('slGeo','ancho','Ancho del pasillo',.3,3,.01);
+slider('slGeo','largo','Largo del pasillo',5,200,1);
+slider('slGeo','extension','Techo y piso hacia la derecha',1,8,.1);
+slider('slGeo','altoFilas','Alto de filas (techo y piso)',.2,4,.01);
+// color
+grupo('gPal',Object.keys(PALETAS),()=>Object.keys(PALETAS).find(n=>PALETAS[n][0]===P.fondo&&PALETAS[n][1]===P.tinta),n=>{ [P.fondo,P.tinta]=PALETAS[n]; });
+colorRow('fondo','Fondo'); colorRow('tinta','Letras');
+slider('slCol','niebla','Niebla al fondo',0,1,.01);
+slider('slCol','nieblaInicio','Inicio de la niebla',2,80,.5);
+// loop
+slider('slLoop','duracion','Duración del loop (s)',1,30,.5);
+slider('slLoop','avance','Palabras que avanza por loop',0,12,1);
+$('bPause').addEventListener('click',()=>{ P.pausa=!P.pausa; repaint(); });
+painters.push(()=>$('bPause').setAttribute('aria-pressed',!!P.pausa));
+$('bRev').addEventListener('click',()=>{ P.sentido*=-1; repaint(); });
+painters.push(()=>$('bRev').setAttribute('aria-pressed',P.sentido<0));
+$('bReset').addEventListener('click',()=>{ const pausa=P.pausa; Object.assign(P,JSON.parse(JSON.stringify(BASE)),{pausa}); repaint(); regenerar(); });
+// exportar
+$('bLoop').addEventListener('click',exportLoop);
+$('bPng').addEventListener('click',()=>p5i&&p5i.saveCanvas('corredor','png'));
+const lienzo=()=>document.querySelector('#sketch-holder canvas');
+if(window.GlamRec) GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'corredor',etiqueta:'● GRABAR EN VIVO',manual:false,ancho:IW,alto:IH,aspecto:IW/IH,info:'lienzo',
+  dibujar(c,w,h){const cv=lienzo();if(cv)c.drawImage(cv,0,0,w,h);}});
+document.addEventListener('keydown',e=>{
+  const el=document.activeElement; if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')) return;
+  if(e.key===' '){ P.pausa=!P.pausa; repaint(); e.preventDefault(); }
+});
+
+repaint();
+p5i=new p5(sketch);
+
+/* ─────────── ajuste del lienzo 1080×1440 ─────────── */
+const frameEl=$('frame'),viewportEl=$('viewport'),sidebarEl=$('sidebar'),winBarEl=document.querySelector('#viewport .win__bar');
+function fitStage(){
+  frameEl.style.width='';frameEl.style.height='';viewportEl.style.width='';
+  if(window.matchMedia('(max-width: 768px)').matches) return;
+  const sb=$('stage').getBoundingClientRect(),pad=20,bw=2,gap=5,sw=sidebarEl.offsetWidth,cw=bw*2,ch=winBarEl.offsetHeight+bw*2;
+  const maxW=sb.width-8-pad*2-gap-sw-cw,maxH=sb.height-8-pad*2-ch;let h=maxH,w=h*IW/IH;if(w>maxW){w=maxW;h=w*IH/IW;}
+  w=Math.max(120,Math.floor(w));h=Math.max(160,Math.floor(h));
+  viewportEl.style.width=(w+cw)+'px';frameEl.style.width=(w+cw+gap+sw+pad*2)+'px';frameEl.style.height=(h+ch+pad*2)+'px';}
+addEventListener('resize',fitStage); fitStage(); addEventListener('load',fitStage);
+
+/* ─────────── info panel ─────────── */
+(function setupInfoPanel() {
+  const panel=$('infoPanel'), bar=$('infoPanelBar'), minBtn=$('infoMin'), closeBtn=$('infoClose'), bubble=$('infoBubble');
+  const bounds=$('stage'), exclusionEl=$('frame');
+  function defaultPos(){
+    const b=bounds.getBoundingClientRect(), c=exclusionEl.getBoundingClientRect();
+    const ex={x:c.left-b.left,y:c.top-b.top,w:c.width,h:c.height};
+    const pw=panel.offsetWidth, ph=panel.offsetHeight;
+    if(b.width-(ex.x+ex.w)>=pw+14) return {x:ex.x+ex.w+8,y:ex.y+8};
+    if(b.height-(ex.y+ex.h)>=ph+14) return {x:8,y:ex.y+ex.h+8};
+    return {x:8,y:8};
+  }
+  const placeAt=pos=>{ panel.style.left=pos.x+'px'; panel.style.top=pos.y+'px'; };
+  const placeBubbleAt=pos=>{ bubble.style.left=pos.x+'px'; bubble.style.top=pos.y+'px'; };
+  let userMoved=false;
+  const resetToDefault=()=>{ if(!userMoved) placeAt(defaultPos()); };
+  let dragging=false, offsetX=0, offsetY=0;
+  const getPoint=e=>e.touches&&e.touches[0]?e.touches[0]:e;
+  function onDown(e){ if(e.target===minBtn||e.target===closeBtn) return; const pt=getPoint(e), rect=panel.getBoundingClientRect(); dragging=true; userMoved=true; offsetX=pt.clientX-rect.left; offsetY=pt.clientY-rect.top; }
+  function onMove(e){ if(!dragging) return; const pt=getPoint(e), b=bounds.getBoundingClientRect(); placeAt({x:pt.clientX-b.left-offsetX,y:pt.clientY-b.top-offsetY}); if(e.cancelable) e.preventDefault(); }
+  const onUp=()=>{ dragging=false; };
+  bar.addEventListener('mousedown',onDown); bar.addEventListener('touchstart',onDown,{passive:true});
+  window.addEventListener('mousemove',onMove); window.addEventListener('touchmove',onMove,{passive:false});
+  window.addEventListener('mouseup',onUp); window.addEventListener('touchend',onUp);
+  function collapseToBubble(){ const rect=panel.getBoundingClientRect(), b=bounds.getBoundingClientRect(); placeBubbleAt({x:rect.left-b.left,y:rect.top-b.top}); panel.style.display='none'; bubble.style.display='flex'; }
+  minBtn.addEventListener('click',collapseToBubble); closeBtn.addEventListener('click',collapseToBubble);
+  bubble.addEventListener('click',()=>{ const bR=bubble.getBoundingClientRect(), bnd=bounds.getBoundingClientRect(); placeAt({x:bR.left-bnd.left,y:bR.top-bnd.top}); bubble.style.display='none'; panel.style.display=''; });
+  window.addEventListener('resize',resetToDefault);
+  requestAnimationFrame(()=>requestAnimationFrame(resetToDefault));
+  if(window.matchMedia('(max-width: 768px)').matches){
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ placeBubbleAt({x:8,y:8}); panel.style.display='none'; bubble.style.display='flex'; }));
+  }
+})();
+
+window.__cor={P,dibujar:ph=>p5i&&dibujar(p5i,ph),setPhase:v=>{phase=v;},listo:()=>!!tex[0]};
+})();
+  </script>
+
+</body>
+
+</html>

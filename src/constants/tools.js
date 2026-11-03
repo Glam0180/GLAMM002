@@ -1,5 +1,17 @@
 export const TOOLS = [
   {
+    id: 'corredor',
+    slug: 'corredor',
+    name: 'Corredor tipográfico',
+    description: 'Un pasillo 3D visto desde adentro: tu texto corre por techo, pared y piso hacia el punto de fuga, en loop exacto.',
+    category: 'typography',
+    status: 'live',
+    tech: ['p5.js', 'WebGL', 'GLSL'],
+    path: '/tools/corredor',
+    index: '016',
+    thumbnail: '/tool-thumbnails/corredor.webp',
+  },
+  {
     id: 'tracking-cuadros',
     slug: 'tracking-cuadros',
     name: 'Tracking en cuadros',
