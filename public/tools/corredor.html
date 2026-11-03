@@ -721,6 +721,9 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div class="y-sec">tipografía</div>
             <div class="y-btns" id="gFont"></div>
             <div id="slType"></div>
+            <button type="button" class="cam-btn" id="tTrazo">TRAZO EN LETRAS</button>
+            <div id="trzCols" class="y-row"></div>
+            <div id="slTrazo"></div>
             <div class="y-sec">punto de fuga y cámara</div>
             <div id="slCam"></div>
             <div class="y-sec">corredor</div>
@@ -732,6 +735,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <button type="button" class="cam-btn" id="tVolSuelo">VOLTEAR SUELO (VERTICAL)</button>
             <div class="y-sec">ajuste de tono</div>
             <div id="slTono"></div>
+            <button type="button" class="cam-btn" id="tTonoAl">TONO ALEATORIO</button>
+            <div id="slTonoAl"></div>
           </div>
         </div>
 
@@ -820,31 +825,33 @@ const IW=1080, IH=1440;
 
 const BASE={
   textos:['MOTION','EMOTION','MOTION'],   // pared izquierda, suelo, pared derecha
-  fuente:'archivo',
+  fuente:'anton',
   condensar:1.21,          // ancho de las letras (1 = normal)
   interletra:-.02,
   altoLetra:1.04,          // qué parte de la franja ocupa la letra
-  estirar:.42,             // largo de cada palabra a lo largo del pasillo
+  estirar:.32,             // largo de cada palabra a lo largo del pasillo
+  trazo:true, trazoGrosor:1, trazoColor:'#000000',   // contorno de las letras (px en pantalla)
   // cámara
-  yaw:5, pitch:-5.5, roll:22,
-  fov:129,
-  camX:.4, camY:-.2,              // posición de la cámara dentro del pasillo
+  yaw:5, pitch:-5.5, roll:19.5,
+  fov:130,
+  camX:.61, camY:.37,             // posición de la cámara dentro del pasillo
   // movimiento
   duracion:8.5, avance:5, sentido:-1, pausa:false,
-  // corredor
+  // corredor: las paredes llevan N franjas; arriba queda abierto (cielo)
   ancho:.3, largo:46, extension:2.2, altoFilas:.99,
   franjasPared:7, altoPared:1.4,
   invSuelo:false, invDerecha:false,  // la E del suelo y la M de la pared derecha llegan primero a la cámara
-  voltearSuelo:true,
-  tono:0,                             // capa de ajuste: giro de tono (°) sobre toda la composición                  // espejo vertical del texto del suelo  // las paredes llevan N franjas; arriba queda abierto (cielo)
+  voltearSuelo:true,                  // espejo vertical del texto del suelo
+  // capa de ajuste de tono sobre toda la composición (°); el aleatorio salta cada 'tonoCada' s
+  tono:41, tonoAleatorio:true, tonoCada:.8,
   // color
-  fondo:'#A3F50A', tinta:'#FE5858', cielo:'#A3F50A', nieblaColor:'#0A0A0A', niebla:.38, nieblaInicio:4.5, degradadoCielo:.89,
+  fondo:'#543DFF', tinta:'#F34949', cielo:'#000000', nieblaColor:'#0A0A0A', niebla:.38, nieblaInicio:4.5, degradadoCielo:.89,
   sombra:.35, sombraAlto:2.5,   // sombra en las paredes desde el suelo
-  halftone:true, htTam:9, htAng:45,   // la sombra de las paredes como trama de puntos (px, °)
+  halftone:false, htTam:9, htAng:45,   // la sombra de las paredes como trama de puntos (px, °)
   // líneas de velocidad: salen del punto de fuga y pasan junto a la cámara
   lineas:30, lineasLargo:.91, lineasGrosor:10.9, lineasVel:9, lineasColor:'#000000',
   // carro deportivo low-poly: se queda frente a la cámara y el pasillo corre bajo él
-  carro:true, carroColor:'#A9A7C7', carroDist:1.25, carroX:0, carroEscala:.61, carroPixel:1, carroRebote:.42,
+  carro:true, carroColor:'#FFFFFF', carroDist:.8, carroX:.03, carroEscala:.61, carroPixel:1, carroRebote:.42,
 };
 const P=JSON.parse(JSON.stringify(BASE));
 
@@ -873,18 +880,44 @@ void main(){
   vUv=aTexCoord;
   gl_Position=uProjectionMatrix*mv;
 }`;
-const FRAG=`
+const VERT3=`#version 300 es
 precision highp float;
-varying vec2 vUv;
-varying float vDepth;
-varying float vY;
+in vec3 aPosition;
+in vec2 aTexCoord;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+out vec2 vUv;
+out float vDepth;
+out float vY;
+void main(){
+  vY=aPosition.y;
+  vec4 mv=uModelViewMatrix*vec4(aPosition,1.0);
+  vDepth=-mv.z;
+  vUv=aTexCoord;
+  gl_Position=uProjectionMatrix*mv;
+}`;
+const FRAG=`#version 300 es
+precision highp float;
+in vec2 vUv;
+in float vDepth;
+in float vY;
 uniform sampler2D uTex;
 uniform float uPared, uSombra, uSombraAlto, uHalftone, uHtTam, uHtAng;
 uniform float uScroll, uNiebla, uNieblaInicio;
-uniform vec3 uFondo, uTinta, uNieblaCol;
+uniform vec3 uFondo, uTinta, uNieblaCol, uTrazoCol;
+uniform float uTrazo;
+uniform vec2 uTexTam;
+out vec4 fragColor;
 void main(){
-  float papel=texture2D(uTex,vec2(vUv.x-uScroll,vUv.y)).r;   // 1 = fondo, 0 = letra
+  float papel=texture(uTex,vec2(vUv.x-uScroll,vUv.y)).r;   // 1 = fondo, 0 = letra
   vec3 col=mix(uTinta,uFondo,papel);
+  if(uTrazo>0.0){
+    // contorno de ~uTrazo px en pantalla: zona donde la máscara cruza 0.5, medida con su derivada
+    float w=max(fwidth(papel),1e-4), e=1.0-smoothstep(uTrazo*.5*w,(uTrazo*.5+1.0)*w,abs(papel-.5));
+    float rho=min(fwidth(vUv.x)*uTexTam.x,fwidth(vUv.y)*uTexTam.y);   // píxeles de textura por píxel (el eje menos comprimido)
+    e*=1.0-smoothstep(1.2,3.0,rho);                 // letras diminutas al fondo: sin trazo, para no ensuciar el punto de fuga
+    col=mix(col,uTrazoCol,e);
+  }
   // sombra suave en las paredes: más oscura junto al suelo (y = 1) y se va subiendo
   float caida=uPared*(1.0-smoothstep(0.0,max(.001,uSombraAlto),1.0-vY));
   if(uHalftone>.5){
@@ -896,7 +929,7 @@ void main(){
     col*=1.0-punto*.8;
   } else col*=1.0-caida*uSombra;
   float f=smoothstep(uNieblaInicio,uNieblaInicio*2.5,vDepth)*uNiebla;
-  gl_FragColor=vec4(mix(col,uNieblaCol,f),1.0);
+  fragColor=vec4(mix(col,uNieblaCol,f),1.0);
 }`;
 
 /* cielo: esfera alrededor de la cámara; se oscurece hacia el horizonte con el color de la niebla */
@@ -1229,8 +1262,14 @@ function lineasDibujar(p,ph){
   gl.enable(gl.DEPTH_TEST);
 }
 
+function tonoActual(ph){
+  if(!P.tonoAleatorio) return P.tono;
+  const n=Math.max(1,Math.round(P.duracion/Math.max(.1,P.tonoCada)));   // saltos enteros por loop
+  const k=Math.min(n-1,Math.floor((((ph%1)+1)%1)*n));
+  return P.tono+(k===0?0:360*azar(k*7.31+.5));                     // el primer tramo usa el tono base
+}
 function dibujar(p,ph){
-  const giro=((P.tono%360)+360)%360;
+  const giro=((tonoActual(ph)%360)+360)%360;
   if(!giro){ dibujarEscena(p,ph); return; }
   if(!fbTono) fbTono=p.createFramebuffer({width:IW,height:IH,density:1,antialias:true});
   fbTono.begin(); enFb=true; dibujarEscena(p,ph); enFb=false; fbTono.end();
@@ -1264,6 +1303,7 @@ function dibujarEscena(p,ph){
   sh.setUniform('uNieblaCol',hexRGB(P.nieblaColor));
   sh.setUniform('uNiebla',P.niebla); sh.setUniform('uNieblaInicio',P.nieblaInicio);
   sh.setUniform('uSombra',P.sombra); sh.setUniform('uSombraAlto',P.sombraAlto);
+  sh.setUniform('uTrazo',P.trazo?Math.max(.1,P.trazoGrosor):0); sh.setUniform('uTrazoCol',hexRGB(P.trazoColor));
   sh.setUniform('uHalftone',P.halftone?1:0); sh.setUniform('uHtTam',Math.max(2,P.htTam)); sh.setUniform('uHtAng',P.htAng*Math.PI/180);
 
   const w=P.ancho, h=1, L=P.largo, sc=ph*Math.round(P.avance)*P.sentido;
@@ -1277,7 +1317,7 @@ function dibujarEscena(p,ph){
   ];
   for(let i=0;i<3;i++){
     const c=caras[i];
-    sh.setUniform('uTex',tex[i]); sh.setUniform('uPared',c.pared);
+    sh.setUniform('uTex',tex[i]); sh.setUniform('uPared',c.pared); sh.setUniform('uTexTam',[tex[i].width,tex[i].height]);
     sh.setUniform('uScroll',c.dir*sc/repsTex[i]);              // avanza palabras enteras: sin salto
     cara(p,c.esq,L,c.filas,aspectoTex[i],repsTex[i],c.fila,c.dir,!!c.voltear);
   }
@@ -1312,7 +1352,7 @@ const sketch=p=>{
   p.setup=()=>{
     const cv=p.createCanvas(IW,IH,p.WEBGL); cv.parent('sketch-holder');
     p.pixelDensity(1); p.noStroke(); p.textureMode(p.NORMAL); p.textureWrap(p.REPEAT,p.REPEAT);
-    sh=p.createShader(VERT,FRAG);
+    sh=p.createShader(VERT3,FRAG);   // GLSL ES 3.00: derivadas (fwidth) para el trazo
     skySh=p.createShader(SKY_VERT,SKY_FRAG);
     lineaSh=p.createShader(PIX_VERT,LINEA_FRAG);
     pixSh=p.createShader(PIX_VERT,PIX_FRAG);
@@ -1408,6 +1448,10 @@ for(let i=0;i<3;i++){
 }
 // tipografía
 grupo('gFont',FUENTES.map(f=>f.id),()=>P.fuente,id=>{ P.fuente=id; regenerar(); },FUENTES.map(f=>f.label));
+$('tTrazo').addEventListener('click',()=>{ P.trazo=!P.trazo; repaint(); });
+painters.push(()=>$('tTrazo').setAttribute('aria-pressed',!!P.trazo));
+colorRow('trazoColor','Color del trazo','trzCols');
+slider('slTrazo','trazoGrosor','Grosor del trazo (px)',.5,8,.1);
 slider('slType','condensar','Condensar letras',.3,1.5,.01,regenerar);
 slider('slType','interletra','Interletra',-.15,.4,.005,regenerar);
 slider('slType','altoLetra','Alto de letra en la franja',.4,1.1,.01,regenerar);
@@ -1436,6 +1480,9 @@ slider('slGeo','altoPared','Alto de franja (paredes)',.2,3,.01);
 $('tInvSuelo').addEventListener('click',()=>{ P.invSuelo=!P.invSuelo; repaint(); });
 painters.push(()=>$('tInvSuelo').setAttribute('aria-pressed',!!P.invSuelo));
 slider('slTono','tono','Tono (°)',-180,180,1);
+$('tTonoAl').addEventListener('click',()=>{ P.tonoAleatorio=!P.tonoAleatorio; repaint(); });
+painters.push(()=>$('tTonoAl').setAttribute('aria-pressed',!!P.tonoAleatorio));
+slider('slTonoAl','tonoCada','Cambiar cada (s)',.1,5,.05);
 $('tVolSuelo').addEventListener('click',()=>{ P.voltearSuelo=!P.voltearSuelo; repaint(); });
 painters.push(()=>$('tVolSuelo').setAttribute('aria-pressed',!!P.voltearSuelo));
 $('tInvDer').addEventListener('click',()=>{ P.invDerecha=!P.invDerecha; repaint(); regenerar(); });
