@@ -722,6 +722,10 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div id="slCam"></div>
             <div class="y-sec">corredor</div>
             <div id="slGeo"></div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="tInvSuelo">INVERTIR SUELO</button>
+              <button type="button" class="cam-btn" id="tInvDer">INVERTIR DERECHA</button>
+            </div>
           </div>
         </div>
 
@@ -798,7 +802,7 @@ $('mhouse').addEventListener('click',goHome); $('mclose').addEventListener('clic
    largo del pasillo, hacia el punto de fuga. La cámara se balancea:
    el punto de fuga se mueve y las letras se estiran y se encogen.
    Loop: todo depende de una fase 0→1. En una vuelta el texto avanza
-   un número entero de palabras y el balanceo vuelve a su inicio, así
+   un número entero de palabras y el carro cierra su rebote, así
    el último cuadro empalma con el primero.
    ═════════════════════════════════════════════════════════ */
 const IW=1080, IH=1440;
@@ -812,14 +816,14 @@ const BASE={
   estirar:.42,             // largo de cada palabra a lo largo del pasillo
   // cámara
   yaw:5, pitch:-5.5, roll:22,
-  balanceoX:0, balanceoY:0,      // grados que se mueve el punto de fuga en el loop
   fov:129,
   camX:.4, camY:-.2,              // posición de la cámara dentro del pasillo
   // movimiento
   duracion:8.5, avance:5, sentido:-1, pausa:false,
   // corredor
   ancho:.3, largo:46, extension:2.2, altoFilas:.99,
-  franjasPared:7, altoPared:1.4,  // las paredes llevan N franjas; arriba queda abierto (cielo)
+  franjasPared:7, altoPared:1.4,
+  invSuelo:true, invDerecha:true,   // invierte el texto del suelo (180°) y el de la pared derecha  // las paredes llevan N franjas; arriba queda abierto (cielo)
   // color
   fondo:'#A3F50A', tinta:'#FE5858', cielo:'#A3F50A', nieblaColor:'#0A0A0A', niebla:.38, nieblaInicio:4.5, degradadoCielo:.89,
   sombra:.35, sombraAlto:2.5,   // sombra en las paredes desde el suelo
@@ -975,13 +979,13 @@ async function hacerTexturas(p){
   generando=true;
   const f=fuenteActual();
   try{ await document.fonts.load(`${f.peso} 100px ${f.fam}`,P.textos.join('')); }catch(e){}
-  for(let i=0;i<3;i++){ const r=crearTextura(p,P.textos[i],i===2); tex[i]=r.img; aspectoTex[i]=r.aspecto/r.reps; repsTex[i]=r.reps; mipmaps(p,r.img); }
+  for(let i=0;i<3;i++){ const r=crearTextura(p,P.textos[i],i===2&&!P.invDerecha); tex[i]=r.img; aspectoTex[i]=r.aspecto/r.reps; repsTex[i]=r.reps; mipmaps(p,r.img); }
   generando=false;
 }
 
 /* ─────────── geometría: una cara del pasillo, subdividida a lo largo ─────────── */
 // esquina(s, t): punto 3D a lo largo (s = profundidad) y a través (t = 0..1)
-function cara(p,esquina,largo,filas,aspecto,reps,altoFila,dir){
+function cara(p,esquina,largo,filas,aspecto,reps,altoFila,dir,voltear){
   const largoPalabra=altoFila*aspecto*P.estirar;       // proporción real de la palabra
   p.beginShape(p.TRIANGLE_STRIP);
   const N=120;
@@ -989,8 +993,8 @@ function cara(p,esquina,largo,filas,aspecto,reps,altoFila,dir){
     const s=Math.pow(i/N,1.6)*largo;                    // más cortes cerca de la cámara
     const u=dir*s/largoPalabra/reps;                         // la textura trae 'reps' palabras
     const a=esquina(s,0), b=esquina(s,1);
-    p.vertex(a[0],a[1],a[2],u,0);
-    p.vertex(b[0],b[1],b[2],u,filas);
+    p.vertex(a[0],a[1],a[2],u,voltear?filas:0);
+    p.vertex(b[0],b[1],b[2],u,voltear?0:filas);
   }
   p.endShape();
 }
@@ -1106,10 +1110,9 @@ function dibujar(p,ph){
   p.resetMatrix();
   p.perspective(P.fov*d2r,IW/IH,.01,4000);
   p.camera(0,0,0,0,0,-1,0,1,0);
-  // balanceo del punto de fuga: cierra en el loop
   p.rotateZ(P.roll*d2r);
-  p.rotateX((P.pitch+P.balanceoY*Math.sin(a+Math.PI/2))*d2r);
-  p.rotateY(-(P.yaw+P.balanceoX*Math.sin(a))*d2r);
+  p.rotateX(P.pitch*d2r);
+  p.rotateY(-P.yaw*d2r);
   // cielo
   p.shader(skySh);
   skySh.setUniform('uCielo',hexRGB(P.cielo)); skySh.setUniform('uNieblaCol',hexRGB(P.nieblaColor));
@@ -1130,14 +1133,14 @@ function dibujar(p,ph){
   // p5 WEBGL: y hacia abajo. Suelo en y = +h; arriba de las paredes no hay nada: se ve el cielo.
   const caras=[
     {esq:(s,t)=>[-w, top+hp*t, -s], filas:hp/fp, fila:fp, dir:1, pared:1},        // pared izquierda
-    {esq:(s,t)=>[xR-anchoSuelo*t, h, -s], filas:1, fila:2*h*P.altoFilas, dir:1, pared:0},  // suelo: una fila que llena todo el ancho
+    {esq:(s,t)=>[xR-anchoSuelo*t, h, -s], filas:1, fila:2*h*P.altoFilas, dir:P.invSuelo?-1:1, voltear:P.invSuelo, pared:0},  // suelo: una fila que llena todo el ancho
     {esq:(s,t)=>[xR, top+hp*t, -s], filas:hp/fp, fila:fp, dir:-1, pared:1},       // pared derecha
   ];
   for(let i=0;i<3;i++){
     const c=caras[i];
     sh.setUniform('uTex',tex[i]); sh.setUniform('uPared',c.pared);
     sh.setUniform('uScroll',c.dir*sc/repsTex[i]);              // avanza palabras enteras: sin salto
-    cara(p,c.esq,L,c.filas,aspectoTex[i],repsTex[i],c.fila,c.dir);
+    cara(p,c.esq,L,c.filas,aspectoTex[i],repsTex[i],c.fila,c.dir,!!c.voltear);
   }
   if(P.carro){
     // centrado en el suelo, a 'carroDist' de la cámara; mira hacia donde avanza el pasillo
@@ -1248,8 +1251,6 @@ slider('slType','estirar','Largo de la palabra',.2,4,.01);
 slider('slCam','yaw','Punto de fuga X (giro)',-70,70,.5);
 slider('slCam','pitch','Punto de fuga Y (inclinación)',-45,45,.5);
 slider('slCam','roll','Rotación (°)',-180,180,.5);
-slider('slCam','balanceoX','Balanceo horizontal (°)',0,40,.5);
-slider('slCam','balanceoY','Balanceo vertical (°)',0,40,.5);
 slider('slCam','fov','Perspectiva (FOV)',30,130,1);
 slider('slCam','camX','Cámara cerca de la pared',-.95,.95,.01);
 slider('slCam','camY','Cámara arriba / abajo',-.95,.95,.01);
@@ -1260,6 +1261,10 @@ slider('slGeo','extension','Pared derecha (ancho del suelo)',.2,8,.1);
 slider('slGeo','altoFilas','Largo de letras del suelo',.2,4,.01);
 slider('slGeo','franjasPared','Franjas en las paredes',1,8,1);
 slider('slGeo','altoPared','Alto de franja (paredes)',.2,3,.01);
+$('tInvSuelo').addEventListener('click',()=>{ P.invSuelo=!P.invSuelo; repaint(); });
+painters.push(()=>$('tInvSuelo').setAttribute('aria-pressed',!!P.invSuelo));
+$('tInvDer').addEventListener('click',()=>{ P.invDerecha=!P.invDerecha; repaint(); regenerar(); });
+painters.push(()=>$('tInvDer').setAttribute('aria-pressed',!!P.invDerecha));
 // color
 grupo('gPal',Object.keys(PALETAS),()=>Object.keys(PALETAS).find(n=>PALETAS[n][0]===P.fondo&&PALETAS[n][1]===P.tinta),n=>{ [P.fondo,P.tinta]=PALETAS[n]; });
 colorRow('fondo','Fondo franjas'); colorRow('tinta','Letras'); colorRow('cielo','Cielo'); colorRow('nieblaColor','Niebla');
