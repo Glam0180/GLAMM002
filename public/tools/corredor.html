@@ -694,7 +694,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         <div class="daisy-main">
           <div class="daisy-canvas-wrap">
             <!-- Lienzo 1080×1440: pasillo 3D con tres franjas de texto hacia un punto de fuga (p5.js WebGL) -->
-            <div class="daisy-canvas" id="sketch-holder" aria-label="Pasillo 3D visto desde adentro, con texto corriendo por techo, pared y piso hacia el punto de fuga"></div>
+            <div class="daisy-canvas" id="sketch-holder" aria-label="Pasillo 3D visto desde adentro, abierto al cielo, con texto corriendo por las paredes y el suelo hacia el punto de fuga"></div>
           </div>
         </div>
       </div>
@@ -709,11 +709,11 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
           </div>
           <div class="daisy-panel y-panel">
             <div class="y-sec">textos (3 franjas)</div>
-            <div class="y-tl">arriba · techo</div>
+            <div class="y-tl">pared izquierda</div>
             <input id="t0" class="y-txt" type="text" maxlength="40" spellcheck="false" autocomplete="off">
-            <div class="y-tl">medio · pared</div>
+            <div class="y-tl">suelo</div>
             <input id="t1" class="y-txt" type="text" maxlength="40" spellcheck="false" autocomplete="off">
-            <div class="y-tl">abajo · piso</div>
+            <div class="y-tl">pared derecha</div>
             <input id="t2" class="y-txt" type="text" maxlength="40" spellcheck="false" autocomplete="off">
             <div class="y-sec">tipografía</div>
             <div class="y-btns" id="gFont"></div>
@@ -765,12 +765,12 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         </div>
       </div>
       <div class="ip__body">
-        <p class="ip__desc">un pasillo 3d visto desde adentro: techo, pared y piso llevan una franja de texto que corre hacia el punto de fuga. loop exacto.</p>
+        <p class="ip__desc">un pasillo 3d abierto al cielo: pared izquierda, suelo y pared derecha llevan texto que corre hacia el punto de fuga y se pierde en la niebla. loop exacto.</p>
         <ol class="ip__steps">
-          <li>escribe el texto de cada franja: techo, pared y piso</li>
+          <li>escribe el texto de cada superficie: pared izquierda, suelo y pared derecha</li>
           <li>elige tipografía, condénsala y estira las palabras</li>
           <li>mueve el punto de fuga, la rotación y la perspectiva</li>
-          <li>ajusta colores, niebla y cuántas palabras avanza el loop</li>
+          <li>ajusta colores, cielo, niebla y cuántas palabras avanza el loop</li>
           <li>exporta el loop mp4 exacto o un png</li>
         </ol>
       </div>
@@ -789,8 +789,8 @@ $('mhouse').addEventListener('click',goHome); $('mclose').addEventListener('clic
 /* ═════════════════════════════════════════════════════════
    CORREDOR TIPOGRÁFICO · kinetic perspective warp
    ---------------------------------------------------------
-   Un pasillo 3D de sección cuadrada visto desde adentro. Techo, pared
-   izquierda y piso llevan cada uno una franja de texto que corre a lo
+   Un pasillo 3D abierto al cielo, visto desde adentro. Pared izquierda,
+   suelo y pared derecha llevan cada uno texto que corre a lo
    largo del pasillo, hacia el punto de fuga. La cámara se balancea:
    el punto de fuga se mueve y las letras se estiran y se encogen.
    Loop: todo depende de una fase 0→1. En una vuelta el texto avanza
@@ -800,7 +800,7 @@ $('mhouse').addEventListener('click',goHome); $('mclose').addEventListener('clic
 const IW=1080, IH=1440;
 
 const BASE={
-  textos:['MOTION','EMOTION','MOTION'],
+  textos:['MOTION','EMOTION','MOTION'],   // pared izquierda, suelo, pared derecha
   fuente:'archivo',
   condensar:1.21,          // ancho de las letras (1 = normal)
   interletra:-.02,
@@ -815,8 +815,9 @@ const BASE={
   duracion:9.5, avance:5, sentido:-1, pausa:false,
   // corredor
   ancho:3, largo:60, extension:2.1, altoFilas:.99,
+  franjasPared:3, altoPared:1,  // las paredes llevan N franjas; arriba queda abierto (cielo)
   // color
-  fondo:'#A3F50A', tinta:'#FE5858', niebla:1, nieblaInicio:19.5,
+  fondo:'#A3F50A', tinta:'#FE5858', cielo:'#A3F50A', nieblaColor:'#0A0A0A', niebla:1, nieblaInicio:19.5, degradadoCielo:.35,
 };
 const P=JSON.parse(JSON.stringify(BASE));
 
@@ -849,14 +850,38 @@ varying vec2 vUv;
 varying float vDepth;
 uniform sampler2D uTex;
 uniform float uScroll, uNiebla, uNieblaInicio;
-uniform vec3 uFondo, uTinta;
+uniform vec3 uFondo, uTinta, uNieblaCol;
 void main(){
   float papel=texture2D(uTex,vec2(vUv.x-uScroll,vUv.y)).r;   // 1 = fondo, 0 = letra
   vec3 col=mix(uTinta,uFondo,papel);
   float f=smoothstep(uNieblaInicio,uNieblaInicio*2.5,vDepth)*uNiebla;
-  gl_FragColor=vec4(mix(col,uFondo,f),1.0);
+  gl_FragColor=vec4(mix(col,uNieblaCol,f),1.0);
 }`;
 
+/* cielo: esfera alrededor de la cámara; se oscurece hacia el horizonte con el color de la niebla */
+const SKY_VERT=`
+precision highp float;
+attribute vec3 aPosition;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+varying vec3 vDir;
+void main(){
+  vDir=aPosition;
+  gl_Position=uProjectionMatrix*uModelViewMatrix*vec4(aPosition,1.0);
+}`;
+const SKY_FRAG=`
+precision highp float;
+varying vec3 vDir;
+uniform vec3 uCielo, uNieblaCol;
+uniform float uNiebla, uGrad;
+void main(){
+  float e=-normalize(vDir).y;                       // elevación (p5: y hacia abajo)
+  float k=smoothstep(0.0,max(.001,uGrad),e);
+  vec3 col=mix(uNieblaCol,uCielo,k);
+  gl_FragColor=vec4(mix(uCielo,col,uNiebla),1.0);
+}`;
+
+let skySh=null;
 let p5i=null, sh=null, tex=[null,null,null], aspectoTex=[8,8,8], repsTex=[1,1,1], phase=0, exporting=false;
 let regen=true, generando=false;
 const hexRGB=h=>{ const n=parseInt(h.slice(1),16); return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255]; };
@@ -908,14 +933,14 @@ async function hacerTexturas(p){
 
 /* ─────────── geometría: una cara del pasillo, subdividida a lo largo ─────────── */
 // esquina(s, t): punto 3D a lo largo (s = profundidad) y a través (t = 0..1)
-function cara(p,esquina,largo,anchoCara,aspecto,reps,altoFila){
+function cara(p,esquina,largo,anchoCara,aspecto,reps,altoFila,dir){
   const largoPalabra=altoFila*aspecto*P.estirar;       // proporción real de la palabra
   const filas=anchoCara/altoFila;
   p.beginShape(p.TRIANGLE_STRIP);
   const N=120;
   for(let i=0;i<=N;i++){
     const s=Math.pow(i/N,1.6)*largo;                    // más cortes cerca de la cámara
-    const u=s/largoPalabra/reps;                         // la textura trae 'reps' palabras
+    const u=dir*s/largoPalabra/reps;                         // la textura trae 'reps' palabras
     const a=esquina(s,0), b=esquina(s,1);
     p.vertex(a[0],a[1],a[2],u,0);
     p.vertex(b[0],b[1],b[2],u,filas);
@@ -924,35 +949,44 @@ function cara(p,esquina,largo,anchoCara,aspecto,reps,altoFila){
 }
 
 function dibujar(p,ph){
-  p.background(P.fondo);
+  p.background(P.cielo);
   if(!tex[0]) return;
   const d2r=Math.PI/180, a=ph*Math.PI*2;
   // el exportador llama esto fuera de draw(): sin reiniciar, las rotaciones se acumulan cuadro a cuadro
   p.resetMatrix();
-  p.perspective(P.fov*d2r,IW/IH,.01,2000);
+  p.perspective(P.fov*d2r,IW/IH,.01,4000);
   p.camera(0,0,0,0,0,-1,0,1,0);
   // balanceo del punto de fuga: cierra en el loop
   p.rotateZ(P.roll*d2r);
   p.rotateX((P.pitch+P.balanceoY*Math.sin(a+Math.PI/2))*d2r);
   p.rotateY(-(P.yaw+P.balanceoX*Math.sin(a))*d2r);
+  // cielo
+  p.shader(skySh);
+  skySh.setUniform('uCielo',hexRGB(P.cielo)); skySh.setUniform('uNieblaCol',hexRGB(P.nieblaColor));
+  skySh.setUniform('uNiebla',P.niebla); skySh.setUniform('uGrad',P.degradadoCielo);
+  p.sphere(900,32,24);
   p.translate(-P.camX,-P.camY,0);
 
   p.shader(sh);
   sh.setUniform('uFondo',hexRGB(P.fondo));
   sh.setUniform('uTinta',hexRGB(P.tinta));
+  sh.setUniform('uNieblaCol',hexRGB(P.nieblaColor));
   sh.setUniform('uNiebla',P.niebla); sh.setUniform('uNieblaInicio',P.nieblaInicio);
 
-  const w=P.ancho, h=1, L=P.largo, sc=ph*Math.round(P.avance)*P.sentido, ext=w+w*P.extension;
-  // techo (y = -h), pared izquierda (x = -w), piso (y = +h). p5 WEBGL: y hacia abajo.
+  const w=P.ancho, h=1, L=P.largo, sc=ph*Math.round(P.avance)*P.sentido;
+  const xR=w*P.extension, anchoSuelo=w+xR;                  // el suelo va de la pared izquierda a la derecha
+  const fp=P.altoPared, hp=fp*Math.max(1,Math.round(P.franjasPared)), top=h-hp;   // paredes: N franjas desde el suelo
+  // p5 WEBGL: y hacia abajo. Suelo en y = +h; arriba de las paredes no hay nada: se ve el cielo.
   const caras=[
-    {esq:(s,t)=>[-w+ext*t,-h,-s], ancho:ext},                  // techo
-    {esq:(s,t)=>[-w,-h+2*h*t,-s], ancho:2*h},                  // pared
-    {esq:(s,t)=>[w*P.extension-ext*t,h,-s], ancho:ext},        // piso
+    {esq:(s,t)=>[-w, top+hp*t, -s], ancho:hp, fila:fp, dir:1},                   // pared izquierda
+    {esq:(s,t)=>[xR-anchoSuelo*t, h, -s], ancho:anchoSuelo, fila:2*h*P.altoFilas, dir:1},  // suelo
+    {esq:(s,t)=>[xR, top+hp*t, -s], ancho:hp, fila:fp, dir:-1},                  // pared derecha (reflejada)
   ];
   for(let i=0;i<3;i++){
+    const c=caras[i];
     sh.setUniform('uTex',tex[i]);
-    sh.setUniform('uScroll',sc/repsTex[i]);                   // avanza palabras enteras: sin salto
-    cara(p,caras[i].esq,L,caras[i].ancho,aspectoTex[i],repsTex[i],2*h*P.altoFilas);
+    sh.setUniform('uScroll',c.dir*sc/repsTex[i]);              // avanza palabras enteras: sin salto
+    cara(p,c.esq,L,c.ancho,aspectoTex[i],repsTex[i],c.fila,c.dir);
   }
   p.resetShader();
 }
@@ -963,6 +997,7 @@ const sketch=p=>{
     const cv=p.createCanvas(IW,IH,p.WEBGL); cv.parent('sketch-holder');
     p.pixelDensity(1); p.noStroke(); p.textureMode(p.NORMAL); p.textureWrap(p.REPEAT,p.REPEAT);
     sh=p.createShader(VERT,FRAG);
+    skySh=p.createShader(SKY_VERT,SKY_FRAG);
   };
   p.draw=()=>{
     if(regen&&!generando){ regen=false; hacerTexturas(p); }
@@ -1033,7 +1068,7 @@ function colorRow(key,label){
   const f=document.createElement('label'); f.className='y-crow';
   f.innerHTML=`<span>${label}</span><input type="color"><input class="y-hex" type="text" maxlength="7" spellcheck="false">`;
   const sel=f.querySelector('input[type=color]'), hex=f.querySelector('.y-hex');
-  painters.push(()=>{ sel.value=P[key].toLowerCase(); hex.value=P[key].toUpperCase(); $('sketch-holder').style.background=P.fondo; });
+  painters.push(()=>{ sel.value=P[key].toLowerCase(); hex.value=P[key].toUpperCase(); $('sketch-holder').style.background=P.cielo; });
   sel.addEventListener('input',()=>{ P[key]=sel.value.toUpperCase(); repaint(); });
   hex.addEventListener('change',()=>{ let v=hex.value.trim(); if(!v.startsWith('#')) v='#'+v; if(/^#[0-9a-fA-F]{6}$/.test(v)) P[key]=v.toUpperCase(); repaint(); });
   $('cols').appendChild(f);
@@ -1063,13 +1098,16 @@ slider('slCam','camY','Cámara arriba / abajo',-.95,.95,.01);
 // corredor
 slider('slGeo','ancho','Ancho del pasillo',.3,3,.01);
 slider('slGeo','largo','Largo del pasillo',5,200,1);
-slider('slGeo','extension','Techo y piso hacia la derecha',1,8,.1);
-slider('slGeo','altoFilas','Alto de filas (techo y piso)',.2,4,.01);
+slider('slGeo','extension','Pared derecha (ancho del suelo)',.2,8,.1);
+slider('slGeo','altoFilas','Alto de filas del suelo',.2,4,.01);
+slider('slGeo','franjasPared','Franjas en las paredes',1,8,1);
+slider('slGeo','altoPared','Alto de franja (paredes)',.2,3,.01);
 // color
 grupo('gPal',Object.keys(PALETAS),()=>Object.keys(PALETAS).find(n=>PALETAS[n][0]===P.fondo&&PALETAS[n][1]===P.tinta),n=>{ [P.fondo,P.tinta]=PALETAS[n]; });
-colorRow('fondo','Fondo'); colorRow('tinta','Letras');
+colorRow('fondo','Fondo franjas'); colorRow('tinta','Letras'); colorRow('cielo','Cielo'); colorRow('nieblaColor','Niebla');
 slider('slCol','niebla','Niebla al fondo',0,1,.01);
 slider('slCol','nieblaInicio','Inicio de la niebla',2,80,.5);
+slider('slCol','degradadoCielo','Niebla en el cielo (altura)',0,1.2,.01);
 // loop
 slider('slLoop','duracion','Duración del loop (s)',1,30,.5);
 slider('slLoop','avance','Palabras que avanza por loop',0,12,1);
