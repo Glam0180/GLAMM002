@@ -840,13 +840,13 @@ const BASE={
   cx:.5, cy:.5, ancho:.55, alto:.45, giroRuta:-20, ondas:.75, vueltas:2.5,
   sentido:1, guia:false,
   // póster
-  tam:.5, giro:0, seguir:false, desorden:0,
+  tam:.38, giro:0, seguir:false, desorden:0,
   // avance
-  pasos:48, suavidad:.7, espera:.25,
+  pasos:30, suavidad:.7, espera:.25,
   // estela
-  estela:30, cola:.82, desvanecer:.25, desenfoque:0, nuevoEncima:true, cabeza:true,
+  estela:18, cola:.9, desvanecer:.25, desenfoque:0, nuevoEncima:true, cabeza:true,
   // acabado
-  fondo:'#151012', sombra:.45, sombraBlur:28, sombraY:10, borde:0, bordeColor:'#FFFFFF', grano:.06, vineta:.35,
+  fondo:'#151012', sombra:.45, sombraBlur:18, sombraY:8, borde:0, bordeColor:'#FFFFFF', grano:.06, vineta:.35,
   // loop
   duracion:10, pausa:false,
 };
@@ -875,7 +875,7 @@ async function agregar(srcs,reemplazar){
   }
   if(reemplazar){ posters.forEach(p=>p.propia&&URL.revokeObjectURL(p.url)); posters=nuevos; }
   else posters=posters.concat(nuevos);
-  pintarThumbs(); cacheSucio=true;
+  pintarThumbs(); cacheSucio=true; vistaSucia=true;
 }
 function archivos(fl){
   const fs=[...fl].filter(f=>f.type.startsWith('image/'));
@@ -940,7 +940,7 @@ function cacheDe(p,nivel){
     p.base={c,w:W,h:H};
   }
   const blur=P.desenfoque*nivel/NIVELES;
-  const pad=Math.ceil(P.sombra>0?P.sombraBlur*1.6+Math.abs(P.sombraY):0)+Math.ceil(blur*3)+2;
+  const pad=Math.ceil(P.sombra>0?P.sombraBlur*1.15+Math.abs(P.sombraY):0)+Math.ceil(blur*2.5)+2;
   const c=document.createElement('canvas'); c.width=W+pad*2; c.height=H+pad*2;
   const x=c.getContext('2d');
   if(P.sombra>0){ x.shadowColor=`rgba(0,0,0,${P.sombra})`; x.shadowBlur=P.sombraBlur; x.shadowOffsetY=P.sombraY; }
@@ -1030,9 +1030,9 @@ function indicePoster(j){
 /* ─────────── grano: un mosaico de ruido que se desplaza cada cuadro ─────────── */
 const granoC=document.createElement('canvas'); granoC.width=granoC.height=256;
 (function(){ const x=granoC.getContext('2d'), d=x.createImageData(256,256);
-  for(let i=0;i<d.data.length;i+=4){ const v=Math.random()*255|0; d.data[i]=d.data[i+1]=d.data[i+2]=v; d.data[i+3]=255; }
+  for(let i=0;i<d.data.length;i+=4){ const v=Math.random()*2-1; d.data[i]=d.data[i+1]=d.data[i+2]=v>0?255:0; d.data[i+3]=Math.abs(v)*255|0; }
   x.putImageData(d,0,0); })();
-let granoPat=null;
+let granoPat=null, vinetaC=null, vinetaV=-1;
 
 /* ═════════════════════════════════════════════════════════
    DIBUJO — todo sale de la fase 0→1
@@ -1059,7 +1059,7 @@ function dibujar(ph){
     if(P.cabeza) lista.push({j:ultima+1,edad:0,cab:true,pos:uCab});
     // de atrás hacia adelante
     lista.sort((a,b)=>P.nuevoEncima?(b.edad-a.edad)||(a.cab-b.cab):(a.edad-b.edad)||(b.cab-a.cab));
-    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality=exporting?'high':'low';
     for(const it of lista){
       const pos=it.cab?it.pos:it.j, pt=enRuta(pos*paso);
       const vida=clamp(it.edad/K,0,1);
@@ -1082,14 +1082,19 @@ function dibujar(ph){
   }
 
   if(P.vineta>0){
-    const g=ctx.createRadialGradient(IW/2,IH/2,IH*.25,IW/2,IH/2,IH*.78);
-    g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(0,0,0,${P.vineta})`);
-    ctx.fillStyle=g; ctx.fillRect(0,0,IW,IH);
+    if(!vinetaC||vinetaV!==P.vineta){
+      vinetaV=P.vineta; vinetaC=document.createElement('canvas'); vinetaC.width=IW; vinetaC.height=IH;
+      const x=vinetaC.getContext('2d'), g=x.createRadialGradient(IW/2,IH/2,IH*.25,IW/2,IH/2,IH*.78);
+      g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(0,0,0,${P.vineta})`);
+      x.fillStyle=g; x.fillRect(0,0,IW,IH);
+    }
+    ctx.drawImage(vinetaC,0,0);
   }
   if(P.grano>0){
+    // grano con mezcla normal (luces blancas y sombras negras con alfa): mucho más barato que 'overlay'
     if(!granoPat) granoPat=ctx.createPattern(granoC,'repeat');
     const n=Math.floor(ph*997);
-    ctx.save(); ctx.globalAlpha=P.grano; ctx.globalCompositeOperation='overlay';
+    ctx.save(); ctx.globalAlpha=Math.min(1,P.grano*1.6);
     ctx.translate(-azar(n)*256,-azar(n+.5)*256); ctx.fillStyle=granoPat; ctx.fillRect(0,0,IW+256,IH+256);
     ctx.restore();
   }
@@ -1103,7 +1108,11 @@ function dibujar(ph){
 
 /* guía de la trayectoria: en su propia capa, nunca sale en el video */
 let trazo=null;
+let guiaVisible=false;
 function dibujarGuia(){
+  const hay=(trazo&&trazo.length>1)||((P.guia||dibujando)&&ruta);
+  if(!hay&&!guiaVisible) return;
+  guiaVisible=!!hay;
   gctx.clearRect(0,0,IW,IH);
   if(trazo&&trazo.length>1){
     gctx.lineWidth=4; gctx.strokeStyle='#FF0100'; gctx.setLineDash([]);
@@ -1119,12 +1128,14 @@ function dibujarGuia(){
 }
 
 /* ─────────── bucle en vivo ─────────── */
-let phase=0, exporting=false, tPrev=0;
+let phase=0, exporting=false, tPrev=0, vistaSucia=true;
+// cualquier cambio en el panel o en el lienzo pide redibujar (importa en pausa)
+['input','change','click','pointerup','drop'].forEach(ev=>document.addEventListener(ev,()=>{ vistaSucia=true; },true));
 function frame(t){
   const dt=Math.min(.1,(t-(tPrev||t))/1000); tPrev=t;
   if(!exporting){
     if(!P.pausa) phase=(phase+dt/Math.max(.5,P.duracion))%1;
-    dibujar(phase);
+    if(!P.pausa||vistaSucia||trazo){ vistaSucia=false; dibujar(phase); }
   }
   requestAnimationFrame(frame);
 }
