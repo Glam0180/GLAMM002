@@ -746,6 +746,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div id="slForma"></div>
             <div class="y-sec">póster</div>
             <div id="slPoster"></div>
+            <div class="y-hint">0 = sin giro · el signo cambia el sentido · en vueltas enteras el loop cierra exacto</div>
+            <button type="button" class="cam-btn" id="tGiroCopias">LAS COPIAS SIGUEN GIRANDO</button>
             <button type="button" class="cam-btn" id="tSeguir">GIRAR CON LA TRAYECTORIA</button>
           </div>
         </div>
@@ -837,18 +839,18 @@ const BASE={
   orden:'secuencia',        // secuencia | aleatorio
   forma:'orbita',           // linea | onda | orbita | ocho | espiral | libre
   libre:null, libreCerrada:true,   // puntos dibujados (0..1 del lienzo)
-  cx:.5, cy:.5, ancho:.55, alto:.45, giroRuta:-20, ondas:.75, vueltas:2.5,
+  cx:.5, cy:.5, ancho:.76, alto:.7, giroRuta:-20, ondas:1, vueltas:2.5,
   sentido:1, guia:false,
   // póster
-  tam:.38, giro:0, seguir:false, desorden:0,
+  tam:.46, velGiro:1, giroCopias:true, seguir:false, desorden:0,   // velGiro = vueltas completas por loop (entero: el loop cierra exacto)
   // avance
-  pasos:30, suavidad:.7, espera:.25,
+  pasos:31, suavidad:.1, espera:.05,
   // estela
-  estela:18, cola:.9, desvanecer:.25, desenfoque:0, nuevoEncima:true, cabeza:true,
+  estela:92, cola:1.33, desvanecer:.25, desenfoque:0, nuevoEncima:true, cabeza:true,
   // acabado
-  fondo:'#151012', sombra:.45, sombraBlur:18, sombraY:8, borde:0, bordeColor:'#FFFFFF', grano:.06, vineta:.35,
+  fondo:'#000000', sombra:0, sombraBlur:32, sombraY:-20, borde:1.5, bordeColor:'#000000', grano:0, vineta:0,
   // loop
-  duracion:10, pausa:false,
+  duracion:8.5, pausa:false,
 };
 const P=JSON.parse(JSON.stringify(BASE));
 
@@ -919,7 +921,8 @@ $('thumbs').addEventListener('drop',e=>{ e.preventDefault(); if(e.dataTransfer.f
    cuadro en vivo sería carísimo. Hay hasta 5 niveles de desenfoque por póster. */
 let cacheSucio=true;
 const NIVELES=4;
-function tamPoster(p){ const h=P.tam*IH; return {w:h*p.w/p.h, h}; }
+const escCache=()=>Math.max(1,P.cola);
+function tamPoster(p){ const h=P.tam*IH*escCache(); return {w:h*p.w/p.h, h}; }
 function reducido(p,w,h){
   let src=p.img, sw=p.w, sh=p.h;
   while(sw/2>=w*1.02&&sh/2>=h*1.02){
@@ -936,7 +939,7 @@ function cacheDe(p,nivel){
     const c=document.createElement('canvas'); c.width=W; c.height=H;
     const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
     x.drawImage(reducido(p,W,H),0,0,W,H);
-    if(P.borde>0){ x.strokeStyle=P.bordeColor; x.lineWidth=P.borde*2; x.strokeRect(0,0,W,H); }
+    if(P.borde>0){ x.strokeStyle=P.bordeColor; x.lineWidth=P.borde*2*escCache(); x.strokeRect(0,0,W,H); }
     p.base={c,w:W,h:H};
   }
   const blur=P.desenfoque*nivel/NIVELES;
@@ -1072,9 +1075,13 @@ function dibujar(ph){
       const idx=indicePoster(it.j), p=posters[idx]; if(!p) continue;
       const nivel=it.cab||P.desenfoque<=0?0:clamp(Math.round(vida*NIVELES),0,NIVELES);
       const ch=cacheDe(p,nivel);
-      let ang=P.giro*Math.PI/180+(P.seguir?pt.ang:0);
+      // giro continuo: velGiro vueltas por loop. Las copias siguen girando con el loop
+      // o se quedan con el ángulo que tenía el póster guía al dejarlas.
+      const vg=Math.round(P.velGiro), fase=(it.cab||P.giroCopias)?ph:mod(it.j,M)/M;
+      let ang=vg*fase*Math.PI*2+(P.seguir?pt.ang:0);
       if(P.desorden>0) ang+=(azar(mod(it.j,M)*7.31+1.7)-.5)*2*P.desorden*Math.PI/180;
-      ctx.setTransform(esc,0,0,esc,pt.x,pt.y); if(ang) ctx.rotate(ang);
+      const e2=esc/escCache();
+      ctx.setTransform(e2,0,0,e2,pt.x,pt.y); if(ang) ctx.rotate(ang);
       ctx.globalAlpha=alfa;
       ctx.drawImage(ch.c,-ch.c.width/2,-ch.c.height/2);
     }
@@ -1273,9 +1280,10 @@ slider('slForma','ondas','Ondas (onda)',.25,4,.05,rehacer);
 slider('slForma','vueltas','Vueltas (espiral)',.5,6,.25,rehacer);
 // póster
 slider('slPoster','tam','Tamaño del póster',.1,1.2,.01,ensuciar);
-slider('slPoster','giro','Giro del póster (°)',-180,180,1);
+slider('slPoster','velGiro','Velocidad de giro (vueltas por loop)',-8,8,1);
 slider('slPoster','desorden','Desorden (° al azar por copia)',0,45,.5);
 toggle('tSeguir','seguir');
+toggle('tGiroCopias','giroCopias');
 // avance
 slider('slAvance','pasos','Pasos por loop',2,200,1,infoPasos);
 slider('slAvance','suavidad','Suavidad del paso',0,1,.01);
