@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <script src="/tools/glam-invert.js"></script>
+  <script src="/tools/glam-rec.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <title>STUDIO GLAM — ESTELA DE PÓSTERS</title>
+  <style>
+/* Tema alterno (switch): fondo #00E9B4, ventanas #E64CDF, líneas y texto negros.
+   --g-red = color de acento (líneas, texto, barras); --g-black = superficie.
+   En las barras de título se vuelve a cruzar el par para que queden
+   magenta con texto negro. */
+:root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red:rgb(var(--g-red-rgb));--g-black:rgb(var(--g-black-rgb))}
+:root{--g-red-rgb:255,1,0;--g-black-rgb:0,0,0;--g-red-dark:#CC0000}
+html.glam-alt{--g-red-rgb:0,0,0;--g-black-rgb:230,76,223;--g-red-dark:#3a3a3a}
+html.glam-alt :is(#master-bar, .win__bar, .ip__bar, .tss__master-bar, .tss__win-bar){--g-red-rgb:230,76,223;--g-black-rgb:0,0,0;--g-red-dark:#b93ab3}
+html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{background:#00E9B4}
+
+    /* Space Mono — mismo design system que CANICAS.3D */
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+    }
+
+    :root, html.glam-alt :is(#master-bar, .win__bar, .ip__bar) {
+      --red: var(--g-red);
+      --red-dark: var(--g-red-dark);
+      --red-dim: rgba(var(--g-red-rgb), 0.55);
+      --red-faint: rgba(var(--g-red-rgb), 0.18);
+      --red-ghost: rgba(var(--g-red-rgb), 0.10);
+      --black: var(--g-black);
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--black);
+      font-family: 'Space Mono', monospace;
+      border: 1px solid var(--red);
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(var(--g-red-rgb), 0.55) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 128px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .2;
+      mix-blend-mode: overlay;
+    }
+
+    ::selection {
+      background: var(--black);
+      color: var(--red);
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--red); }
+    ::-webkit-scrollbar-thumb { background: var(--black); }
+
+    /* ───────── MASTER BAR ───────── */
+    #master-bar {
+      position: fixed;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      height: 28px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    #master-bar .slz {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+    }
+
+    #master-bar .dot5 {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .mhouse {
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #master-bar .mtitle {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--black);
+      text-transform: uppercase;
+    }
+
+    #master-bar .msep {
+      color: rgba(var(--g-black-rgb), .3);
+      font-size: 9px;
+    }
+
+    #master-bar .msub {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .55);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #master-bar .mright {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mctrl {
+      width: 20px;
+      height: 16px;
+      background: var(--black);
+      border: 1px solid rgba(var(--g-red-rgb), .25);
+      color: var(--red);
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mctrl:hover { background: var(--red-dark); }
+    .mctrl--close:hover { background: var(--red-dark); }
+
+    /* ───────── STAGE / FRAME ───────── */
+    #stage {
+      position: fixed;
+      top: 32px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    /* En fila, como canicas-3d: viewport a la izquierda y sidebar a la
+       derecha. El ancho/alto exactos los fija fitStage() para que el
+       canvas llene su ventana sin dejar franjas negras. */
+    #frame {
+      width: min(calc(100vw - 72px), 1180px);
+      height: min(calc(100vh - 72px), 900px);
+      background: var(--black);
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      gap: 5px;
+      position: relative;
+    }
+
+    /* Ventana del viewport: su ancho lo fija fitStage a partir del canvas,
+       asi que el canvas la llena de borde a borde. */
+    #viewport {
+      flex: none;
+      min-width: 0;
+    }
+
+    /* La barra de titulo lleva un border-bottom negro de 2px. Sobre el
+       panel negro del sidebar no se nota, pero aqui cae justo entre la
+       barra y la ilustracion y se lee como una linea negra separandolas.
+       Se quita solo en el viewport. */
+    #sidebar {
+      width: 210px;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: 0;
+    }
+    #sidebar > .win { flex: 1; min-height: 0; }
+
+    /* ───────── COMPONENTE VENTANA ───────── */
+    .win {
+      background: var(--black);
+      border: 2px solid var(--red);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .win__bar {
+      height: 22px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .win__bar .slz {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+    }
+
+    .win__bar-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      flex-shrink: 0;
+    }
+
+    .win__bar-title {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--black);
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win__bar-sub {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(var(--g-black-rgb), .5);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .win__bar-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .win__ctrl {
+      width: 16px;
+      height: 13px;
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 7px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .win__ctrl:hover {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    /* ───────── COMPOSICIÓN DAISY (canvas 1080×1350 + panel) ───────── */
+    .daisy-main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Zona donde vive el canvas 1080×1350 — se centra y se ajusta por JS
+       (fitStage) manteniendo siempre la proporción 4:5, sin deformarse. */
+    .daisy-canvas-wrap {
+      flex: 1;
+      display: block;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    /* La ilustracion va a ras de la ventana: pegada a la barra de titulo
+       arriba y al borde de .win por los otros tres lados. El unico trazo
+       visible es el de la propia ventana.
+       Ocupa el hueco ENTERO en vez de ser una caja de tamano fijo
+       centrada dentro de el: al centrarla, cualquier sobrante de
+       redondeo se repartia mitad arriba y mitad abajo y aparecia como un
+       hueco sobre la ilustracion. Quien mantiene la proporcion 4:5 es
+       fitStage, dimensionando la ventana; el canvas solo la rellena. */
+    .daisy-canvas {
+      position: relative;
+      background: var(--g-black);
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    .daisy-canvas video,
+    .daisy-canvas canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Orden de capas (de abajo hacia arriba):
+       1) #bg1Canvas    → base, en loop mientras el MOUSE se mueve
+       2) #bg2Canvas    → variante de color, aparece (opacidad) con el SCROLL
+       3) #variasCanvas → varias flores con alfa, SIEMPRE visible
+       4) #stemCanvas   → el tallo, se dibuja y se arrastra
+       5) #unoCanvas    → la flor grande, anclada por su CENTRO a la
+                          punta del tallo, asi que se mueve con el.
+                          Tallo y flor van por ENCIMA del resto del arte
+       6) #handsCanvas  → esqueleto de las manos y medidor del pinch
+
+       UNO y VARIAS ya no se funden al soltar: se quedan en pantalla y la
+       secuencia termina su ciclo parando en el frame 0, que es la imagen
+       estática de partida. Solo BG2 se desvanece, para dejar ver BG1. */
+    #bg1Canvas    { z-index: 1; }
+    #bg2Canvas    { z-index: 2; opacity: 0; }
+    #variasCanvas { z-index: 3; }
+    #stemCanvas   { z-index: 4; }
+    #unoCanvas    { z-index: 5; }
+    /* UI de las manos: va encima de todo y no intercepta el raton */
+    #handsCanvas  { z-index: 6; pointer-events: none; }
+
+    .daisy-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--black);
+      color: var(--red-dim);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 20px;
+      transition: opacity .4s ease;
+    }
+
+    /* ───────── PANEL DE CONTROL LATERAL ───────── */
+    /* Ya no es una columna dentro del viewport: ahora es el cuerpo de su
+       propia ventana en el sidebar, asi que ni ancho fijo ni borde
+       izquierdo separandola del canvas. */
+    .daisy-panel {
+      flex: 1;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .daisy-btn {
+      background: var(--black);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 10px 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .daisy-btn:hover:not(:disabled) {
+      background: var(--red);
+      color: var(--black);
+    }
+
+    .daisy-btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .daisy-status {
+      font-size: 9px;
+      line-height: 1.5;
+      letter-spacing: .03em;
+      color: var(--red-dim);
+    }
+
+    .daisy-meter-label {
+      font-size: 8px;
+      letter-spacing: .1em;
+      color: var(--red-dim);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .daisy-meter-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(var(--g-red-rgb), .12);
+      border: 1px solid var(--red-faint);
+    }
+
+    .daisy-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--red);
+      transition: width .08s linear;
+    }
+
+    /* ───────── CAMARA (control por manos) ───────── */
+    .cam-wrap { display: flex; flex-direction: column; gap: 7px; }
+    .cam-btn {
+      font-size: 8px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--red); background: var(--g-black); border: 1px solid var(--red);
+      padding: 5px 6px; cursor: pointer;
+    }
+    .cam-btn:hover, .cam-btn.on { background: var(--red); color: var(--g-black); }
+    .cam-box {
+      display: none; position: relative; width: 100%; aspect-ratio: 4 / 3;
+      border: 1px solid var(--red-faint); overflow: hidden; background: var(--g-black);
+    }
+    .cam-box video, .cam-box canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      /* espejo: mover la mano a la derecha lleva la flor a la derecha.
+         El overlay lleva el mismo espejo que el video, asi se dibuja con
+         las coordenadas del detector sin invertirlas a mano. */
+      transform: scaleX(-1); display: block;
+    }
+    .cam-ayuda {
+      font-size: 7px; line-height: 1.7; letter-spacing: .06em;
+      color: var(--red-dim); text-transform: uppercase;
+    }
+
+
+
+    /* ═══════════════ MOBILE RESPONSIVE ═══════════════ */
+    @media (max-width: 768px) {
+      html, body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      #stage {
+        position: relative;
+        top: 32px;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        height: auto;
+        min-height: calc(100vh - 32px);
+        padding: 10px;
+      }
+
+      #frame {
+        width: 100%;
+        height: auto;
+        min-height: calc(100vh - 52px);
+        padding: 10px;
+        flex-direction: column;
+      }
+
+      /* en mobile el viewport y el sidebar se apilan a ancho completo */
+      #viewport, #sidebar { width: 100% !important; flex: none; }
+
+      .daisy-main {
+        flex-direction: column;
+        overflow: visible;
+      }
+
+      .daisy-canvas-wrap {
+        flex: none;
+        padding: 0;
+      }
+
+      /* En desktop el alto sale de height:100% sobre un hueco que
+         fitStage ya dimensiono. Aqui fitStage no corre y el padre no
+         tiene alto propio en la pila vertical (colapsaba a 0), asi que
+         se fija por ancho y el aspect-ratio 4:5 deriva el alto. */
+      .daisy-canvas {
+        width: 100%;
+        height: auto;
+        /* proporcion del arte YA recortado (SRC_H - ART_CROP_TOP) */
+        aspect-ratio: 810 / 995;
+      }
+
+      .daisy-panel {
+        width: 100%;
+      }
+
+    }
+    /* ───────── INFO PANEL (arrastrable, minimizable, cerrable) ─────────
+       Vive fuera de #daisyCanvas: su área de arrastre está acotada a
+       .win pero SIN poder entrar nunca al rectángulo del canvas. */
+    .ip {
+      position: absolute;
+      top: 30px;
+      left: 10px;
+      width: min(240px, calc(100% - 16px));
+      background: var(--g-black);
+      border: 2px solid var(--red);
+      z-index: 40;
+      box-shadow: 0 6px 18px rgba(var(--g-black-rgb), .5);
+      user-select: none;
+    }
+
+    .ip__bar {
+      height: 20px;
+      background: var(--red);
+      border-bottom: 2px solid var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 5px 0 7px;
+      gap: 5px;
+      cursor: grab;
+      touch-action: none;
+    }
+    .ip__bar:active { cursor: grabbing; }
+
+    .ip__slz { font-size: 8px; font-weight: 700; color: rgba(var(--g-black-rgb), .5); }
+    .ip__dot { width: 5px; height: 5px; background: var(--black); flex-shrink: 0; }
+    .ip__title {
+      font-size: 9px; font-weight: 700; letter-spacing: .1em;
+      color: var(--black); text-transform: lowercase;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ip__ctrls { display: flex; gap: 4px; margin-left: auto; }
+    .ip__ctrl {
+      width: 15px; height: 13px; background: var(--black);
+      border: 1px solid rgba(var(--g-red-rgb), .4); color: var(--red);
+      font-size: 8px; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; cursor: pointer;
+    }
+    .ip__ctrl:hover { background: var(--red); color: var(--black); }
+
+    .ip__body { padding: 9px 11px 11px; max-height: 220px; overflow-y: auto; }
+    .ip__desc {
+      font-size: 9px; line-height: 1.5; letter-spacing: .04em;
+      color: var(--red); text-transform: lowercase; margin-bottom: 7px;
+    }
+    .ip__steps { list-style: none; counter-reset: ip-step; display: flex; flex-direction: column; gap: 5px; }
+    .ip__steps li {
+      counter-increment: ip-step; font-size: 8px; line-height: 1.5;
+      letter-spacing: .04em; color: var(--red-dim); text-transform: lowercase;
+      display: flex; gap: 6px;
+    }
+    .ip__steps li::before { content: counter(ip-step) "."; color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+    /* Burbuja unificada: tanto minimizar como cerrar colapsan aquí */
+    .ip-bubble {
+      position: absolute; width: 26px; height: 26px;
+      background: var(--g-black); border: 2px solid var(--red); color: var(--red);
+      font-size: 13px; font-weight: 700; cursor: pointer; z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(var(--g-black-rgb), .5);
+    }
+    .ip-bubble:hover { background: var(--red); color: var(--black); }
+
+    @media (max-width: 640px) {
+      .ip { width: min(72vw, 210px); }
+      .ip__body { max-height: 160px; }
+    }
+  </style>
+  <style>
+    /* ═════════ ESTELA DE PÓSTERS ═════════ */
+    #sketch-holder { position: relative; overflow: hidden; background: #111; }
+    #sketch-holder canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
+    #guia { pointer-events: none; z-index: 2; }
+    #sketch-holder { cursor: url(/tools/cursor-point.png) 9 1, pointer; touch-action: none; -webkit-user-select: none; user-select: none; }
+    #sketch-holder.dibujando { cursor: url(/tools/cursor-pinch.png) 9 5, crosshair; }
+    #sidebar { width: 236px; }
+    .y-panel { gap: 10px; padding: 12px 12px 14px; }
+    .y-sec {
+      font-size: 8px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--red); display: flex; align-items: center; gap: 6px; margin-top: 2px;
+    }
+    .y-sec::after { content: ''; flex: 1; height: 1px; background: var(--red-faint); }
+    .y-row { display: flex; flex-direction: column; gap: 4px; }
+    .y-lab {
+      font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--red-dim);
+      display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    }
+    .y-num, .y-hex {
+      width: 54px; flex: none; font: inherit; font-size: 9px; letter-spacing: .04em; text-align: right;
+      color: var(--red); background: var(--black); border: 1px solid var(--red-faint); padding: 2px 4px; outline: none;
+      font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+    }
+    .y-num::-webkit-inner-spin-button, .y-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .y-hex { width: 62px; text-transform: uppercase; text-align: left; }
+    .y-num:focus, .y-hex:focus { border-color: var(--red); }
+    .y-panel input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 3px; margin: 3px 0; outline: none; cursor: pointer;
+      background: linear-gradient(to right, var(--red) var(--val, 50%), rgba(var(--g-red-rgb), .2) var(--val, 50%));
+    }
+    .y-panel input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 9px; height: 9px;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-thumb {
+      width: 9px; height: 9px; border-radius: 0;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-track { height: 3px; background: rgba(var(--g-red-rgb), .2); }
+    .y-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .y-btns.tres { grid-template-columns: 1fr 1fr 1fr; }
+    .y-btns .cam-btn { width: 100%; padding-left: 2px; padding-right: 2px; }
+    .cam-btn[aria-pressed="true"] { background: var(--red); color: var(--g-black); }
+    .cam-btn:disabled { opacity: .4; cursor: default; }
+    .y-hint { font-size: 7px; line-height: 1.7; letter-spacing: .06em; color: var(--red-dim); text-transform: uppercase; }
+    .y-crow { display: flex; align-items: center; gap: 6px; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--red-dim); }
+    .y-crow span { flex: 1; }
+    .y-crow input[type=color] {
+      -webkit-appearance: none; appearance: none; width: 26px; height: 16px; padding: 0; cursor: pointer;
+      border: 1px solid var(--red); background: var(--black);
+    }
+    .y-crow input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+    .y-crow input[type=color]::-webkit-color-swatch { border: none; }
+    .y-crow input[type=color]::-moz-color-swatch { border: none; }
+    /* miniaturas de los pósters cargados */
+    .e-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .e-thumb { position: relative; aspect-ratio: 4 / 5; border: 1px solid var(--red-faint); overflow: hidden; background: var(--black); }
+    .e-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .e-thumb b {
+      position: absolute; left: 0; bottom: 0; font-size: 7px; font-weight: 700; padding: 0 3px;
+      background: var(--red); color: var(--g-black);
+    }
+    .e-thumb i {
+      position: absolute; top: 0; right: 0; width: 13px; height: 13px; font-style: normal; font-size: 8px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      background: var(--g-black); color: var(--red); border-left: 1px solid var(--red); border-bottom: 1px solid var(--red);
+    }
+    .e-thumb i:hover { background: var(--red); color: var(--g-black); }
+    .e-thumb.drop { border-color: var(--red); }
+    #filePick { display: none; }
+    @media (max-width: 768px) {
+      .daisy-canvas { aspect-ratio: 1080 / 1350; }
+      #sidebar { flex-direction: column; }
+      #sidebar > .win { flex: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="master-bar">
+    <span class="slz">///</span>
+    <div class="dot5"></div>
+    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button" aria-label="Volver al inicio" title="Volver al inicio">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+    <span class="mtitle">STUDIO GLAM</span>
+    <span class="msep">—</span>
+    <span class="msub">ESTELA DE PÓSTERS</span>
+    <div class="mright">
+      <div class="mctrl">—</div>
+      <div class="mctrl">□</div>
+      <div class="mctrl mctrl--close" id="mclose" role="button" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</div>
+    </div>
+    <span class="slz">///</span>
+  </div>
+
+  <div id="stage">
+    <div id="frame">
+      <div class="win" id="viewport">
+        <div class="win__bar">
+          <span class="slz">///</span>
+          <div class="win__bar-dot"></div>
+          <span class="win__bar-title">VIEWPORT.ESTELA</span>
+          <div class="win__bar-controls">
+            <div class="win__ctrl">—</div>
+            <div class="win__ctrl">□</div>
+            <div class="win__ctrl" id="wclose" role="button" aria-label="Cerrar" title="Cerrar">✕</div>
+          </div>
+        </div>
+        <div class="daisy-main">
+          <div class="daisy-canvas-wrap">
+            <!-- Lienzo 1080×1350: los pósters avanzan por una trayectoria y dejan una copia en cada paso -->
+            <div class="daisy-canvas" id="sketch-holder" aria-label="Pósters que avanzan por una trayectoria dejando una estela de copias a la misma distancia">
+              <canvas id="lienzo" width="1080" height="1350"></canvas>
+              <canvas id="guia" width="1080" height="1350"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sidebar">
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">PROPIEDADES</span>
+            <div class="win__bar-controls"><div class="win__ctrl">—</div><div class="win__ctrl">□</div></div>
+          </div>
+          <div class="daisy-panel y-panel">
+            <div class="y-sec">pósters</div>
+            <input type="file" id="filePick" accept="image/*" multiple>
+            <button type="button" class="cam-btn" id="bSubir">+ SUBIR PÓSTERS</button>
+            <div class="e-thumbs" id="thumbs"></div>
+            <div class="y-hint" id="postInfo">arrastra imágenes al lienzo o a las miniaturas · arrastra una miniatura para cambiar el orden</div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="bEjemplo">↺ EJEMPLOS</button>
+              <button type="button" class="cam-btn" id="bLimpiar">✕ QUITAR TODOS</button>
+            </div>
+            <div class="y-btns" id="gOrden"></div>
+            <div class="y-sec">trayectoria</div>
+            <div class="y-btns tres" id="gForma"></div>
+            <button type="button" class="cam-btn" id="tDibujar">✎ DIBUJAR TRAYECTORIA</button>
+            <div class="y-hint" id="formaInfo"></div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="tGuia">VER TRAYECTORIA</button>
+              <button type="button" class="cam-btn" id="bRev">INVERTIR SENTIDO</button>
+            </div>
+            <div id="slForma"></div>
+            <div class="y-sec">póster</div>
+            <div id="slPoster"></div>
+            <button type="button" class="cam-btn" id="tSeguir">GIRAR CON LA TRAYECTORIA</button>
+          </div>
+        </div>
+
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">ESTELA, COLOR Y EXPORTAR</span>
+            <div class="win__bar-controls"><div class="win__ctrl">—</div><div class="win__ctrl">□</div></div>
+          </div>
+          <div class="daisy-panel y-panel">
+            <div class="y-sec">avance</div>
+            <div id="slAvance"></div>
+            <div class="y-hint" id="pasoInfo"></div>
+            <div class="y-sec">estela</div>
+            <div id="slEstela"></div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="tNuevo">NUEVO ENCIMA</button>
+              <button type="button" class="cam-btn" id="tCabeza">PÓSTER GUÍA</button>
+            </div>
+            <div class="y-sec">acabado</div>
+            <div id="cols" class="y-row"></div>
+            <div id="slAcabado"></div>
+            <div class="y-sec">loop</div>
+            <div id="slLoop"></div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" id="bPause">PAUSA</button>
+              <button type="button" class="cam-btn" id="bReset">↺ POR DEFECTO</button>
+            </div>
+            <div class="y-sec">exportar</div>
+            <button type="button" class="cam-btn" id="bLoop">● EXPORTAR LOOP MP4 (1080×1350)</button>
+            <div class="y-hint" id="loopInfo">cuadro por cuadro a 60 fps y 40 mbps: el último cuadro empalma con el primero</div>
+            <div class="cam-wrap" id="recSlot"></div>
+            <button type="button" class="cam-btn" id="bPng">↓ PNG</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ip" id="infoPanel">
+      <div class="ip__bar" id="infoPanelBar">
+        <span class="ip__slz">///</span>
+        <span class="ip__dot"></span>
+        <span class="ip__title">cómo usar — estela de pósters</span>
+        <div class="ip__ctrls">
+          <span class="ip__ctrl" id="infoMin" title="Minimizar">—</span>
+          <span class="ip__ctrl" id="infoClose" title="Cerrar">✕</span>
+        </div>
+      </div>
+      <div class="ip__body">
+        <p class="ip__desc">tus pósters avanzan por una trayectoria siempre a la misma distancia y en cada paso dejan una copia: la estela. loop exacto.</p>
+        <ol class="ip__steps">
+          <li>sube tus pósters (o usa los de ejemplo) y ordénalos arrastrando las miniaturas</li>
+          <li>elige la trayectoria o dibuja la tuya sobre el lienzo</li>
+          <li>ajusta pasos por loop: más pasos = copias más juntas</li>
+          <li>define el largo de la estela, la suavidad del paso y la pausa entre pasos</li>
+          <li>exporta el loop mp4 a máxima calidad, graba en vivo o guarda un png</li>
+        </ol>
+      </div>
+    </div>
+    <div class="ip-bubble" id="infoBubble" style="display:none;" title="Mostrar instrucciones">?</div>
+  </div>
+
+  <script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+function goHome(){ try{ if(window.top&&window.top!==window) window.top.location.href='/'; else window.location.href='/'; }catch(e){ window.location.href='/'; } }
+$('mhouse').addEventListener('click',goHome); $('mclose').addEventListener('click',goHome); $('wclose').addEventListener('click',goHome);
+
+/* ═════════════════════════════════════════════════════════
+   ESTELA DE PÓSTERS
+   ---------------------------------------------------------
+   Un póster guía recorre una trayectoria. La trayectoria se mide por
+   longitud de arco, así que cada paso avanza EXACTAMENTE la misma
+   distancia (largo total / pasos por loop) sin importar cuánto se curve.
+   En cada paso deja una copia: la copia j va en la posición j·paso y
+   muestra el póster j mod N. La estela son las últimas copias.
+   Loop: todo depende de una fase 0→1 que recorre los M pasos; las
+   copias de índice negativo son las del loop anterior, así que el
+   último cuadro empalma con el primero.
+   ═════════════════════════════════════════════════════════ */
+const IW=1080, IH=1350;
+const cv=$('lienzo'), ctx=cv.getContext('2d');
+const gcv=$('guia'), gctx=gcv.getContext('2d');
+
+const BASE={
+  orden:'secuencia',        // secuencia | aleatorio
+  forma:'orbita',           // linea | onda | orbita | ocho | espiral | libre
+  libre:null, libreCerrada:true,   // puntos dibujados (0..1 del lienzo)
+  cx:.5, cy:.5, ancho:.55, alto:.45, giroRuta:-20, ondas:.75, vueltas:2.5,
+  sentido:1, guia:false,
+  // póster
+  tam:.5, giro:0, seguir:false, desorden:0,
+  // avance
+  pasos:48, suavidad:.7, espera:.25,
+  // estela
+  estela:30, cola:.82, desvanecer:.25, desenfoque:0, nuevoEncima:true, cabeza:true,
+  // acabado
+  fondo:'#151012', sombra:.45, sombraBlur:28, sombraY:10, borde:0, bordeColor:'#FFFFFF', grano:.06, vineta:.35,
+  // loop
+  duracion:10, pausa:false,
+};
+const P=JSON.parse(JSON.stringify(BASE));
+
+const FORMAS=[
+  {id:'linea',  label:'LÍNEA'},
+  {id:'onda',   label:'ONDA'},
+  {id:'orbita', label:'ÓRBITA'},
+  {id:'ocho',   label:'OCHO'},
+  {id:'espiral',label:'ESPIRAL'},
+  {id:'libre',  label:'LIBRE'},
+];
+const EJEMPLOS=[1,2,3,4,5,6].map(i=>`/tools/estela-media/pop-${i}.webp`);
+
+/* ─────────── pósters ─────────── */
+let posters=[];      // {id, img, w, h, url, cache:Map}
+let uid=0;
+function cargarImagen(src){
+  return new Promise((ok,ko)=>{ const im=new Image(); im.decoding='async'; im.onload=()=>ok(im); im.onerror=ko; im.src=src; });
+}
+async function agregar(srcs,reemplazar){
+  const nuevos=[];
+  for(const s of srcs){
+    try{ const im=await cargarImagen(s.url); nuevos.push({id:++uid,img:im,w:im.naturalWidth,h:im.naturalHeight,url:s.url,propia:!!s.propia,cache:new Map()}); }catch(e){}
+  }
+  if(reemplazar){ posters.forEach(p=>p.propia&&URL.revokeObjectURL(p.url)); posters=nuevos; }
+  else posters=posters.concat(nuevos);
+  pintarThumbs(); cacheSucio=true;
+}
+function archivos(fl){
+  const fs=[...fl].filter(f=>f.type.startsWith('image/'));
+  if(!fs.length) return;
+  // si solo están los de ejemplo, los tuyos los reemplazan
+  const soloEjemplos=posters.length>0&&posters.every(p=>!p.propia);
+  agregar(fs.map(f=>({url:URL.createObjectURL(f),propia:true})),soloEjemplos);
+}
+let arrastrando=-1;
+function pintarThumbs(){
+  const c=$('thumbs'); c.innerHTML='';
+  posters.forEach((p,i)=>{
+    const d=document.createElement('div'); d.className='e-thumb'; d.draggable=true;
+    d.innerHTML=`<img alt="póster ${i+1}"><b>${String(i+1).padStart(2,'0')}</b><i title="Quitar">✕</i>`;
+    d.querySelector('img').src=p.url;
+    d.querySelector('i').addEventListener('click',()=>{ posters.splice(i,1); if(p.propia) URL.revokeObjectURL(p.url); pintarThumbs(); });
+    d.addEventListener('dragstart',e=>{ arrastrando=i; e.dataTransfer.effectAllowed='move'; });
+    d.addEventListener('dragover',e=>{ e.preventDefault(); d.classList.add('drop'); });
+    d.addEventListener('dragleave',()=>d.classList.remove('drop'));
+    d.addEventListener('drop',e=>{
+      e.preventDefault(); e.stopPropagation(); d.classList.remove('drop');
+      if(e.dataTransfer.files&&e.dataTransfer.files.length){ archivos(e.dataTransfer.files); return; }
+      if(arrastrando<0||arrastrando===i) return;
+      const [m]=posters.splice(arrastrando,1); posters.splice(i,0,m); arrastrando=-1; pintarThumbs();
+    });
+    c.appendChild(d);
+  });
+  infoPasos();
+}
+$('bSubir').addEventListener('click',()=>$('filePick').click());
+$('filePick').addEventListener('change',e=>{ archivos(e.target.files); e.target.value=''; });
+$('bEjemplo').addEventListener('click',()=>agregar(EJEMPLOS.map(url=>({url})),true));
+$('bLimpiar').addEventListener('click',()=>{ posters.forEach(p=>p.propia&&URL.revokeObjectURL(p.url)); posters=[]; pintarThumbs(); });
+['dragover','drop'].forEach(ev=>$('sketch-holder').addEventListener(ev,e=>{ e.preventDefault(); if(ev==='drop'&&e.dataTransfer.files) archivos(e.dataTransfer.files); }));
+$('thumbs').addEventListener('dragover',e=>e.preventDefault());
+$('thumbs').addEventListener('drop',e=>{ e.preventDefault(); if(e.dataTransfer.files&&e.dataTransfer.files.length) archivos(e.dataTransfer.files); });
+
+/* ─────────── caché de cada póster ya escalado, con sombra y borde horneados ───────────
+   Se reduce por mitades hasta el tamaño final (mucho más nítido que un solo
+   drawImage grande→chico) y se hornea la sombra: dibujar 40 sombras por
+   cuadro en vivo sería carísimo. Hay hasta 5 niveles de desenfoque por póster. */
+let cacheSucio=true;
+const NIVELES=4;
+function tamPoster(p){ const h=P.tam*IH; return {w:h*p.w/p.h, h}; }
+function reducido(p,w,h){
+  let src=p.img, sw=p.w, sh=p.h;
+  while(sw/2>=w*1.02&&sh/2>=h*1.02){
+    const c=document.createElement('canvas'); c.width=Math.round(sw/2); c.height=Math.round(sh/2);
+    const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high'; x.drawImage(src,0,0,c.width,c.height);
+    src=c; sw=c.width; sh=c.height;
+  }
+  return src;
+}
+function cacheDe(p,nivel){
+  const k=nivel; if(p.cache.has(k)) return p.cache.get(k);
+  const {w,h}=tamPoster(p), W=Math.round(w), H=Math.round(h);
+  if(!p.base||p.base.w!==W||p.base.h!==H){
+    const c=document.createElement('canvas'); c.width=W; c.height=H;
+    const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
+    x.drawImage(reducido(p,W,H),0,0,W,H);
+    if(P.borde>0){ x.strokeStyle=P.bordeColor; x.lineWidth=P.borde*2; x.strokeRect(0,0,W,H); }
+    p.base={c,w:W,h:H};
+  }
+  const blur=P.desenfoque*nivel/NIVELES;
+  const pad=Math.ceil(P.sombra>0?P.sombraBlur*1.6+Math.abs(P.sombraY):0)+Math.ceil(blur*3)+2;
+  const c=document.createElement('canvas'); c.width=W+pad*2; c.height=H+pad*2;
+  const x=c.getContext('2d');
+  if(P.sombra>0){ x.shadowColor=`rgba(0,0,0,${P.sombra})`; x.shadowBlur=P.sombraBlur; x.shadowOffsetY=P.sombraY; }
+  if(blur>0) x.filter=`blur(${blur.toFixed(2)}px)`;
+  x.drawImage(p.base.c,pad,pad);
+  const r={c,pad}; p.cache.set(k,r); return r;
+}
+function limpiarCache(){ posters.forEach(p=>{ p.cache.clear(); p.base=null; }); cacheSucio=false; }
+
+/* ─────────── trayectoria por longitud de arco ─────────── */
+let ruta=null;   // {x:Float32Array, y, s, L, cerrada}
+const MUESTRAS=1600;
+function puntosForma(){
+  const pts=[], f=P.forma;
+  if(f==='libre'&&P.libre&&P.libre.length>3) return {pts:P.libre.map(([u,v])=>[u*IW,v*IH]),cerrada:P.libreCerrada,crudo:true};
+  const n=MUESTRAS;
+  for(let i=0;i<=n;i++){
+    const t=i/n; let u=0,v=0;
+    if(f==='linea'){ u=t-.5; v=0; }
+    else if(f==='onda'){ u=t-.5; v=.5*Math.sin(t*Math.PI*2*P.ondas); }
+    else if(f==='orbita'){ const a=t*Math.PI*2; u=.5*Math.cos(a); v=.5*Math.sin(a); }
+    else if(f==='ocho'){ const a=t*Math.PI*2; u=.5*Math.sin(a); v=.5*Math.sin(2*a); }
+    else if(f==='espiral'){ // ida hacia afuera y vuelta hacia adentro: cerrada
+      const a=t*Math.PI*2*P.vueltas*2, r=.5*(.12+.88*(1-Math.abs(1-2*t)));
+      const g=t<.5?a:-a; u=r*Math.cos(g); v=r*Math.sin(g); }
+    else { u=t-.5; v=0; }
+    pts.push([u,v]);
+  }
+  const cerrada=(f==='orbita'||f==='ocho'||f==='espiral');
+  const g=P.giroRuta*Math.PI/180, cs=Math.cos(g), sn=Math.sin(g);
+  return {pts:pts.map(([u,v])=>{ const x=u*P.ancho*IW, y=v*P.alto*IH; return [P.cx*IW+x*cs-y*sn, P.cy*IH+x*sn+y*cs]; }),cerrada};
+}
+function suavizar(pts,cerrada,it){
+  for(let k=0;k<it;k++){
+    const o=[], n=pts.length;
+    if(!cerrada) o.push(pts[0]);
+    for(let i=0;i<(cerrada?n:n-1);i++){
+      const a=pts[i], b=pts[(i+1)%n];
+      o.push([a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75]);
+    }
+    if(!cerrada) o.push(pts[n-1]);
+    pts=o;
+  }
+  return pts;
+}
+function construirRuta(){
+  let {pts,cerrada,crudo}=puntosForma();
+  if(crudo) pts=suavizar(pts,cerrada,3);
+  if(cerrada){ const a=pts[0], b=pts[pts.length-1]; if(Math.hypot(a[0]-b[0],a[1]-b[1])>.5) pts=pts.concat([a]); }
+  const n=pts.length, x=new Float32Array(n), y=new Float32Array(n), s=new Float64Array(n);
+  for(let i=0;i<n;i++){ x[i]=pts[i][0]; y[i]=pts[i][1]; if(i) s[i]=s[i-1]+Math.hypot(x[i]-x[i-1],y[i]-y[i-1]); }
+  ruta={x,y,s,L:Math.max(1,s[n-1]),cerrada,n};
+  infoPasos();
+}
+// punto y ángulo en la distancia d (con vuelta)
+function enRuta(d){
+  const r=ruta; let q=((d%r.L)+r.L)%r.L; if(P.sentido<0) q=r.L-q;
+  let lo=0, hi=r.n-1;
+  while(hi-lo>1){ const m=(lo+hi)>>1; if(r.s[m]<=q) lo=m; else hi=m; }
+  const seg=r.s[hi]-r.s[lo]||1, f=(q-r.s[lo])/seg;
+  let ang=Math.atan2(r.y[hi]-r.y[lo],r.x[hi]-r.x[lo]); if(P.sentido<0) ang+=Math.PI;
+  return {x:r.x[lo]+(r.x[hi]-r.x[lo])*f, y:r.y[lo]+(r.y[hi]-r.y[lo])*f, ang};
+}
+let rutaSucia=true;
+const rehacer=()=>{ rutaSucia=true; };
+
+/* ─────────── utilidades ─────────── */
+const mod=(a,n)=>((a%n)+n)%n;
+const azar=n=>{ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); };
+const easeIO=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// avance dentro de un paso: espera quieto, luego se mueve con más o menos suavidad
+function dentroPaso(f){
+  const e=clamp(P.espera,0,.95);
+  const g=f<e?0:(f-e)/(1-e);
+  return g+(easeIO(g)-g)*P.suavidad;
+}
+// orden aleatorio estable: una permutación por cada vuelta de N pósters
+function indicePoster(j){
+  const M=Math.max(1,Math.round(P.pasos)), N=posters.length, jm=mod(j,M);
+  if(P.orden!=='aleatorio') return jm%N;
+  const ronda=Math.floor(jm/N), k=jm%N;
+  const perm=[...Array(N).keys()].sort((a,b)=>azar(a*13.7+ronda*91.3+.5)-azar(b*13.7+ronda*91.3+.5));
+  return perm[k];
+}
+
+/* ─────────── grano: un mosaico de ruido que se desplaza cada cuadro ─────────── */
+const granoC=document.createElement('canvas'); granoC.width=granoC.height=256;
+(function(){ const x=granoC.getContext('2d'), d=x.createImageData(256,256);
+  for(let i=0;i<d.data.length;i+=4){ const v=Math.random()*255|0; d.data[i]=d.data[i+1]=d.data[i+2]=v; d.data[i+3]=255; }
+  x.putImageData(d,0,0); })();
+let granoPat=null;
+
+/* ═════════════════════════════════════════════════════════
+   DIBUJO — todo sale de la fase 0→1
+   ═════════════════════════════════════════════════════════ */
+function dibujar(ph){
+  if(rutaSucia){ rutaSucia=false; construirRuta(); }
+  if(cacheSucio) limpiarCache();
+  const M=Math.max(1,Math.round(P.pasos)), paso=ruta.L/M;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+  ctx.fillStyle=P.fondo; ctx.fillRect(0,0,IW,IH);
+
+  if(posters.length){
+    const u=ph*M, k=Math.floor(u), fr=u-k;
+    const uCab=k+dentroPaso(fr);                 // posición (en pasos) del póster guía
+    const K=clamp(Math.round(P.estela),1,M);
+    const lista=[];
+    // copias ya dejadas: la j se dejó cuando la guía llegó a j
+    const ultima=dentroPaso(fr)>=1-1e-9?k+1:k;
+    for(let j=ultima-K+1;j<=ultima;j++){
+      const edad=uCab-j;                          // en pasos, continua
+      lista.push({j,edad,cab:false});
+    }
+    if(P.cabeza) lista.push({j:ultima+1,edad:0,cab:true,pos:uCab});
+    // de atrás hacia adelante
+    lista.sort((a,b)=>P.nuevoEncima?(b.edad-a.edad)||(a.cab-b.cab):(a.edad-b.edad)||(b.cab-a.cab));
+    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+    for(const it of lista){
+      const pos=it.cab?it.pos:it.j, pt=enRuta(pos*paso);
+      const vida=clamp(it.edad/K,0,1);
+      // escala: 1 al frente → 'cola' al final; alfa: se desvanece en el último tramo
+      const esc=1+(P.cola-1)*vida;
+      const df=Math.max(.001,P.desvanecer);
+      let alfa=it.cab?1:clamp((K-it.edad)/(df*K),0,1);
+      if(P.desvanecer<=0) alfa=it.edad<=K?1:0;
+      if(alfa<=0) continue;
+      const idx=indicePoster(it.j), p=posters[idx]; if(!p) continue;
+      const nivel=it.cab||P.desenfoque<=0?0:clamp(Math.round(vida*NIVELES),0,NIVELES);
+      const ch=cacheDe(p,nivel);
+      let ang=P.giro*Math.PI/180+(P.seguir?pt.ang:0);
+      if(P.desorden>0) ang+=(azar(mod(it.j,M)*7.31+1.7)-.5)*2*P.desorden*Math.PI/180;
+      ctx.setTransform(esc,0,0,esc,pt.x,pt.y); if(ang) ctx.rotate(ang);
+      ctx.globalAlpha=alfa;
+      ctx.drawImage(ch.c,-ch.c.width/2,-ch.c.height/2);
+    }
+    ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1;
+  }
+
+  if(P.vineta>0){
+    const g=ctx.createRadialGradient(IW/2,IH/2,IH*.25,IW/2,IH/2,IH*.78);
+    g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(0,0,0,${P.vineta})`);
+    ctx.fillStyle=g; ctx.fillRect(0,0,IW,IH);
+  }
+  if(P.grano>0){
+    if(!granoPat) granoPat=ctx.createPattern(granoC,'repeat');
+    const n=Math.floor(ph*997);
+    ctx.save(); ctx.globalAlpha=P.grano; ctx.globalCompositeOperation='overlay';
+    ctx.translate(-azar(n)*256,-azar(n+.5)*256); ctx.fillStyle=granoPat; ctx.fillRect(0,0,IW+256,IH+256);
+    ctx.restore();
+  }
+  if(!posters.length){
+    ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 26px "Space Mono", monospace'; ctx.textAlign='center';
+    ctx.fillText('SUBE TUS PÓSTERS',IW/2,IH/2-10); ctx.font='400 18px "Space Mono", monospace';
+    ctx.fillText('o arrástralos aquí',IW/2,IH/2+24);
+  }
+  dibujarGuia();
+}
+
+/* guía de la trayectoria: en su propia capa, nunca sale en el video */
+let trazo=null;
+function dibujarGuia(){
+  gctx.clearRect(0,0,IW,IH);
+  if(trazo&&trazo.length>1){
+    gctx.lineWidth=4; gctx.strokeStyle='#FF0100'; gctx.setLineDash([]);
+    gctx.beginPath(); trazo.forEach(([x,y],i)=>i?gctx.lineTo(x,y):gctx.moveTo(x,y)); gctx.stroke(); return;
+  }
+  if(!(P.guia||dibujando)||!ruta) return;
+  const M=Math.max(1,Math.round(P.pasos)), paso=ruta.L/M;
+  gctx.lineWidth=3; gctx.strokeStyle='rgba(255,1,0,.9)'; gctx.setLineDash([10,8]);
+  gctx.beginPath(); for(let i=0;i<ruta.n;i++){ i?gctx.lineTo(ruta.x[i],ruta.y[i]):gctx.moveTo(ruta.x[i],ruta.y[i]); } gctx.stroke();
+  gctx.setLineDash([]); gctx.fillStyle='#FF0100';
+  for(let j=0;j<M;j++){ const p=enRuta(j*paso); gctx.fillRect(p.x-4,p.y-4,8,8); }
+  const p0=enRuta(0); gctx.strokeStyle='#FF0100'; gctx.lineWidth=3; gctx.strokeRect(p0.x-10,p0.y-10,20,20);
+}
+
+/* ─────────── bucle en vivo ─────────── */
+let phase=0, exporting=false, tPrev=0;
+function frame(t){
+  const dt=Math.min(.1,(t-(tPrev||t))/1000); tPrev=t;
+  if(!exporting){
+    if(!P.pausa) phase=(phase+dt/Math.max(.5,P.duracion))%1;
+    dibujar(phase);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ─────────── dibujar trayectoria libre con el puntero ─────────── */
+let dibujando=false;
+(function(){
+  const h=$('sketch-holder');
+  const aLienzo=e=>{ const r=h.getBoundingClientRect(); return [(e.clientX-r.left)/r.width*IW,(e.clientY-r.top)/r.height*IH]; };
+  h.addEventListener('pointerdown',e=>{
+    if(!dibujando||exporting) return;
+    trazo=[aLienzo(e)]; try{ h.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  h.addEventListener('pointermove',e=>{
+    if(!trazo) return; const p=aLienzo(e), q=trazo[trazo.length-1];
+    if(Math.hypot(p[0]-q[0],p[1]-q[1])>6) trazo.push(p);
+  });
+  const fin=()=>{
+    if(!trazo) return;
+    const t=trazo; trazo=null;
+    let largo=0; for(let i=1;i<t.length;i++) largo+=Math.hypot(t[i][0]-t[i-1][0],t[i][1]-t[i-1][1]);
+    if(t.length<4||largo<80) return;
+    P.libre=t.map(([x,y])=>[+(x/IW).toFixed(4),+(y/IH).toFixed(4)]);
+    // se cierra sola si terminas cerca de donde empezaste; si no, al llegar al final vuelve a empezar
+    P.libreCerrada=Math.hypot(t[0][0]-t[t.length-1][0],t[0][1]-t[t.length-1][1])<IW*.12;
+    P.forma='libre'; dibujando=false; repaint(); rehacer();
+  };
+  h.addEventListener('pointerup',fin); h.addEventListener('pointercancel',fin);
+})();
+
+/* ─────────── exportar loop MP4 cuadro por cuadro (máxima calidad) ─────────── */
+function cargarMuxer(){
+  if(window.Mp4Muxer) return Promise.resolve();
+  return new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src='/tools/lib/mp4-muxer.min.js'; s.onload=ok; s.onerror=ko; document.head.appendChild(s); });
+}
+const BTN_LOOP='● EXPORTAR LOOP MP4 (1080×1350)';
+async function exportLoop(){
+  const btn=$('bLoop'), info=$('loopInfo');
+  if(exporting) return;
+  if(!posters.length){ info.textContent='primero sube al menos un póster'; return; }
+  if(typeof VideoEncoder==='undefined'){ info.textContent='este navegador no puede exportar mp4 (usa chrome o edge)'; return; }
+  const FPS=60, BR=40e6, n=Math.round(P.duracion*FPS);
+  let codec=null;
+  for(const c of ['avc1.640033','avc1.64002A','avc1.4D0033']){ try{ const r=await VideoEncoder.isConfigSupported({codec:c,width:IW,height:IH,bitrate:BR,framerate:FPS}); if(r&&r.supported){ codec=c; break; } }catch(e){} }
+  if(!codec){ info.textContent='el navegador no codifica h.264 a este tamaño'; return; }
+  try{ await cargarMuxer(); }catch(e){ info.textContent='no se pudo cargar el exportador'; return; }
+  exporting=true; btn.disabled=true; gctx.clearRect(0,0,IW,IH);
+  const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:IW,height:IH,frameRate:FPS},fastStart:'in-memory'});
+  let fallo=null;
+  const enc=new VideoEncoder({output:(ch,meta)=>muxer.addVideoChunk(ch,meta),error:e=>{ fallo=e; }});
+  enc.configure({codec,width:IW,height:IH,bitrate:BR,framerate:FPS,bitrateMode:'variable',latencyMode:'quality',avc:{format:'avc'}});
+  try{
+    for(let i=0;i<n&&!fallo;i++){
+      dibujar(i/n); gctx.clearRect(0,0,IW,IH);     // fase exacta: el cuadro n sería el 0
+      const vf=new VideoFrame(cv,{timestamp:Math.round(i*1e6/FPS),duration:Math.round(1e6/FPS)});
+      enc.encode(vf,{keyFrame:i%FPS===0}); vf.close();
+      if(enc.encodeQueueSize>8) await new Promise(r=>setTimeout(r,0));
+      if(i%6===0){ btn.textContent=`EXPORTANDO… ${Math.round(i/n*100)}%`; await new Promise(r=>setTimeout(r,0)); }
+    }
+    await enc.flush(); muxer.finalize();
+    if(fallo) throw fallo;
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([muxer.target.buffer],{type:'video/mp4'}));
+    a.download=`estela-loop-${P.duracion}s.mp4`; a.click();
+    info.textContent=`listo: ${n} cuadros · ${P.duracion} s · 60 fps · 40 mbps · loop exacto`;
+  }catch(e){ info.textContent='no se pudo exportar: '+(e&&e.message||e); }
+  enc.state!=='closed'&&enc.close();
+  exporting=false; btn.disabled=false; btn.textContent=BTN_LOOP;
+}
+
+/* ═════════════════════════════════════════════════════════
+   PANEL
+   ═════════════════════════════════════════════════════════ */
+function relleno(el){ const v=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--val',v+'%'); }
+const fmt=v=>Number.isInteger(v)?String(v):(+v).toFixed(2);
+const painters=[]; const repaint=()=>painters.forEach(f=>f());
+function slider(cont,key,label,min,max,step,cb){
+  const r=document.createElement('div'); r.className='y-row';
+  r.innerHTML=`<div class="y-lab"><span>${label}</span><input class="y-num" type="number" step="any"></div><input type="range" min="${min}" max="${max}" step="${step}">`;
+  const s=r.querySelector('input[type=range]'), num=r.querySelector('.y-num');
+  const pinta=()=>{ num.value=fmt(P[key]); s.value=Math.min(max,Math.max(min,P[key])); relleno(s); };
+  pinta(); painters.push(pinta);
+  s.addEventListener('input',()=>{ P[key]=parseFloat(s.value); num.value=fmt(P[key]); relleno(s); cb&&cb(); });
+  num.addEventListener('change',()=>{ const v=parseFloat(num.value); if(Number.isFinite(v)) P[key]=v; pinta(); cb&&cb(); });
+  $(cont).appendChild(r); return r;
+}
+function grupo(cont,opts,get,set,labels){
+  const bs=opts.map((o,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='cam-btn'; b.textContent=labels?labels[i]:o; b.addEventListener('click',()=>{ set(o); repaint(); }); $(cont).appendChild(b); return b; });
+  painters.push(()=>bs.forEach((b,i)=>b.setAttribute('aria-pressed',opts[i]===get())));
+}
+function toggle(id,key,cb){
+  $(id).addEventListener('click',()=>{ P[key]=!P[key]; repaint(); cb&&cb(); });
+  painters.push(()=>$(id).setAttribute('aria-pressed',!!P[key]));
+}
+function colorRow(key,label,cont,cb){
+  const f=document.createElement('label'); f.className='y-crow';
+  f.innerHTML=`<span>${label}</span><input type="color"><input class="y-hex" type="text" maxlength="7" spellcheck="false">`;
+  const sel=f.querySelector('input[type=color]'), hex=f.querySelector('.y-hex');
+  painters.push(()=>{ sel.value=P[key].toLowerCase(); hex.value=P[key].toUpperCase(); });
+  sel.addEventListener('input',()=>{ P[key]=sel.value.toUpperCase(); repaint(); cb&&cb(); });
+  hex.addEventListener('change',()=>{ let v=hex.value.trim(); if(!v.startsWith('#')) v='#'+v; if(/^#[0-9a-fA-F]{6}$/.test(v)) P[key]=v.toUpperCase(); repaint(); cb&&cb(); });
+  $(cont||'cols').appendChild(f);
+}
+const ensuciar=()=>{ cacheSucio=true; };
+
+function infoPasos(){
+  if(!ruta) return;
+  const M=Math.max(1,Math.round(P.pasos)), N=posters.length;
+  let t=`distancia por paso: ${Math.round(ruta.L/M)} px · ${(M/Math.max(.5,P.duracion)).toFixed(1)} pasos por segundo`;
+  if(N>1&&M%N!==0) t+=` · usa un múltiplo de ${N} para que la secuencia cierre exacta`;
+  $('pasoInfo').textContent=t;
+}
+function infoForma(){
+  const m={linea:'recta: entra por un lado y sale por el otro',onda:'curva en s: sube y baja mientras cruza',orbita:'elipse cerrada',ocho:'figura de ocho cerrada',espiral:'se abre hacia afuera y vuelve al centro',libre:P.libre?'la que dibujaste · vuelve a dibujar para cambiarla':'dibuja una línea sobre el lienzo'};
+  $('formaInfo').textContent=dibujando?'arrastra sobre el lienzo para dibujar el recorrido · termina cerca del inicio para cerrarlo':m[P.forma];
+}
+
+// pósters
+grupo('gOrden',['secuencia','aleatorio'],()=>P.orden,v=>{ P.orden=v; },['EN ORDEN','ALEATORIO']);
+// trayectoria
+grupo('gForma',FORMAS.map(f=>f.id),()=>P.forma,id=>{
+  if(id==='libre'&&!P.libre){ dibujando=true; }
+  P.forma=id; rehacer();
+},FORMAS.map(f=>f.label));
+$('tDibujar').addEventListener('click',()=>{ dibujando=!dibujando; repaint(); });
+painters.push(()=>{ $('tDibujar').setAttribute('aria-pressed',dibujando); $('sketch-holder').classList.toggle('dibujando',dibujando); infoForma(); });
+toggle('tGuia','guia');
+$('bRev').addEventListener('click',()=>{ P.sentido*=-1; repaint(); });
+painters.push(()=>$('bRev').setAttribute('aria-pressed',P.sentido<0));
+slider('slForma','cx','Centro X',-.5,1.5,.01,rehacer);
+slider('slForma','cy','Centro Y',-.5,1.5,.01,rehacer);
+slider('slForma','ancho','Ancho del recorrido',.1,3,.01,rehacer);
+slider('slForma','alto','Alto del recorrido',0,2,.01,rehacer);
+slider('slForma','giroRuta','Giro del recorrido (°)',-180,180,1,rehacer);
+slider('slForma','ondas','Ondas (onda)',.25,4,.05,rehacer);
+slider('slForma','vueltas','Vueltas (espiral)',.5,6,.25,rehacer);
+// póster
+slider('slPoster','tam','Tamaño del póster',.1,1.2,.01,ensuciar);
+slider('slPoster','giro','Giro del póster (°)',-180,180,1);
+slider('slPoster','desorden','Desorden (° al azar por copia)',0,45,.5);
+toggle('tSeguir','seguir');
+// avance
+slider('slAvance','pasos','Pasos por loop',2,200,1,infoPasos);
+slider('slAvance','suavidad','Suavidad del paso',0,1,.01);
+slider('slAvance','espera','Pausa en cada paso',0,.9,.01);
+// estela
+slider('slEstela','estela','Largo de la estela (copias)',1,200,1);
+slider('slEstela','cola','Escala al final de la estela',.2,1.5,.01,ensuciar);
+slider('slEstela','desvanecer','Desvanecer la cola',0,1,.01);
+slider('slEstela','desenfoque','Desenfoque de la estela (px)',0,30,.5,ensuciar);
+toggle('tNuevo','nuevoEncima');
+toggle('tCabeza','cabeza');
+// acabado
+colorRow('fondo','Fondo','cols');
+colorRow('bordeColor','Borde','cols',ensuciar);
+slider('slAcabado','borde','Grosor del borde (px)',0,20,.5,ensuciar);
+slider('slAcabado','sombra','Sombra',0,1,.01,ensuciar);
+slider('slAcabado','sombraBlur','Difusión de la sombra',0,80,1,ensuciar);
+slider('slAcabado','sombraY','Caída de la sombra',-40,60,1,ensuciar);
+slider('slAcabado','vineta','Viñeta',0,1,.01);
+slider('slAcabado','grano','Grano',0,.4,.01);
+// loop
+slider('slLoop','duracion','Duración del loop (s)',1,60,.5,infoPasos);
+toggle('bPause','pausa');
+$('bReset').addEventListener('click',()=>{ const {pausa,libre}=P; Object.assign(P,JSON.parse(JSON.stringify(BASE)),{pausa,libre}); dibujando=false; repaint(); rehacer(); ensuciar(); });
+// exportar
+$('bLoop').addEventListener('click',exportLoop);
+$('bPng').addEventListener('click',()=>{ cv.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='estela.png'; a.click(); },'image/png'); });
+if(window.GlamRec) GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'estela',etiqueta:'● GRABAR EN VIVO',manual:false,ancho:IW,alto:IH,aspecto:IW/IH,info:'lienzo',
+  dibujar(c,w,h){ c.drawImage(cv,0,0,w,h); }});
+document.addEventListener('keydown',e=>{
+  const el=document.activeElement; if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')) return;
+  if(e.key===' '){ P.pausa=!P.pausa; repaint(); e.preventDefault(); }
+  if(e.key==='Escape'&&dibujando){ dibujando=false; trazo=null; repaint(); }
+});
+
+repaint();
+agregar(EJEMPLOS.map(url=>({url})),true);
+requestAnimationFrame(frame);
+
+/* ─────────── ajuste del lienzo 1080×1350 ─────────── */
+const frameEl=$('frame'),viewportEl=$('viewport'),sidebarEl=$('sidebar'),winBarEl=document.querySelector('#viewport .win__bar');
+function fitStage(){
+  frameEl.style.width='';frameEl.style.height='';viewportEl.style.width='';
+  if(window.matchMedia('(max-width: 768px)').matches) return;
+  const sb=$('stage').getBoundingClientRect(),pad=20,bw=2,gap=5,sw=sidebarEl.offsetWidth,cw=bw*2,ch=winBarEl.offsetHeight+bw*2;
+  const maxW=sb.width-8-pad*2-gap-sw-cw,maxH=sb.height-8-pad*2-ch;let h=maxH,w=h*IW/IH;if(w>maxW){w=maxW;h=w*IH/IW;}
+  w=Math.max(120,Math.floor(w));h=Math.max(150,Math.floor(h));
+  viewportEl.style.width=(w+cw)+'px';frameEl.style.width=(w+cw+gap+sw+pad*2)+'px';frameEl.style.height=(h+ch+pad*2)+'px';}
+addEventListener('resize',fitStage); fitStage(); addEventListener('load',fitStage);
+
+/* ─────────── info panel ─────────── */
+(function setupInfoPanel() {
+  const panel=$('infoPanel'), bar=$('infoPanelBar'), minBtn=$('infoMin'), closeBtn=$('infoClose'), bubble=$('infoBubble');
+  const bounds=$('stage'), exclusionEl=$('frame');
+  function defaultPos(){
+    const b=bounds.getBoundingClientRect(), c=exclusionEl.getBoundingClientRect();
+    const ex={x:c.left-b.left,y:c.top-b.top,w:c.width,h:c.height};
+    const pw=panel.offsetWidth, ph=panel.offsetHeight;
+    if(b.width-(ex.x+ex.w)>=pw+14) return {x:ex.x+ex.w+8,y:ex.y+8};
+    if(b.height-(ex.y+ex.h)>=ph+14) return {x:8,y:ex.y+ex.h+8};
+    return {x:8,y:8};
+  }
+  const placeAt=pos=>{ panel.style.left=pos.x+'px'; panel.style.top=pos.y+'px'; };
+  const placeBubbleAt=pos=>{ bubble.style.left=pos.x+'px'; bubble.style.top=pos.y+'px'; };
+  let userMoved=false;
+  const resetToDefault=()=>{ if(!userMoved) placeAt(defaultPos()); };
+  let dragging=false, offsetX=0, offsetY=0;
+  const getPoint=e=>e.touches&&e.touches[0]?e.touches[0]:e;
+  function onDown(e){ if(e.target===minBtn||e.target===closeBtn) return; const pt=getPoint(e), rect=panel.getBoundingClientRect(); dragging=true; userMoved=true; offsetX=pt.clientX-rect.left; offsetY=pt.clientY-rect.top; }
+  function onMove(e){ if(!dragging) return; const pt=getPoint(e), b=bounds.getBoundingClientRect(); placeAt({x:pt.clientX-b.left-offsetX,y:pt.clientY-b.top-offsetY}); if(e.cancelable) e.preventDefault(); }
+  const onUp=()=>{ dragging=false; };
+  bar.addEventListener('mousedown',onDown); bar.addEventListener('touchstart',onDown,{passive:true});
+  window.addEventListener('mousemove',onMove); window.addEventListener('touchmove',onMove,{passive:false});
+  window.addEventListener('mouseup',onUp); window.addEventListener('touchend',onUp);
+  function collapseToBubble(){ const rect=panel.getBoundingClientRect(), b=bounds.getBoundingClientRect(); placeBubbleAt({x:rect.left-b.left,y:rect.top-b.top}); panel.style.display='none'; bubble.style.display='flex'; }
+  minBtn.addEventListener('click',collapseToBubble); closeBtn.addEventListener('click',collapseToBubble);
+  bubble.addEventListener('click',()=>{ const bR=bubble.getBoundingClientRect(), bnd=bounds.getBoundingClientRect(); placeAt({x:bR.left-bnd.left,y:bR.top-bnd.top}); bubble.style.display='none'; panel.style.display=''; });
+  window.addEventListener('resize',resetToDefault);
+  requestAnimationFrame(()=>requestAnimationFrame(resetToDefault));
+  if(window.matchMedia('(max-width: 768px)').matches){
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ placeBubbleAt({x:8,y:8}); panel.style.display='none'; bubble.style.display='flex'; }));
+  }
+})();
+
+window.__estela={P,dibujar,setPhase:v=>{phase=v;},listo:()=>posters.length>0&&posters.every(p=>p.img.complete),repaint,rehacer,ensuciar};
+})();
+  </script>
+
+</body>
+</html>

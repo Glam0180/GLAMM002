@@ -1,5 +1,17 @@
 export const TOOLS = [
   {
+    id: 'estela',
+    slug: 'estela',
+    name: 'Estela de pósters',
+    description: 'Tus pósters avanzan por una trayectoria siempre a la misma distancia y en cada paso dejan una copia: una estela en loop exacto.',
+    category: 'interaction',
+    status: 'live',
+    tech: ['Canvas API', 'WebCodecs', 'MP4'],
+    path: '/tools/estela',
+    index: '017',
+    thumbnail: '/tool-thumbnails/estela.webp',
+  },
+  {
     id: 'corredor',
     slug: 'corredor',
     name: 'Corredor tipográfico',

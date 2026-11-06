@@ -14,6 +14,7 @@ import Holocloth from '@pages/tools/Holocloth'
 import Ticker3D from '@pages/tools/Ticker3D'
 import TrackingCuadros from '@pages/tools/TrackingCuadros'
 import Corredor from '@pages/tools/Corredor'
+import Estela from '@pages/tools/Estela'
 import TipografiaAdaptativa from '@pages/tools/TipografiaAdaptativa'
 import PosterGenerativo from '@pages/tools/PosterGenerativo'
 import FaceTracking from '@pages/tools/FaceTracking'
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="tools/ticker-3d" element={<Ticker3D />} />
         <Route path="tools/tracking-cuadros" element={<TrackingCuadros />} />
         <Route path="tools/corredor" element={<Corredor />} />
+        <Route path="tools/estela" element={<Estela />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="tools/floralis" element={<Floralis />} />
