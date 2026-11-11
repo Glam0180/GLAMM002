@@ -732,7 +732,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
 
             <div class="y-sec">perspectiva</div>
             <div id="slPersp"></div>
-            <div class="y-hint">entra grande y abierta por el borde · se encoge y se estrecha al llegar al centro</div>
+            <div class="y-hint">perspectiva real: entra grande y rápida por el borde, se frena y se estrecha al meterse al fondo</div>
           </div>
         </div>
 
@@ -744,22 +744,16 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
             <div class="win__bar-controls"><div class="win__ctrl">—</div><div class="win__ctrl">□</div></div>
           </div>
           <div class="daisy-panel y-panel">
-            <div class="y-sec">eco</div>
-            <div class="y-btns">
-              <button type="button" class="cam-btn" data-m="fluido">FLUIDO</button>
-              <button type="button" class="cam-btn" data-m="extrusion">EXTRUSIÓN</button>
-            </div>
+            <div class="y-sec">estela fluida</div>
             <div id="slFluido"></div>
-            <div class="y-hint" id="hFluido">la letra deja una estela que se derrite · largo negativo: la estela va hacia el centro</div>
-            <div id="slEco"></div>
+            <div class="y-hint">la letra deja una estela que se derrite · largo negativo: la estela va hacia el centro</div>
+
+            <div class="y-sec">lente ojo de pez</div>
+            <div id="slLente"></div>
+            <div class="y-hint">agranda y dobla las letras de los bordes y comprime el centro</div>
 
             <div class="y-sec">fuga y sombra</div>
             <div id="slFuga"></div>
-
-            <div id="secHalo">
-              <div class="y-sec">halo</div>
-              <div id="slHalo"></div>
-            </div>
 
             <div class="y-sec">color</div>
             <div class="y-btns cuatro" id="presets">
@@ -799,8 +793,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
         <p class="ip__desc">dos cascadas de texto que convergen al centro, se funden y se pierden en la sombra. loop infinito.</p>
         <ol class="ip__steps">
           <li>escribe la palabra que baja y la que sube</li>
-          <li>ajusta la perspectiva: tamaño y apertura al entrar y al llegar al centro</li>
-          <li>dale cuerpo al eco y al halo</li>
+          <li>ajusta la profundidad: tamaño y apertura al entrar y en el fondo</li>
+          <li>dale cuerpo a la estela fluida y a la lente</li>
           <li>controla dónde se pierde la fila con fuga y sombra</li>
           <li>exporta el loop en mp4 1080×1440</li>
         </ol>
@@ -874,55 +868,40 @@ $('bPlay').addEventListener('click',()=>{ C.corriendo=!C.corriendo; $('bPlay').s
 $('bMouse').addEventListener('click',()=>{ P.mouse=!P.mouse; $('bMouse').setAttribute('aria-pressed',P.mouse); });
 
 // perspectiva
-slider('slPersp','persp','Aceleración al centro',0.5,4,0.05);
+slider('slPersp','profundidad','Profundidad (se mete al fondo)',1.2,40,0.1);
+slider('slPersp','niebla','Niebla por profundidad',0,1,0.01);
 slider('slPersp','tamEntrada','Tamaño al entrar',40,480,1);
-slider('slPersp','tamCentro','Tamaño en el centro',2,160,1);
+slider('slPersp','tamCentro','Tamaño en el fondo',2,160,1);
 slider('slPersp','abEntrada','Apertura al entrar',100,3000,10);
-slider('slPersp','abCentro','Apertura en el centro',0,800,1);
+slider('slPersp','abCentro','Apertura en el fondo',0,800,1);
 slider('slPersp','curvaAbertura','Curva de cierre',0.2,3,0.05);
-slider('slPersp','estrechez','Estrechez en el centro',0.05,1.5,0.01);
+slider('slPersp','estrechez','Estrechez en el fondo',0.05,1.5,0.01);
 slider('slPersp','anchoLetra','Ancho de letra',0.4,2.2,0.01);
 slider('slPersp','curvatura','Curvatura de fila',-400,500,1);
 slider('slPersp','giro','Giro radial',0,1.5,0.01);
 slider('slPersp','entrada','Nace fuera del cuadro',0,500,1);
 
-// eco
-slider('slEco','ecoCapas','Copias máximas',0,200,1);
-slider('slEco','ecoPaso','Paso entre copias (px)',1,30,0.5);
-slider('slEco','ecoProf','Profundidad del eco',0,1,0.01);
-slider('slEco','ecoEncoge','Encogimiento del eco',0,1,0.01);
-
-// fuga y sombra
-slider('slFuga','fadeIn','Fundido al entrar',0,0.3,0.005);
-slider('slFuga','fadeIni','Empieza a perderse en',0.1,1,0.01);
-slider('slFuga','sombra','Sombra sobre las letras',0,1,0.01);
-slider('slFuga','sombraFondo','Sombra sobre el fondo',0,1,0.01);
-slider('slFuga','radioSombra','Radio de la sombra',20,1200,1);
-slider('slFuga','fugaX','Punto de fuga X',-400,400,1);
-slider('slFuga','fugaY','Punto de fuga Y',-500,500,1);
-
-// fluido
+// estela fluida
 slider('slFluido','estelaLargo','Largo de la estela',-0.5,0.5,0.005);
-slider('slFluido','estelaMuestras','Muestras',2,48,1);
+slider('slFluido','estelaMuestras','Muestras',2,40,1);
 slider('slFluido','estelaCaida','Caída hacia la cola',0.3,5,0.05);
 slider('slFluido','fluidez','Fluidez (derretido)',0,80,1);
 slider('slFluido','grosor','Grosor de la mancha',0,1,0.01);
 slider('slFluido','ondaFluido','Ondulación de la estela',0,150,1);
 slider('slFluido','velOnda','Vueltas de la onda por loop',0,4,1);
-const modoBtns=[...document.querySelectorAll('[data-m]')];
-function pintaModo(){
-  const f=P.modoEco==='fluido';
-  modoBtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===P.modoEco));
-  $('slFluido').style.display=f?'':'none'; $('hFluido').style.display=f?'':'none';
-  $('slEco').style.display=f?'none':''; $('secHalo').style.display=f?'none':'';
-}
-modoBtns.forEach(b=>b.addEventListener('click',()=>{ P.modoEco=b.dataset.m; pintaModo(); }));
-pintaModo();
 
-// halo
-slider('slHalo','haloExt','Halo exterior',0,160,1);
-slider('slHalo','haloInt','Halo interior',0,80,1);
-slider('slHalo','haloFuerza','Intensidad',0,3,0.01);
+// lente
+slider('slLente','ojo','Ojo de pez',0,0.95,0.01);
+slider('slLente','lateral','Solo en los costados',0,1,0.01);
+slider('slLente','aberracion','Aberración de color',0,1,0.01);
+
+// fuga y sombra
+slider('slFuga','fadeIni','Empieza a perderse en',0.1,1,0.01);
+slider('slFuga','sombra','Sombra sobre letras y fluido',0,1,0.01);
+slider('slFuga','sombraFondo','Sombra sobre el fondo',0,1,0.01);
+slider('slFuga','radioSombra','Radio de la sombra',20,1200,1);
+slider('slFuga','fugaX','Punto de fuga X',-400,400,1);
+slider('slFuga','fugaY','Punto de fuga Y',-500,500,1);
 
 // color
 colorRow('fondoA','Fondo centro'); colorRow('fondoB','Fondo borde'); colorRow('letra','Letra');
