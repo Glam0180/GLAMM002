@@ -732,7 +732,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
 
             <div class="y-sec">perspectiva</div>
             <div id="slPersp"></div>
-            <div class="y-hint">perspectiva real: entra grande y rápida por el borde, se frena y se estrecha al meterse al fondo</div>
+            <div class="y-hint">cada palabra entra en orden sobre un arco · al meterse el arco se cierra en un círculo que se va al punto de fuga</div>
           </div>
         </div>
 
@@ -874,11 +874,14 @@ slider('slPersp','camara','Zoom en Z (cámara)',-1.5,0.9,0.01);
 slider('slPersp','niebla','Niebla por profundidad',0,1,0.01);
 slider('slPersp','tamEntrada','Tamaño al entrar',40,480,1);
 slider('slPersp','tamCentro','Tamaño en el fondo',2,160,1);
-slider('slPersp','abEntrada','Apertura al entrar',100,3000,10);
-slider('slPersp','abCentro','Apertura en el fondo',0,800,1);
+slider('slPersp','abEntrada','Ancho al entrar (filas rectas)',100,3000,10);
+slider('slPersp','abCentro','Ancho en el fondo (filas rectas)',0,800,1);
 slider('slPersp','curvaAbertura','Curva de cierre',0.2,3,0.05);
 slider('slPersp','estrechez','Estrechez en el fondo',0.05,1.5,0.01);
 slider('slPersp','anchoLetra','Ancho de letra',0.4,2.2,0.01);
+slider('slPersp','arco','Bóveda (arco al punto de fuga)',0,1,0.01);
+slider('slPersp','arcoEntrada','Apertura del arco al entrar (°)',10,180,1);
+slider('slPersp','arcoFondo','Apertura del arco en el fondo (°)',10,180,1);
 slider('slPersp','curvatura','Curvatura de fila',-400,500,1);
 slider('slPersp','giro','Giro radial',0,1.5,0.01);
 slider('slPersp','entrada','Nace fuera del cuadro',0,500,1);

@@ -36,7 +36,7 @@ const P = {
   filas: 11,          // filas por cascada
   duracion: 8,        // segundos del loop (lo que tarda una fila en ir del borde al fondo)
   desfase: 0.5,       // corrimiento entre la cascada de arriba y la de abajo (en filas)
-  escalon: 0.5,       // corre cada fila una fracción de letra: rompe las columnas
+  escalon: 0,         // corre cada fila una fracción de letra: rompe las columnas
   ondas: 0,           // ondulación de las letras dentro de la fila (px)
 
   profundidad: 7,     // qué tan lejos queda el fondo: más = se mete más y se frena más
@@ -50,7 +50,10 @@ const P = {
   estrechez: 0.55,    // ancho de cada letra en el fondo (1 = sin estrechar)
   anchoLetra: 1.15,   // ancho general de las letras
   curvatura: 120,     // las letras de las puntas se alejan del centro (fila en arco)
-  giro: 0.5,          // giro radial: las letras se orientan hacia afuera del punto de fuga
+  giro: 0.5,          // giro radial: las letras se orientan hacia afuera del punto de fuga (filas rectas)
+  arco: 1,            // 1 = cada palabra va en un arco alrededor del punto de fuga (bóveda); 0 = filas rectas
+  arcoEntrada: 78,    // apertura del arco al entrar (grados): bóveda suave
+  arcoFondo: 176,     // apertura del arco en el fondo: arriba + abajo cierran un círculo
   niebla: 0.45,       // las letras lejanas se apagan hacia el color de sombra
 
   estelaLargo: 0.2,   // largo de la estela (fracción del recorrido). Negativo = hacia el centro
@@ -69,7 +72,7 @@ const P = {
   mouse: false,       // el punto de fuga sigue al mouse (solo vista previa)
 
   ojo: 0.7,           // lente ojo de pez: agranda y dobla los bordes, comprime el centro
-  lateral: 0.55,      // concentra la lente en los costados (0 = pareja en todas direcciones)
+  lateral: 0.3,       // concentra la lente en los costados (0 = pareja en todas direcciones)
   aberracion: 0.3,    // separación de color en los bordes de la lente
   hue: 0,             // giro de tono de toda la imagen (grados)
 
@@ -158,16 +161,31 @@ function letras(fase, W, H, cx, cy, k, atras = 0) {
       const sx = P.anchoLetra * lerpN(P.estrechez, 1, Math.min(1, p));
       // cada fila se corre una fracción distinta de letra (razón áurea)
       const corr = n > 1 ? (frac(i * 0.618034) - 0.5) * P.escalon * 2 / (n - 1) : 0;
+      /* Arco: la palabra se reparte sobre un arco de círculo centrado en el
+         punto de fuga, en orden de izquierda a derecha. Arriba es una bóveda
+         (∩), abajo una sonrisa (∪). El arco se abre hasta casi media vuelta
+         al meterse, así arriba y abajo cierran un círculo que se encoge
+         hasta el punto. La letra se achica si no cabe en el arco. */
+      const ar = clamp01(P.arco);
+      const span = lerpN(P.arcoFondo, P.arcoEntrada, Math.min(1, p)) * Math.PI / 180;
+      const cabe = (d * span / Math.max(1, n)) / (0.78 * sx);
+      const tamL = ar > 0 ? lerpN(tam, Math.min(tam, cabe), ar) : tam;
       for (let j = 0; j < n; j++) {
         const ch = pal[j];
         if (ch === ' ') continue;
         const u = (n > 1 ? (j / (n - 1)) * 2 - 1 : 0) + corr;
-        let y = d + P.curvatura * p * u * u;
-        if (P.ondas) y += P.ondas * p * Math.sin(TAU * ((fase - atras) * 2 + j / n + i / N));
-        const x = cx + u * ancho / 2 * k;
-        const yy = cy + m.dir * y * k;
-        const rot = -m.dir * P.giro * Math.atan2(x - cx, Math.abs(yy - cy) + 1e-3);
-        out.push({ x, y: yy, sc: tam * k / FS, sx, rot, ch, a, p });
+        const ola = P.ondas ? P.ondas * p * Math.sin(TAU * ((fase - atras) * 2 + j / n + i / N)) : 0;
+        // fila recta (como antes)
+        const xr = cx + u * ancho / 2 * k;
+        const yr = cy + m.dir * (d + P.curvatura * p * u * u + ola) * k;
+        const rr = -m.dir * P.giro * Math.atan2(xr - cx, Math.abs(yr - cy) + 1e-3);
+        // arco alrededor del punto de fuga
+        const th = u * span / 2 * (n > 1 ? (n - 1) / n : 1);
+        const R = (d + ola) * k;
+        const xa = cx + R * Math.sin(th);
+        const ya = cy + m.dir * R * Math.cos(th);
+        const ra = -m.dir * th;
+        out.push({ x: lerpN(xr, xa, ar), y: lerpN(yr, ya, ar), sc: tamL * k / FS, sx, rot: lerpN(rr, ra, ar), ch, a, p });
       }
     }
   }
