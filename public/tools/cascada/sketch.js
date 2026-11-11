@@ -46,6 +46,15 @@ const P = {
   curvatura: 130,     // las letras de las puntas se alejan del centro (fila en arco)
   giro: 0.5,          // giro radial: las letras se orientan hacia afuera del punto de fuga
 
+  modoEco: 'fluido',  // 'fluido' (estela derretida con mapa de color) o 'extrusion'
+  estelaLargo: 0.2,   // largo de la estela (fracción del recorrido). Negativo = hacia el centro
+  estelaMuestras: 22, // muestras de la estela: más = más continua
+  estelaCaida: 2.2,   // cómo se apaga la estela hacia la cola
+  fluidez: 22,        // desenfoque del fluido (px): lo que la derrite
+  grosor: 0.45,       // cuánto engorda la mancha
+  ondaFluido: 34,     // ondulación de la estela (px)
+  velOnda: 1,         // vueltas de la ondulación por loop (entero = loop exacto)
+
   ecoCapas: 80,       // copias máximas por letra (las letras lejanas usan menos)
   ecoPaso: 5,         // distancia entre copias (px): menos = eco más liso
   ecoProf: 0.55,      // qué fracción del camino al punto de fuga recorre el eco
@@ -58,7 +67,7 @@ const P = {
   fadeIn: 0.05,       // fundido al entrar (fracción del recorrido)
   fadeIni: 0.78,      // dónde empieza a perderse la fila (fracción del recorrido)
   sombra: 0.8,        // oscuridad del centro sobre las letras y el eco
-  sombraFondo: 0.55,  // oscuridad del centro sobre el fondo (el hueco al que se van)
+  sombraFondo: 0,     // oscuridad del centro sobre el fondo (el hueco al que se van)
   radioSombra: 380,   // radio de la sombra central
   fugaX: 0, fugaY: 0, // corrimiento del punto de fuga
   mouse: false,       // el punto de fuga sigue al mouse (solo vista previa)
@@ -105,15 +114,24 @@ function medirFuente() {
 }
 
 /* ── renderer: lienzos de trabajo para un tamaño dado ── */
-function crearRenderer(W, H) {
-  const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+function crearRenderer(W, H, escCampo = 0.25) {
+  const mk = (w = W, h = H) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   const eco = mk(), front = mk(), tmp = mk();
-  return { W, H, eco, front, tmp, ecoX: eco.getContext('2d'), frontX: front.getContext('2d'), tmpX: tmp.getContext('2d') };
+  // campo del fluido: se calcula a baja resolución (va desenfocado) y se
+  // estira al tamaño final; escCampo es relativo al tamaño de diseño 1080
+  const fw = Math.max(32, Math.round(BW * escCampo)), fh = Math.max(32, Math.round(BH * escCampo));
+  const campo = mk(fw, fh), mapa = mk(fw, fh);
+  return {
+    W, H, eco, front, tmp, campo, mapa, fw, fh,
+    ecoX: eco.getContext('2d'), frontX: front.getContext('2d'), tmpX: tmp.getContext('2d'),
+    campoX: campo.getContext('2d', { willReadFrequently: true }), mapaX: mapa.getContext('2d'),
+    buf: new Float32Array(fw * fh), buf2: new Float32Array(fw * fh), img: null,
+  };
 }
 
 /* Calcula las letras visibles en esta fase. Devuelve [{x,y,sc,sx,rot,ch,a,p}]
    ordenadas de la más profunda (centro) a la más cercana (borde). */
-function letras(fase, W, H, cx, cy, k) {
+function letras(fase, W, H, cx, cy, k, atras = 0) {
   const out = [];
   const N = Math.max(1, Math.round(P.filas));
   const mitades = [
@@ -123,7 +141,11 @@ function letras(fase, W, H, cx, cy, k) {
   const alcance = H / 2 / k + P.entrada;     // distancia del centro al nacer (en unidades de diseño)
   for (const m of mitades) {
     for (let i = 0; i < N; i++) {
-      const t = frac((i + m.off) / N + fase);        // 0 = entra por el borde · 1 = llega al centro
+      // 0 = entra por el borde · 1 = llega al centro. «atras» mira la misma
+      // fila un poco antes (estela detrás) o después (estela hacia el centro),
+      // sin dar la vuelta: así la estela nunca salta de un extremo al otro.
+      const t = frac((i + m.off) / N + fase) - atras;
+      if (t < 0 || t >= 1) continue;
       // al entrar no se usa opacidad (los ecos semitransparentes se rayan):
       // el eco crece desde cero. Al llegar al centro sí se desvanece.
       const ein = suave(0, P.fadeIn, t);
@@ -144,7 +166,7 @@ function letras(fase, W, H, cx, cy, k) {
         if (ch === ' ') continue;
         const u = (n > 1 ? (j / (n - 1)) * 2 - 1 : 0) + corr;
         let y = d + P.curvatura * p * u * u;
-        if (P.ondas) y += P.ondas * p * Math.sin(TAU * (fase * 2 + j / n + i / N));
+        if (P.ondas) y += P.ondas * p * Math.sin(TAU * ((fase - atras) * 2 + j / n + i / N));
         const x = cx + u * ancho / 2 * k;
         const yy = cy + m.dir * y * k;
         const rot = -m.dir * P.giro * Math.atan2(x - cx, Math.abs(yy - cy) + 1e-3);
@@ -226,6 +248,109 @@ function halo(R, ctx, blur, color, fuerza) {
   ctx.globalAlpha = 1;
 }
 
+
+/* ═════════ FLUIDO ═════════
+   La estela es la misma fila vista unos instantes antes: cada muestra se
+   pinta en blanco, más tenue cuanto más vieja, en un campo de densidad a
+   baja resolución. Ese campo se desenfoca (se derrite) y se pasa por un
+   mapa de color por densidad: casi nada = fondo, poco = borde exterior,
+   medio = borde interior, mucho = núcleo. Es determinista: depende solo
+   de la fase, así el loop exportado cierra exacto. */
+function cajaH(a, b, w, h, r) {
+  const inv = 1 / (2 * r + 1);
+  for (let y = 0; y < h; y++) {
+    const o = y * w;
+    let acc = 0;
+    for (let x = -r; x <= r; x++) acc += a[o + (x < 0 ? 0 : x >= w ? w - 1 : x)];
+    for (let x = 0; x < w; x++) {
+      b[o + x] = acc * inv;
+      const xa = x + r + 1, xs = x - r;
+      acc += a[o + (xa >= w ? w - 1 : xa)] - a[o + (xs < 0 ? 0 : xs)];
+    }
+  }
+}
+function cajaV(a, b, w, h, r) {
+  const inv = 1 / (2 * r + 1);
+  for (let x = 0; x < w; x++) {
+    let acc = 0;
+    for (let y = -r; y <= r; y++) acc += a[(y < 0 ? 0 : y >= h ? h - 1 : y) * w + x];
+    for (let y = 0; y < h; y++) {
+      b[y * w + x] = acc * inv;
+      const ya = y + r + 1, ys = y - r;
+      acc += a[(ya >= h ? h - 1 : ya) * w + x] - a[(ys < 0 ? 0 : ys) * w + x];
+    }
+  }
+}
+
+let lutClave = '', lut = null;
+function lutColor() {
+  const clave = [P.cHaloExt, P.cHaloInt, P.ecoCerca, P.ecoLejos].join();
+  if (clave === lutClave) return lut;
+  const paradas = [
+    [0.00, P.cHaloExt, 0], [0.04, P.cHaloExt, 0], [0.17, P.cHaloExt, 1],
+    [0.27, P.cHaloExt, 1], [0.40, P.cHaloInt, 1], [0.52, P.cHaloInt, 1],
+    [0.66, P.ecoCerca, 1], [1.00, P.ecoLejos, 1],
+  ].map(([v, c, al]) => [v, hexRgb(c), al]);
+  lut = new Uint8ClampedArray(256 * 4);
+  for (let i = 0; i < 256; i++) {
+    const v = i / 255;
+    let q = 0;
+    while (q < paradas.length - 2 && v > paradas[q + 1][0]) q++;
+    const A = paradas[q], B = paradas[q + 1];
+    const t = clamp01((v - A[0]) / Math.max(1e-6, B[0] - A[0]));
+    const tt = t * t * (3 - 2 * t);
+    for (let c = 0; c < 3; c++) lut[i * 4 + c] = lerpN(A[1][c], B[1][c], tt);
+    lut[i * 4 + 3] = 255 * lerpN(A[2], B[2], tt);
+  }
+  lutClave = clave;
+  return lut;
+}
+
+function fluido(R, fase, cx, cy, k) {
+  const c = R.campoX, fw = R.fw, fh = R.fh, e = fw / R.W;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalAlpha = 1;
+  c.globalCompositeOperation = 'source-over';
+  c.fillStyle = '#000';
+  c.fillRect(0, 0, fw, fh);
+  c.font = `${FS}px "${P.fuente}"`; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.fillStyle = '#fff';
+  const J = Math.max(1, Math.round(P.estelaMuestras));
+  const ciclo = Math.round(P.velOnda);
+  for (let j = J; j >= 0; j--) {
+    const r = j / J;
+    const L = letras(fase, R.W, R.H, cx, cy, k, r * P.estelaLargo);
+    const w = Math.pow(1 - r * 0.97, P.estelaCaida);
+    const A = P.ondaFluido * r * k;
+    for (let i = 0; i < L.length; i++) {
+      const l = L[i];
+      // la cola ondula como un líquido; la letra (r = 0) queda quieta
+      const dx = A * Math.sin(TAU * (l.y / (430 * k) + fase * ciclo) + l.x / (210 * k));
+      const dy = A * 0.6 * Math.cos(TAU * (l.x / (390 * k) - fase * ciclo) + l.y / (260 * k));
+      c.globalAlpha = w * l.a;
+      const sc = l.sc * e, co = Math.cos(l.rot), si = Math.sin(l.rot);
+      c.setTransform(co * sc * l.sx, si * sc * l.sx, -si * sc, co * sc, (l.x + dx) * e, (l.y + dy) * e);
+      c.fillText(l.ch, 0, capMedia);
+    }
+  }
+  // densidad → desenfoque (3 pasadas de caja ≈ gaussiano)
+  const d = c.getImageData(0, 0, fw, fh).data, a = R.buf, b = R.buf2, n = fw * fh;
+  for (let i = 0; i < n; i++) a[i] = d[i * 4] / 255;
+  const rr = Math.round(P.fluidez * fw / BW / 1.7);
+  if (rr > 0) for (let pasada = 0; pasada < 3; pasada++) { cajaH(a, b, fw, fh, rr); cajaV(b, a, fw, fh, rr); }
+  // densidad → color
+  const T = lutColor();
+  if (!R.img) R.img = R.mapaX.createImageData(fw, fh);
+  const o = R.img.data, gan = lerpN(0.7, 3.2, P.grosor);
+  for (let i = 0; i < n; i++) {
+    let v = a[i] * gan; v = v > 1 ? 255 : (v * 255) | 0;
+    const q = v * 4, p4 = i * 4;
+    o[p4] = T[q]; o[p4 + 1] = T[q + 1]; o[p4 + 2] = T[q + 2]; o[p4 + 3] = T[q + 3];
+  }
+  R.mapaX.putImageData(R.img, 0, 0);
+  sombraCentro(R.mapaX, fw, fh, cx * e, cy * e, k * e);
+}
+
 /* Pinta un cuadro completo en ctx (del tamaño R.W×R.H). */
 function renderCascada(ctx, R, fase, fx = 0, fy = 0) {
   const W = R.W, H = R.H, k = W / BW;
@@ -233,6 +358,9 @@ function renderCascada(ctx, R, fase, fx = 0, fy = 0) {
   const cy = H / 2 + (P.fugaY + fy) * k;
   const fuente = `${FS}px "${P.fuente}"`;
   const L = letras(fase, W, H, cx, cy, k);
+
+  const esFluido = P.modoEco === 'fluido';
+  if (esFluido) fluido(R, fase, cx, cy, k);
 
   /* 1 · eco: cada letra deja copias hacia el punto de fuga. La cantidad
      depende de lo lejos que viaja el eco (paso fijo en px), así las letras
@@ -243,7 +371,7 @@ function renderCascada(ctx, R, fase, fx = 0, fy = 0) {
   e.globalAlpha = 1;
   e.clearRect(0, 0, W, H);
   e.font = fuente; e.textAlign = 'center'; e.textBaseline = 'alphabetic';
-  const KMAX = Math.round(P.ecoCapas);
+  const KMAX = esFluido ? 0 : Math.round(P.ecoCapas);
   if (KMAX > 0 && P.ecoProf > 0) {
     const paso = Math.max(0.5, P.ecoPaso) * k;
     const tonos = [];
@@ -302,8 +430,10 @@ function renderCascada(ctx, R, fase, fx = 0, fy = 0) {
   g.addColorStop(1, P.fondoB);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-  halo(R, ctx, P.haloExt * k, P.cHaloExt, P.haloFuerza);
-  halo(R, ctx, P.haloInt * k, P.cHaloInt, P.haloFuerza);
+  if (!esFluido) {
+    halo(R, ctx, P.haloExt * k, P.cHaloExt, P.haloFuerza);
+    halo(R, ctx, P.haloInt * k, P.cHaloInt, P.haloFuerza);
+  }
   if (P.sombraFondo > 0) {
     const s = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(1, P.radioSombra * 1.3 * k));
     s.addColorStop(0, rgba(P.cSombra, P.sombraFondo));
@@ -312,7 +442,13 @@ function renderCascada(ctx, R, fase, fx = 0, fy = 0) {
     ctx.fillStyle = s;
     ctx.fillRect(0, 0, W, H);
   }
-  ctx.drawImage(R.eco, 0, 0);
+  if (esFluido) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(R.mapa, 0, 0, W, H);
+  } else {
+    ctx.drawImage(R.eco, 0, 0);
+  }
   ctx.drawImage(R.front, 0, 0);
 }
 

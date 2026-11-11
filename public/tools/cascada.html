@@ -745,13 +745,21 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
           </div>
           <div class="daisy-panel y-panel">
             <div class="y-sec">eco</div>
+            <div class="y-btns">
+              <button type="button" class="cam-btn" data-m="fluido">FLUIDO</button>
+              <button type="button" class="cam-btn" data-m="extrusion">EXTRUSIÓN</button>
+            </div>
+            <div id="slFluido"></div>
+            <div class="y-hint" id="hFluido">la letra deja una estela que se derrite · largo negativo: la estela va hacia el centro</div>
             <div id="slEco"></div>
 
             <div class="y-sec">fuga y sombra</div>
             <div id="slFuga"></div>
 
-            <div class="y-sec">halo</div>
-            <div id="slHalo"></div>
+            <div id="secHalo">
+              <div class="y-sec">halo</div>
+              <div id="slHalo"></div>
+            </div>
 
             <div class="y-sec">color</div>
             <div class="y-btns cuatro" id="presets">
@@ -893,6 +901,24 @@ slider('slFuga','radioSombra','Radio de la sombra',20,1200,1);
 slider('slFuga','fugaX','Punto de fuga X',-400,400,1);
 slider('slFuga','fugaY','Punto de fuga Y',-500,500,1);
 
+// fluido
+slider('slFluido','estelaLargo','Largo de la estela',-0.5,0.5,0.005);
+slider('slFluido','estelaMuestras','Muestras',2,48,1);
+slider('slFluido','estelaCaida','Caída hacia la cola',0.3,5,0.05);
+slider('slFluido','fluidez','Fluidez (derretido)',0,80,1);
+slider('slFluido','grosor','Grosor de la mancha',0,1,0.01);
+slider('slFluido','ondaFluido','Ondulación de la estela',0,150,1);
+slider('slFluido','velOnda','Vueltas de la onda por loop',0,4,1);
+const modoBtns=[...document.querySelectorAll('[data-m]')];
+function pintaModo(){
+  const f=P.modoEco==='fluido';
+  modoBtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===P.modoEco));
+  $('slFluido').style.display=f?'':'none'; $('hFluido').style.display=f?'':'none';
+  $('slEco').style.display=f?'none':''; $('secHalo').style.display=f?'none':'';
+}
+modoBtns.forEach(b=>b.addEventListener('click',()=>{ P.modoEco=b.dataset.m; pintaModo(); }));
+pintaModo();
+
 // halo
 slider('slHalo','haloExt','Halo exterior',0,160,1);
 slider('slHalo','haloInt','Halo interior',0,80,1);
@@ -900,8 +926,8 @@ slider('slHalo','haloFuerza','Intensidad',0,3,0.01);
 
 // color
 colorRow('fondoA','Fondo centro'); colorRow('fondoB','Fondo borde'); colorRow('letra','Letra');
-colorRow('ecoCerca','Eco cerca'); colorRow('ecoLejos','Eco lejos');
-colorRow('cHaloInt','Halo interior'); colorRow('cHaloExt','Halo exterior'); colorRow('cSombra','Sombra');
+colorRow('ecoCerca','Núcleo'); colorRow('ecoLejos','Núcleo profundo');
+colorRow('cHaloInt','Borde interior'); colorRow('cHaloExt','Borde exterior'); colorRow('cSombra','Sombra');
 const presetBtns=[...document.querySelectorAll('#presets .cam-btn')];
 presetBtns.forEach(b=>b.addEventListener('click',()=>{ Object.assign(P,C.PRESETS[b.dataset.p]); presetBtns.forEach(x=>x.setAttribute('aria-pressed',x===b)); repaint(); }));
 presetBtns[0].setAttribute('aria-pressed','true');
@@ -935,7 +961,7 @@ async function exportLoop(){
   try{ await cargarMuxer(); }catch(e){ info.textContent='no se pudo cargar el exportador'; return; }
   exportando=true; btn.disabled=true;
   const cv=document.createElement('canvas'); cv.width=IW; cv.height=IH;
-  const cx=cv.getContext('2d'), R=C.crearRenderer(IW,IH);
+  const cx=cv.getContext('2d'), R=C.crearRenderer(IW,IH,0.5);
   const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:IW,height:IH,frameRate:FPS},fastStart:'in-memory'});
   let fallo=null;
   const enc=new VideoEncoder({output:(ch,meta)=>muxer.addVideoChunk(ch,meta),error:e=>{ fallo=e; }});

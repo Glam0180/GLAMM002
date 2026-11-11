@@ -3,7 +3,7 @@ export const TOOLS = [
     id: 'cascada',
     slug: 'cascada',
     name: 'Cascada',
-    description: 'Kinetic type en loop: dos cascadas de texto con eco en degradé convergen al centro, se funden y se pierden en la sombra.',
+    description: 'Kinetic type en loop: dos cascadas de texto dejan una estela fluida en degradé, convergen al centro y se pierden en la sombra.',
     category: 'typography',
     status: 'live',
     tech: ['p5.js', 'Canvas API', 'WebCodecs', 'MP4'],
