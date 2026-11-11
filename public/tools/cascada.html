@@ -762,6 +762,8 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
               <button type="button" class="cam-btn" data-p="noche">NOCHE</button>
               <button type="button" class="cam-btn" data-p="papel">PAPEL</button>
             </div>
+            <button type="button" class="cam-btn" id="bTriada">⟳ COLOR ALEATORIO · TRÍADA</button>
+            <div class="y-hint" id="triInfo">tres tonos separados 120°: fondo, bordes del fluido y núcleo · tecla c</div>
             <div id="slHue"></div>
             <div id="cols" class="y-row"></div>
 
@@ -872,7 +874,7 @@ $('bMouse').addEventListener('click',()=>{ P.mouse=!P.mouse; $('bMouse').setAttr
 slider('slPersp','profundidad','Profundidad (se mete al fondo)',1.2,40,0.1);
 slider('slPersp','camara','Zoom en Z (cámara)',-1.5,0.9,0.01);
 slider('slPersp','niebla','Niebla por profundidad',0,1,0.01);
-slider('slPersp','tamEntrada','Tamaño al entrar',40,480,1);
+slider('slPersp','tamEntrada','Tamaño al entrar',40,800,1);
 slider('slPersp','tamCentro','Tamaño en el fondo',2,160,1);
 slider('slPersp','abEntrada','Ancho al entrar (filas rectas)',100,3000,10);
 slider('slPersp','abCentro','Ancho en el fondo (filas rectas)',0,800,1);
@@ -916,6 +918,9 @@ colorRow('cHaloInt','Borde interior'); colorRow('cHaloExt','Borde exterior'); co
 const presetBtns=[...document.querySelectorAll('#presets .cam-btn')];
 presetBtns.forEach(b=>b.addEventListener('click',()=>{ Object.assign(P,C.PRESETS[b.dataset.p]); presetBtns.forEach(x=>x.setAttribute('aria-pressed',x===b)); repaint(); }));
 presetBtns[0].setAttribute('aria-pressed','true');
+function aleatorio(){ Object.assign(P,C.triada()); P.hue=0; presetBtns.forEach(x=>x.setAttribute('aria-pressed','false')); repaint(); }
+$('bTriada').addEventListener('click',aleatorio);
+addEventListener('keydown',e=>{ if((e.key==='c'||e.key==='C')&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)) aleatorio(); });
 repaint();
 
 // calidad

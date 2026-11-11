@@ -86,6 +86,36 @@ const P = {
   cSombra: '#0A1F22',
 };
 
+/* Paleta aleatoria por tríada: tres tonos separados 120°. Uno para el
+   fondo, otro para los bordes del fluido y el tercero para el núcleo y la
+   sombra. A veces sale en versión oscura (fondo profundo, núcleo vivo). */
+function hsl(h, s, l) {
+  h = ((h % 360) + 360) % 360; s /= 100; l /= 100;
+  const f = n => { const k = (n + h / 30) % 12; const a = s * Math.min(l, 1 - l); return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return '#' + [f(0), f(8), f(4)].map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+function triada() {
+  const r = (a, b) => a + Math.random() * (b - a);
+  const base = r(0, 360);
+  // el orden de los tres tonos también se sortea
+  const h = [base, base + 120, base + 240].sort(() => Math.random() - 0.5);
+  const [hf, hb, hn] = h;
+  if (Math.random() < 0.3) {
+    return {
+      fondoA: hsl(hf, r(55, 75), r(14, 20)), fondoB: hsl(hf + r(-12, 12), r(60, 80), r(5, 9)),
+      cHaloExt: hsl(hb, r(85, 100), r(62, 72)), cHaloInt: hsl(hb + r(-10, 10), r(90, 100), r(48, 56)),
+      ecoCerca: hsl(hn, r(70, 90), r(42, 52)), ecoLejos: hsl(hn, r(70, 90), r(26, 34)),
+      letra: hsl(hf, r(10, 30), r(95, 99)), cSombra: hsl(hf, r(40, 60), r(3, 6)),
+    };
+  }
+  return {
+    fondoA: hsl(hf, r(75, 95), r(70, 80)), fondoB: hsl(hf + r(-15, 15), r(70, 90), r(52, 62)),
+    cHaloExt: hsl(hb, r(85, 100), r(68, 76)), cHaloInt: hsl(hb + r(-10, 10), r(90, 100), r(48, 56)),
+    ecoCerca: hsl(hn, r(45, 65), r(18, 26)), ecoLejos: hsl(hn, r(50, 70), r(9, 14)),
+    letra: hsl(hf, r(10, 30), r(96, 99)), cSombra: hsl(hn, r(45, 60), r(5, 8)),
+  };
+}
+
 const PRESETS = {
   acido: { fondoA: '#7CF0FF', fondoB: '#33F2B8', letra: '#FFFFFF', ecoCerca: '#1D4F55', ecoLejos: '#0E2F33', cHaloInt: '#FF2E1F', cHaloExt: '#FF6FD8', cSombra: '#0A1F22' },
   glam: { fondoA: '#3A1214', fondoB: '#000000', letra: '#FF0100', ecoCerca: '#4A0B0C', ecoLejos: '#1A0607', cHaloInt: '#FF0100', cHaloExt: '#FF7A00', cSombra: '#000000' },
@@ -167,7 +197,11 @@ function letras(fase, W, H, cx, cy, k, atras = 0) {
          al meterse, así arriba y abajo cierran un círculo que se encoge
          hasta el punto. La letra se achica si no cabe en el arco. */
       const ar = clamp01(P.arco);
-      const span = lerpN(P.arcoFondo, P.arcoEntrada, Math.min(1, p)) * Math.PI / 180;
+      // si la palabra no cabe en el arco, el arco se abre para hacerle
+      // espacio (hasta casi media vuelta); solo pasado eso se achica la letra
+      const span0 = lerpN(P.arcoFondo, P.arcoEntrada, Math.min(1, p)) * Math.PI / 180;
+      const necesita = Math.max(1, n) * 0.78 * sx * tam / Math.max(1, d);
+      const span = Math.min(Math.PI * 0.985, Math.max(span0, necesita));
       const cabe = (d * span / Math.max(1, n)) / (0.78 * sx);
       const tamL = ar > 0 ? lerpN(tam, Math.min(tam, cabe), ar) : tam;
       for (let j = 0; j < n; j++) {
@@ -507,7 +541,7 @@ function draw() {
 
 /* API para el panel */
 window.Cascada = {
-  P, PRESETS, BW, BH,
+  P, PRESETS, BW, BH, triada,
   cargarFuente, cambiarCalidad, crearRenderer, renderCascada,
   get fase() { return fase; },
   set fase(v) { fase = frac(v); },
