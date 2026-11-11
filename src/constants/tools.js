@@ -1,5 +1,17 @@
 export const TOOLS = [
   {
+    id: 'cascada',
+    slug: 'cascada',
+    name: 'Cascada',
+    description: 'Kinetic type en loop: dos cascadas de texto con eco en degradé convergen al centro, se funden y se pierden en la sombra.',
+    category: 'typography',
+    status: 'live',
+    tech: ['p5.js', 'Canvas API', 'WebCodecs', 'MP4'],
+    path: '/tools/cascada',
+    index: '018',
+    thumbnail: '/tool-thumbnails/cascada.webp',
+  },
+  {
     id: 'estela',
     slug: 'estela',
     name: 'Estela de pósters',
