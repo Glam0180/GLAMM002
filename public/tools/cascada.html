@@ -762,6 +762,7 @@ html.glam-alt, html.glam-alt body, html.glam-alt #frame, html.glam-alt .tss{back
               <button type="button" class="cam-btn" data-p="noche">NOCHE</button>
               <button type="button" class="cam-btn" data-p="papel">PAPEL</button>
             </div>
+            <div id="slHue"></div>
             <div id="cols" class="y-row"></div>
 
             <div class="y-sec">vista previa</div>
@@ -869,6 +870,7 @@ $('bMouse').addEventListener('click',()=>{ P.mouse=!P.mouse; $('bMouse').setAttr
 
 // perspectiva
 slider('slPersp','profundidad','Profundidad (se mete al fondo)',1.2,40,0.1);
+slider('slPersp','camara','Zoom en Z (cámara)',-1.5,0.9,0.01);
 slider('slPersp','niebla','Niebla por profundidad',0,1,0.01);
 slider('slPersp','tamEntrada','Tamaño al entrar',40,480,1);
 slider('slPersp','tamCentro','Tamaño en el fondo',2,160,1);
@@ -904,6 +906,7 @@ slider('slFuga','fugaX','Punto de fuga X',-400,400,1);
 slider('slFuga','fugaY','Punto de fuga Y',-500,500,1);
 
 // color
+slider('slHue','hue','Tono (hue)',-180,180,1);
 colorRow('fondoA','Fondo centro'); colorRow('fondoB','Fondo borde'); colorRow('letra','Letra');
 colorRow('ecoCerca','Núcleo'); colorRow('ecoLejos','Núcleo profundo');
 colorRow('cHaloInt','Borde interior'); colorRow('cHaloExt','Borde exterior'); colorRow('cSombra','Sombra');

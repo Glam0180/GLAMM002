@@ -40,6 +40,7 @@ const P = {
   ondas: 0,           // ondulación de las letras dentro de la fila (px)
 
   profundidad: 7,     // qué tan lejos queda el fondo: más = se mete más y se frena más
+  camara: 0,          // zoom en Z: + mete la cámara al túnel, − la aleja
   entrada: 120,       // cuánto por fuera del cuadro nace cada fila (px)
   tamEntrada: 175,    // tamaño de letra al entrar
   tamCentro: 22,      // tamaño de letra en el fondo
@@ -70,6 +71,7 @@ const P = {
   ojo: 0.7,           // lente ojo de pez: agranda y dobla los bordes, comprime el centro
   lateral: 0.55,      // concentra la lente en los costados (0 = pareja en todas direcciones)
   aberracion: 0.3,    // separación de color en los bordes de la lente
+  hue: 0,             // giro de tono de toda la imagen (grados)
 
   fondoA: '#7CF0FF',  // fondo, centro
   fondoB: '#33F2B8',  // fondo, borde
@@ -119,7 +121,12 @@ function medirFuente() {
 function proyeccion(t) {
   const Z = Math.max(1.05, P.profundidad);
   const z = 1 + (Z - 1) * t;
-  return (1 / z - 1 / Z) / (1 - 1 / Z);
+  // la cámara se corre en Z: lo cercano crece mucho más que lo lejano.
+  // Lo que queda detrás de la cámara no se dibuja.
+  const zc = z - P.camara;
+  if (zc <= 0.06) return -1;
+  // el fondo (z = Z) siempre cae en el punto de fuga, mueva o no la cámara
+  return (1 / zc - 1 / (Z - P.camara)) / (1 - 1 / Z);
 }
 
 /* Letras visibles en esta fase. «atras» mira la misma fila un poco antes
@@ -138,15 +145,17 @@ function letras(fase, W, H, cx, cy, k, atras = 0) {
     for (let i = 0; i < N; i++) {
       const t = frac((i + m.off) / N + fase) - atras;
       if (t < 0 || t >= 1) continue;
-      const a = 1 - suave(P.fadeIni, 1, t);
+      // al alejar la cámara las filas nacen dentro del cuadro: entran fundidas
+      const a = (1 - suave(P.fadeIni, 1, t)) * (P.camara < 0 ? suave(0, 0.08, t) : 1);
       if (a <= 0.004) continue;
       const p = proyeccion(t);
+      if (p < 0) continue;
       const pal = m.w[i % m.w.length];
       const n = pal.length;
       const d = p * alcance;
       const tam = lerpN(P.tamCentro, P.tamEntrada, p);
       const ancho = lerpN(P.abCentro, P.abEntrada, Math.pow(p, P.curvaAbertura));
-      const sx = P.anchoLetra * lerpN(P.estrechez, 1, p);
+      const sx = P.anchoLetra * lerpN(P.estrechez, 1, Math.min(1, p));
       // cada fila se corre una fracción distinta de letra (razón áurea)
       const corr = n > 1 ? (frac(i * 0.618034) - 0.5) * P.escalon * 2 / (n - 1) : 0;
       for (let j = 0; j < n; j++) {
@@ -206,7 +215,7 @@ const FS_FINAL = `precision highp float;
 uniform sampler2D u_f,u_l,u_lut;
 uniform vec2 u_res,u_c;
 uniform vec3 u_bgA,u_bgB,u_sh;
-uniform float u_bgR,u_shF,u_shL,u_shR,u_gan,u_ojo,u_lat,u_ab;
+uniform float u_bgR,u_shF,u_shL,u_shR,u_gan,u_ojo,u_lat,u_ab,u_hue;
 varying vec2 v;
 vec2 lente(vec2 uv,float k){
   vec2 c=u_c*u_res;vec2 d=uv*u_res-c;float r=length(d);
@@ -237,7 +246,15 @@ void main(){
   float r=escena(lente(v,1.+ab)).r;
   float g=escena(lente(v,1.)).g;
   float b=escena(lente(v,1.-ab)).b;
-  gl_FragColor=vec4(r,g,b,1.);
+  vec3 col=vec3(r,g,b);
+  // giro de tono en YIQ: conserva la luminosidad (el blanco sigue blanco)
+  if(u_hue!=0.){
+    float Y=dot(col,vec3(.299,.587,.114)),I=dot(col,vec3(.596,-.274,-.322)),Q=dot(col,vec3(.211,-.523,.312));
+    float h=radians(u_hue),cs=cos(h),sn=sin(h);
+    float I2=I*cs-Q*sn,Q2=I*sn+Q*cs;
+    col=clamp(vec3(Y+.956*I2+.621*Q2,Y-.272*I2-.647*Q2,Y-1.106*I2+1.703*Q2),0.,1.);
+  }
+  gl_FragColor=vec4(col,1.);
 }`;
 
 function compilar(gl, fs) {
@@ -417,6 +434,7 @@ function renderCascada(ctx, R, fase, fx = 0, fy = 0) {
   gl.uniform1f(u.u_ojo, P.ojo);
   gl.uniform1f(u.u_lat, P.lateral);
   gl.uniform1f(u.u_ab, P.aberracion);
+  gl.uniform1f(u.u_hue, P.hue);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   gl.activeTexture(gl.TEXTURE0);
 
