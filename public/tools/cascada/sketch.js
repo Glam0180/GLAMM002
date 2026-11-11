@@ -42,9 +42,9 @@ const P = {
   profundidad: 7,     // qué tan lejos queda el fondo: más = se mete más y se frena más
   camara: 0,          // zoom en Z: + mete la cámara al túnel, − la aleja
   entrada: 120,       // cuánto por fuera del cuadro nace cada fila (px)
-  tamEntrada: 175,    // tamaño de letra al entrar
-  tamCentro: 22,      // tamaño de letra en el fondo
-  tamCurva: 1,        // caída del tamaño: más alto = se achica más rápido al meterse
+  tamEntrada: 320,    // tamaño de letra al entrar
+  tamCentro: 4,       // tamaño de letra en el fondo
+  tamCurva: 1.5,       // caída del tamaño: más alto = se achica más rápido al meterse
   abEntrada: 1450,    // ancho de la fila al entrar
   abCentro: 360,      // ancho de la fila en el fondo
   curvaAbertura: 1,   // qué tan rápido se cierra la fila (curva del ancho)
@@ -198,13 +198,16 @@ function letras(fase, W, H, cx, cy, k, atras = 0) {
          al meterse, así arriba y abajo cierran un círculo que se encoge
          hasta el punto. La letra se achica si no cabe en el arco. */
       const ar = clamp01(P.arco);
-      // si la palabra no cabe en el arco, el arco se abre para hacerle
-      // espacio (hasta casi media vuelta); solo pasado eso se achica la letra
+      // Si la palabra no cabe en el arco, primero se abre el arco (hasta casi
+      // media vuelta) y, si aun así no cabe, la fila se EMPUJA hacia afuera
+      // en vez de achicar la letra: así las filas cercanas quedan gigantes
+      // (cortadas por el borde) y el contraste de tamaño con el fondo es total.
+      const SPAN_MAX = Math.PI * 0.985;
       const span0 = lerpN(P.arcoFondo, P.arcoEntrada, Math.min(1, p)) * Math.PI / 180;
-      const necesita = Math.max(1, n) * 0.78 * sx * tam / Math.max(1, d);
-      const span = Math.min(Math.PI * 0.985, Math.max(span0, necesita));
-      const cabe = (d * span / Math.max(1, n)) / (0.78 * sx);
-      const tamL = ar > 0 ? lerpN(tam, Math.min(tam, cabe), ar) : tam;
+      const largo = Math.max(1, n) * 0.78 * sx * tam;          // largo que pide la palabra
+      const dArco = Math.max(d, largo / SPAN_MAX);               // radio del arco (empujado si hace falta)
+      const span = Math.min(SPAN_MAX, Math.max(span0, largo / Math.max(1, dArco)));
+      const tamL = tam;
       for (let j = 0; j < n; j++) {
         const ch = pal[j];
         if (ch === ' ') continue;
@@ -216,7 +219,7 @@ function letras(fase, W, H, cx, cy, k, atras = 0) {
         const rr = -m.dir * P.giro * Math.atan2(xr - cx, Math.abs(yr - cy) + 1e-3);
         // arco alrededor del punto de fuga
         const th = u * span / 2 * (n > 1 ? (n - 1) / n : 1);
-        const R = (d + ola) * k;
+        const R = (lerpN(d, dArco, ar) + ola) * k;
         const xa = cx + R * Math.sin(th);
         const ya = cy + m.dir * R * Math.cos(th);
         const ra = -m.dir * th;
