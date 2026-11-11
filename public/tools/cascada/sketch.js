@@ -44,6 +44,7 @@ const P = {
   entrada: 120,       // cuánto por fuera del cuadro nace cada fila (px)
   tamEntrada: 175,    // tamaño de letra al entrar
   tamCentro: 22,      // tamaño de letra en el fondo
+  tamCurva: 1,        // caída del tamaño: más alto = se achica más rápido al meterse
   abEntrada: 1450,    // ancho de la fila al entrar
   abCentro: 360,      // ancho de la fila en el fondo
   curvaAbertura: 1,   // qué tan rápido se cierra la fila (curva del ancho)
@@ -186,7 +187,7 @@ function letras(fase, W, H, cx, cy, k, atras = 0) {
       const pal = m.w[i % m.w.length];
       const n = pal.length;
       const d = p * alcance;
-      const tam = lerpN(P.tamCentro, P.tamEntrada, p);
+      const tam = lerpN(P.tamCentro, P.tamEntrada, Math.pow(Math.max(0, p), P.tamCurva));
       const ancho = lerpN(P.abCentro, P.abEntrada, Math.pow(p, P.curvaAbertura));
       const sx = P.anchoLetra * lerpN(P.estrechez, 1, Math.min(1, p));
       // cada fila se corre una fracción distinta de letra (razón áurea)
