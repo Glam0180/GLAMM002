@@ -60,14 +60,12 @@ export function render(ctx, phase, p) {
   gradient.addColorStop(1,color(87,55,22))
   ctx.fillStyle = gradient
   ctx.fillRect(0,0,W,H)
-  const roll = p.angle*Math.PI/180 + .018*sin(t)
-  const pitch = p.pitch*Math.PI/180 + .035*cos(t)
-  const dx = .09*sin(t)
+  const roll = p.angle*Math.PI/180
+  const pitch = p.pitch*Math.PI/180
   ctx.translate(540,0)
   ctx.scale(1/p.squeeze,1)
   ctx.translate(-540,0)
   function project([x,y,z]) {
-    x -= dx
     y -= p.altitude
     const depth = z*cos(pitch)+y*sin(pitch)
     const up = y*cos(pitch)-z*sin(pitch)
@@ -156,10 +154,10 @@ export function render(ctx, phase, p) {
   for(const item of plants) if(item.z>3) plant(item)
 
   const faces=[]
-  const tilt=p.canTilt*Math.PI/180+.08*sin(t), twist=p.canTurn*Math.PI/180+.14*cos(t)
+  const tilt=p.canTilt*Math.PI/180, twist=p.canTurn*Math.PI/180
   function world([x,y,z]) {
     const a=x*cos(tilt)-y*sin(tilt), b=x*sin(tilt)+y*cos(tilt)
-    return [.26+a*cos(twist)+z*sin(twist),2.53+b+.065*cos(t),2.72-a*sin(twist)+z*cos(twist)]
+    return [.26+a*cos(twist)+z*sin(twist),2.53+b,2.72-a*sin(twist)+z*cos(twist)]
   }
   function face(verts,paint) {
     const v=verts.map(world)
@@ -215,10 +213,16 @@ export function render(ctx, phase, p) {
   const nozzle=world([-1.72,.25,0])
   for(let j=0;j<drops.length;j++) {
     const d=drops[j],u=(phase*p.showers+(j<6 ? j/6 : d.phase))%1
-    const pos=project([nozzle[0]-.46*u+d.spread*u*.96,nozzle[1]-.26*u-2.48*u*u,nozzle[2]+u*.6+d.drift*u*.8])
+    const isBlock=j<6
+    const lane=isBlock ? (j*5%6+d.phase)/6 : d.phase
+    const groundZ=.68+2.8*(d.drift+.5)
+    const groundX=(lane-.5)*groundZ*1.35*p.squeeze
+    const pos=project([nozzle[0]+(groundX-nozzle[0])*u,
+      nozzle[1]-.18*u-(nozzle[1]+.04)*u*u,nozzle[2]+(groundZ-nozzle[2])*u])
     const fade=Math.min(1,u*13,(1-u)*6)
     ctx.save();ctx.globalAlpha=fade*(j<6?.98:.77)
-    ctx.translate(pos[0],pos[1]);ctx.rotate(-.14+.25*d.spread)
+    ctx.translate(pos[0],pos[1])
+    ctx.rotate(isBlock ? d.spread*.7+u*d.drift*TAU*1.4 : -.14+.25*d.spread)
     if(j<6) {
       const word=j%2 ? 'EMOTION' : 'MOTION'
       const size=23+7*u
