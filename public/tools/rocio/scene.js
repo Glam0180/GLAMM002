@@ -47,6 +47,28 @@ for (let i=0; i<pixels.data.length; i+=4) {
 }
 noiseCtx.putImageData(pixels,0,0)
 const posterTexture = new WeakMap()
+// Tramas neutras: la luz de los glifos conserva el tono elegido para el cielo.
+function asciiLayer(cloud) {
+  const tile=document.createElement('canvas')
+  tile.width=cloud ? 240 : 1440
+  tile.height=cloud ? 144 : 1536
+  const ink=tile.getContext('2d'), randomGlyph=seeded(cloud?620:207)
+  const alphabet='.:+=ox0B8#$'
+  ink.font='bold 13px monospace'
+  for(let y=0;y<tile.height;y+=16) {
+    for(let x=0;x<tile.width;x+=12) {
+      const wave=sin(x*.011+sin(y*.012)*2)+cos(y*.033+x*.003)+.45*sin(x*.032-y*.023)
+      const density=Math.min(1,Math.max(0,(wave-.15)*.55))
+      const pick=randomGlyph()
+      if(!cloud && pick>.09+density*.85) continue
+      const value=cloud ? pick : density
+      ink.fillStyle=cloud ? 'rgba(0,0,0,.33)' : 'rgba(255,255,255,'+(.15+.4*density)+')'
+      ink.fillText(alphabet[Math.floor(value*(alphabet.length-1))],x,y+13)
+    }
+  }
+  return tile
+}
+const skyGlyphs=asciiLayer(false), cloudGlyphs=asciiLayer(true)
 
 export function render(ctx, phase, p) {
   const W = 1080, H = 1440, t = phase * TAU
@@ -60,6 +82,7 @@ export function render(ctx, phase, p) {
   gradient.addColorStop(1,color(87,55,22))
   ctx.fillStyle = gradient
   ctx.fillRect(0,0,W,H)
+  ctx.drawImage(skyGlyphs,-175+18*sin(t),-36+6*cos(t))
   const roll = p.angle*Math.PI/180
   const pitch = p.pitch*Math.PI/180
   ctx.translate(540,0)
@@ -137,6 +160,17 @@ export function render(ctx, phase, p) {
       polygon([edge[i],edge[j],centers[right],centers[left]],color(i<12?49:197,48,light))
     }
     polygon(centers,color(190,45,88))
+    ctx.save()
+    ctx.beginPath()
+    edge.forEach(([px,py],i)=>i ? ctx.lineTo(px,py) : ctx.moveTo(px,py))
+    ctx.closePath()
+    ctx.clip()
+    const minX=Math.min(...edge.map(v=>v[0])), minY=Math.min(...edge.map(v=>v[1]))
+    const width=Math.max(...edge.map(v=>v[0]))-minX, height=Math.max(...edge.map(v=>v[1]))-minY
+    ctx.translate(minX,minY)
+    ctx.fillStyle=ctx.createPattern(cloudGlyphs,'repeat')
+    ctx.fillRect(0,0,width,height)
+    ctx.restore()
   }
   // La tierra sigue el mismo horizonte curvo que las raíces.
   const horizon=Array.from({length:45},(_,i)=>project([(i-22)*1.4,-.25,12+cos(i*.38)]))
