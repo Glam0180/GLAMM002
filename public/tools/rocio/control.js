@@ -18,7 +18,10 @@ const settings = { ...defaults }
 const canvas = $('poster')
 const context = canvas.getContext('2d', { alpha: false })
 const groups = [
-  ['Cámara', [['lens','Ojo de pez',0,1,.01], ['altitude','Altura de cámara',.04,.55,.01],
+  ['Óptica', [['lens','Ojo de pez',0,1,.01], ['squeeze','Compresión anamórfica (×)',.8,1.8,.01],
+    ['cylinder','Panorámica cilíndrica',0,1,.01]]],
+  ['Regadera', [['canTilt','Inclinación (°)',-22,55,1],['canTurn','Giro lateral (°)',-65,45,1]]],
+  ['Cámara', [['pitch','Elevación (°)',12,36,1], ['altitude','Altura de cámara',.04,.55,.01],
     ['angle','Ángulo (°)',-26,26,1], ['zoom','Zoom',.72,1.24,.01]]],
   ['Estilo', [['facets','Facetas del metal',6,24,1], ['grain','Grano',0,1,.01], ['hue','Hue (°)',-180,180,1]]],
   ['Ritmo', [['showers','Caídas por loop',1,5,1], ['duration','Duración (s)',2,16,.5]]]
@@ -53,14 +56,11 @@ for (const [section,controls] of groups) {
     $('sliders').append(row)
   }
 }
-function lines() {
-  return $('phrases').value.split('\n').map(s=>s.trim()).filter(Boolean)
-}
 let playing=true, exporting=false, phase=0, previous=performance.now()
 function frame(now) {
   if(playing && !exporting) phase=(phase+(now-previous)/(settings.duration*1000))%1
   previous=now
-  if(!exporting) render(context,phase,settings,lines())
+  if(!exporting) render(context,phase,settings)
   requestAnimationFrame(frame)
 }
 requestAnimationFrame(frame)
@@ -74,7 +74,7 @@ GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'rocio',manual:fa
 $('bLoop').onclick=async()=>{
   if(exporting) return
   const btn=$('bLoop'), info=$('loopInfo')
-  const params={...settings}, text=lines(), fps=60, total=params.duration*fps
+  const params={...settings}, fps=60, total=params.duration*fps
   const status=msg=>{info.textContent=msg}
   const controls=[...document.querySelectorAll('#sidebar button, #sidebar input, #sidebar textarea')]
   const disabled=controls.map(el=>el.disabled)
@@ -95,7 +95,7 @@ $('bLoop').onclick=async()=>{
     encoder.configure(config)
     for(let i=0;i<total;i++) {
       if(failure) throw failure
-      render(context,i/total,params,text)
+      render(context,i/total,params)
       const video=new VideoFrame(canvas,{timestamp:Math.round(i*1e6/fps),duration:Math.round((i+1)*1e6/fps)-Math.round(i*1e6/fps)})
       try { encoder.encode(video,{keyFrame:i%fps===0}) } finally { video.close() }
       if(encoder.encodeQueueSize>6) await encoder.flush()

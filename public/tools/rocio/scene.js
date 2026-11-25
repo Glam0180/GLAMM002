@@ -2,7 +2,7 @@
 const TAU = Math.PI * 2
 const { sin, cos, hypot } = Math
 export const defaults = { lens: .58, altitude: .18, angle: -8, zoom: 1, grain: .23,
-  facets: 12, hue: 0, duration: 8, showers: 2 }
+  squeeze: 1, cylinder: 0, pitch: 22, canTilt: 19, canTurn: -25, facets: 12, hue: 0, duration: 8, showers: 2 }
 function seeded(seed) {
   return () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296)
 }
@@ -31,7 +31,7 @@ for (let i=0; i<pixels.data.length; i+=4) {
 noiseCtx.putImageData(pixels,0,0)
 const posterTexture = new WeakMap()
 
-export function render(ctx, phase, p, phrases) {
+export function render(ctx, phase, p) {
   const W = 1080, H = 1440, t = phase * TAU
   ctx.save()
   ctx.scale(ctx.canvas.width/W,ctx.canvas.height/H)
@@ -44,8 +44,11 @@ export function render(ctx, phase, p, phrases) {
   ctx.fillStyle = gradient
   ctx.fillRect(0,0,W,H)
   const roll = p.angle*Math.PI/180 + .018*sin(t)
-  const pitch = .38 + .035*cos(t)
+  const pitch = p.pitch*Math.PI/180 + .035*cos(t)
   const dx = .09*sin(t)
+  ctx.translate(540,0)
+  ctx.scale(1/p.squeeze,1)
+  ctx.translate(-540,0)
   function project([x,y,z]) {
     x -= dx
     y -= p.altitude
@@ -55,7 +58,10 @@ export function render(ctx, phase, p, phrases) {
     const perspective = 1/Math.max(.24,depth)
     const fish = Math.atan2(r,depth)/Math.max(r,.0001)
     const scale = 880*p.zoom*((1-p.lens)*perspective+p.lens*fish)
-    return [540+(x*cos(roll)+up*sin(roll))*scale,660+(x*sin(roll)-up*cos(roll))*scale,scale]
+    const focal=880*p.zoom
+    const horiz=x*scale*(1-p.cylinder)+focal*Math.atan2(x,depth)*p.cylinder
+    const vert=up*(scale*(1-p.cylinder)+focal/Math.max(.24,hypot(x,depth))*p.cylinder)
+    return [540+horiz*cos(roll)+vert*sin(roll),660+horiz*sin(roll)-vert*cos(roll),scale]
   }
   function polygon(points,fill) {
     ctx.beginPath()
@@ -73,7 +79,7 @@ export function render(ctx, phase, p, phrases) {
     const base=project([x,-.22,z])
     const head=project([x+sway+.11*sin(seed)*h,h,z])
     const s=head[2]*size
-    if (head[0]<-s*3 || head[0]>W+s*3) return
+    if (Math.abs(head[0]-540)>540*p.squeeze+s*3) return
     const mid=[(base[0]+head[0])*.5+s*.55,(base[1]+head[1])*.5]
     ctx.strokeStyle=color(83+9*sin(seed),52,24+6*cos(seed))
     ctx.lineWidth=Math.max(1,s*.12)
@@ -114,7 +120,7 @@ export function render(ctx, phase, p, phrases) {
   for(const f of flowers) { if(f.z>3) flower(f); else near.push(f) }
 
   const faces=[]
-  const tilt=.24+.08*sin(t), twist=-.29+.14*cos(t)
+  const tilt=p.canTilt*Math.PI/180+.08*sin(t), twist=p.canTurn*Math.PI/180+.14*cos(t)
   function world([x,y,z]) {
     const a=x*cos(tilt)-y*sin(tilt), b=x*sin(tilt)+y*cos(tilt)
     return [.26+a*cos(twist)+z*sin(twist),2.53+b+.065*cos(t),2.72-a*sin(twist)+z*cos(twist)]
@@ -172,34 +178,35 @@ export function render(ctx, phase, p, phrases) {
   for(const f of faces)polygon(f.points,f.paint)
   const nozzle=world([-1.72,.25,0])
   for(let j=0;j<drops.length;j++) {
-    const d=drops[j],u=(phase*p.showers+d.phase)%1
+    const d=drops[j],u=(phase*p.showers+(j<6 ? j/6 : d.phase))%1
     const pos=project([nozzle[0]-.46*u+d.spread*u*.96,nozzle[1]-.26*u-2.48*u*u,nozzle[2]+u*.6+d.drift*u*.8])
     const fade=Math.min(1,u*13,(1-u)*6)
-    ctx.save();ctx.globalAlpha=fade*(j<8?.95:.77)
+    ctx.save();ctx.globalAlpha=fade*(j<6?.98:.77)
     ctx.translate(pos[0],pos[1]);ctx.rotate(-.14+.25*d.spread)
-    if(j<8 && phrases.length) {
-      ctx.font='italic 900 '+Math.round(16+9*u)+'px Arial, sans-serif'
-      ctx.lineWidth=3;ctx.strokeStyle=color(190,48,22)
-      const line=phrases[j%phrases.length]
-      ctx.strokeText(line,0,0,210);ctx.fillStyle=color(53,90,88);ctx.fillText(line,0,0,210)
+    if(j<6) {
+      const word=j%2 ? 'EMOTION' : 'MOTION'
+      const size=23+7*u
+      ctx.font='italic 900 '+size+'px Arial, sans-serif'
+      const width=ctx.measureText(word).width+22
+      ctx.beginPath()
+      ctx.roundRect(-9,-size*.94,width,size*1.24,6)
+      ctx.fillStyle=color(j%2 ? 188 : 298,48,19)
+      ctx.fill()
+      ctx.lineWidth=2
+      ctx.strokeStyle=color(j%2 ? 65 : 185,88,71)
+      ctx.stroke()
+      ctx.fillStyle=color(55,72,94)
+      ctx.fillText(word,2,0)
     } else {
       polygon([[0,0],[-2,-10-u*7],[2,-4],[3,1]],color(j%4?181:304,86,84))
     }
     ctx.restore()
   }
   for(const f of near) flower(f)
-  // Wordmark de póster, con dos planchas de color desplazadas.
-  ctx.font='italic 900 140px Arial Black, Arial, sans-serif'
-  ctx.textAlign='left';ctx.lineJoin='round'
-  for(const [word,y] of [['NOTION',1286],['EMOTION',1394]]) {
-    ctx.save()
-    ctx.translate(44,y)
-    ctx.scale((word==='NOTION'?760:987)/ctx.measureText(word).width,1)
-    ctx.lineWidth=10;ctx.strokeStyle=color(294,57,42);ctx.strokeText(word,2,3)
-    ctx.lineWidth=5;ctx.strokeStyle=color(69,56,87);ctx.strokeText(word,0,0)
-    ctx.fillStyle=color(179,23,19);ctx.fillText(word,0,0)
-    ctx.restore()
-  }
+  // La textura cubre todo el sensor incluso con compresión anamórfica.
+  ctx.translate(540,0)
+  ctx.scale(p.squeeze,1)
+  ctx.translate(-540,0)
   if(p.grain) {
     if(!posterTexture.has(ctx)) posterTexture.set(ctx,ctx.createPattern(noise,'repeat'))
     ctx.save(); ctx.globalCompositeOperation='soft-light';ctx.globalAlpha=p.grain
