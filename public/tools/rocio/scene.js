@@ -1,10 +1,10 @@
 // Coordenadas de jardín: Y vertical, Z alejándose de la lente.
 const TAU = Math.PI * 2
 const { sin, cos, hypot } = Math
-export const defaults = { lens: .58, altitude: .18, angle: -8, zoom: 1, grain: .23,
-  squeeze: 1, cylinder: 0, pitch: 22, canTilt: 19, canTurn: -25, canSize:1,
-  blockSize:1, blocks:6, water:94, spread:1, spin:1, motionHue:64, emotionHue:313, ascii:1, skyCycles:1,
-  facets: 12, hue: 0, duration: 8, showers: 2 }
+export const defaults = { lens: .58, altitude: .16, angle: -11, zoom: 1.03, grain: .09,
+  squeeze: 1, cylinder: 0, pitch: 28, canTilt: 19, canTurn: -45, canSize:1.2,
+  blockSize:1.65, blocks:26, water:25, spread:.05, spin:2, motionHue:55, emotionHue:275, ascii:1, skyCycles:1,
+  facets: 15, hue: 2, duration: 13, showers: 2 }
 function seeded(seed) {
   return () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296)
 }
