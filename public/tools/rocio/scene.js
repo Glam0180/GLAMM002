@@ -309,18 +309,15 @@ export function render(ctx, phase, p, interaction) {
     }
     ctx.restore()
   }
-  for(let j=0;j<p.water;j++) particle(j,false,(phase*p.showers+drizzle[j].phase)%1,offsetX,offsetY)
   if(interaction) {
     for(const shot of interaction.shots) {
       const age=interaction.repeat ? (phase-shot.phase+1)%1 : interaction.time-shot.time
-      if(age<0 || age>=.69/p.showers) continue
+      if(age<0 || age>=shot.life) continue
       const [sx,sy]=offset(shot.aim)
-      for(let j=0;j<p.blocks;j++) {
-        const u=(age*p.showers-j/Math.max(1,p.blocks)*.16)/.53
-        if(u>=0 && u<1) particle(j,true,u,sx,sy)
-      }
+      particle(shot.index,shot.block,age/shot.life,sx,sy)
     }
   } else {
+    for(let j=0;j<p.water;j++) particle(j,false,(phase*p.showers+drizzle[j].phase)%1,0,0)
     for(let j=0;j<p.blocks;j++) particle(j,true,(phase*p.showers+j/p.blocks)%1,0,0)
   }
   for(const item of plants) if(item.z<=3) plant(item)

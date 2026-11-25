@@ -65,6 +65,30 @@ for (const [section,controls] of groups) {
 let playing=true, exporting=false, phase=0, previous=performance.now()
 let manual=true, time=0, aim=null
 const shots=[], moves=[]
+let held=null
+const emitters=[{block:true,key:'blocks',next:0,index:0,variants:100},
+  {block:false,key:'water',next:0,index:0,variants:180}]
+function stopPour(event) {
+  if(held===null || (event?.pointerId!=null && event.pointerId!==held)) return
+  const id=held
+  held=null
+  if(canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id)
+}
+function pour() {
+  const life=.53/settings.showers
+  for(const source of emitters) {
+    const count=settings[source.key]
+    if(!count){source.next=time;continue}
+    source.next=Math.max(source.next,time-life)
+    while(source.next<=time){
+      const born=source.next
+      shots.push({aim,time:born,phase:born%1,life,index:source.index,block:source.block})
+      source.index=(source.index+1)%source.variants
+      source.next+=life/count
+    }
+  }
+  while(shots.length && shots[0].time<=time-1) shots.shift()
+}
 canvas.classList.add('manual')
 function point(event) {
   if(!manual || exporting || !event.isPrimary) return
@@ -76,12 +100,18 @@ function point(event) {
 }
 canvas.addEventListener('pointermove',point)
 canvas.addEventListener('pointerdown',event=>{
-  if(!manual || exporting || !event.isPrimary || event.button!==0) return
+  if(!manual || exporting || held!==null || !event.isPrimary || event.button!==0) return
   point(event)
-  shots.push({aim,time,phase})
-  while(shots.length>1 && shots[0].time<=time-1) shots.shift()
+  held=event.pointerId
+  canvas.setPointerCapture(held)
+  for(const source of emitters) source.next=time
+  pour()
 })
+for(const type of ['pointerup','pointercancel','lostpointercapture']) canvas.addEventListener(type,stopPour)
+window.addEventListener('blur',stopPour)
+document.addEventListener('visibilitychange',()=>{if(document.hidden) stopPour()})
 $('manual').onclick=()=>{
+  stopPour()
   manual=!manual
   canvas.classList.toggle('manual',manual)
   $('manual').setAttribute('aria-pressed',String(manual))
@@ -100,6 +130,7 @@ function frame(now) {
   if(playing && !exporting) time+=(now-previous)/(settings.duration*1000)
   phase=time%1
   previous=now
+  if(playing && !exporting && held!==null) pour()
   if(!exporting) render(context,phase,settings,manual ? {aim,time,shots} : null)
   requestAnimationFrame(frame)
 }
@@ -113,6 +144,7 @@ GlamRec.montar({contenedor:$('recSlot'),clase:'cam-btn',nombre:'rocio',manual:fa
   alIniciar(){ $('bLoop').disabled=true },alTerminar(){ $('bLoop').disabled=false }})
 $('bLoop').onclick=async()=>{
   if(exporting) return
+  stopPour()
   const btn=$('bLoop'), info=$('loopInfo')
   const params={...settings}, fps=60, total=params.duration*fps
   const latest=Math.max(moves.at(-1)?.time??0,shots.at(-1)?.time??0)
