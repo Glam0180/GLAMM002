@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import './cascada.css'
 
-export default function CascadaExperience() {
+export default function CascadaExperience({ src = '/tools/cascada.html', title = 'Cascada' }) {
   const iframeRef = useRef(null)
 
   useEffect(() => {
@@ -19,9 +19,9 @@ export default function CascadaExperience() {
     <div className="cascada-wrapper">
       <iframe
         ref={iframeRef}
-        src="/tools/cascada.html"
+        src={src}
         className="cascada-iframe"
-        title="Cascada"
+        title={title}
         /* display-capture: para «grabar toda la ventana» desde el iframe */
         allow="display-capture"
         allowFullScreen

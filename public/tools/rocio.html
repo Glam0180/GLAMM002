@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <script src="/tools/glam-invert.js"></script>
+  <script src="/tools/glam-rec.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&family=Rubik+Mono+One&family=Anton&display=swap" rel="stylesheet">
+  <title>STUDIO GLAM — ROCÍO</title>
+  <link rel="stylesheet" href="/tools/poster-panel.css">
+  <style>
+    /* ═════════ ROCÍO ═════════ */
+    #sketch-holder { position: relative; overflow: hidden; background: #000; }
+    #sketch-holder canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
+    #sidebar { width: 236px; }
+    .y-panel { gap: 10px; padding: 12px 12px 14px; }
+    .y-sec {
+      font-size: 8px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--red); display: flex; align-items: center; gap: 6px; margin-top: 2px;
+    }
+    .y-sec::after { content: ''; flex: 1; height: 1px; background: var(--red-faint); }
+    .y-row { display: flex; flex-direction: column; gap: 4px; }
+    .y-lab {
+      font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--red-dim);
+      display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    }
+    .y-num, .y-hex {
+      width: 54px; flex: none; font: inherit; font-size: 9px; letter-spacing: .04em; text-align: right;
+      color: var(--red); background: var(--black); border: 1px solid var(--red-faint); padding: 2px 4px; outline: none;
+      font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+    }
+    .y-num::-webkit-inner-spin-button, .y-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .y-hex { width: 62px; text-transform: uppercase; text-align: left; }
+    .y-num:focus, .y-hex:focus { border-color: var(--red); }
+    .y-panel input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 3px; margin: 3px 0; outline: none; cursor: pointer;
+      background: linear-gradient(to right, var(--red) var(--val, 50%), rgba(var(--g-red-rgb), .2) var(--val, 50%));
+    }
+    .y-panel input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 9px; height: 9px;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-thumb {
+      width: 9px; height: 9px; border-radius: 0;
+      background: var(--black); border: 1px solid var(--black); box-shadow: 0 0 0 1px var(--red); cursor: pointer;
+    }
+    .y-panel input[type=range]::-moz-range-track { height: 3px; background: rgba(var(--g-red-rgb), .2); }
+    .y-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .y-btns.tres { grid-template-columns: 1fr 1fr 1fr; }
+    .y-btns.cuatro { grid-template-columns: repeat(4, 1fr); }
+    .y-btns .cam-btn { width: 100%; padding-left: 2px; padding-right: 2px; }
+    .cam-btn[aria-pressed="true"] { background: var(--red); color: var(--g-black); }
+    .cam-btn:disabled { opacity: .4; cursor: default; }
+    .y-hint { font-size: 7px; line-height: 1.7; letter-spacing: .06em; color: var(--red-dim); text-transform: uppercase; }
+    .y-crow { display: flex; align-items: center; gap: 6px; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--red-dim); }
+    .y-crow span { flex: 1; }
+    .y-crow input[type=color] {
+      -webkit-appearance: none; appearance: none; width: 26px; height: 16px; padding: 0; cursor: pointer;
+      border: 1px solid var(--red); background: var(--black);
+    }
+    .y-crow input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+    .y-crow input[type=color]::-webkit-color-swatch { border: none; }
+    .y-crow input[type=color]::-moz-color-swatch { border: none; }
+    .y-txt {
+      width: 100%; font: inherit; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--red); background: var(--black); border: 1px solid var(--red-faint); padding: 5px 6px; outline: none;
+    }
+    .y-txt:focus { border-color: var(--red); }
+    .y-tlab { font-size: 7px; letter-spacing: .14em; text-transform: uppercase; color: var(--red-dim); margin-bottom: -5px; }
+    @media (max-width: 768px) {
+      .daisy-canvas { aspect-ratio: 1080 / 1440; }
+      #sidebar { flex-direction: column; }
+      #sidebar > .win { flex: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="master-bar">
+    <span class="slz">///</span>
+    <div class="dot5"></div>
+    <svg class="mhouse" id="mhouse" viewBox="0 0 24 24" width="14" height="14" fill="var(--black)" role="button" aria-label="Volver al inicio" title="Volver al inicio">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+    <span class="mtitle">STUDIO GLAM</span>
+    <span class="msep">—</span>
+    <span class="msub">ROCÍO</span>
+    <div class="mright">
+      <div class="mctrl">—</div>
+      <div class="mctrl">□</div>
+      <div class="mctrl mctrl--close" id="mclose" role="button" aria-label="Cerrar y volver al inicio" title="Cerrar">✕</div>
+    </div>
+    <span class="slz">///</span>
+  </div>
+
+  <div id="stage">
+    <div id="frame">
+      <div class="win" id="viewport">
+        <div class="win__bar">
+          <span class="slz">///</span>
+          <div class="win__bar-dot"></div>
+          <span class="win__bar-title">VIEWPORT.ROCÍO</span>
+          <span class="win__bar-sub">1080×1440</span>
+          <div class="win__bar-controls">
+            <div class="win__ctrl">—</div>
+            <div class="win__ctrl">□</div>
+            <div class="win__ctrl" id="wclose" role="button" aria-label="Cerrar" title="Cerrar">✕</div>
+          </div>
+        </div>
+        <div class="daisy-main">
+          <div class="daisy-canvas-wrap">
+            <div class="daisy-canvas" id="sketch-holder" aria-label="Campo de margaritas"><canvas id="poster" width="1080" height="1440"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sidebar">
+        <div class="win">
+          <div class="win__bar">
+            <span class="slz">///</span>
+            <div class="win__bar-dot"></div>
+            <span class="win__bar-title">PROPIEDADES</span>
+            <div class="win__bar-controls"><div class="win__ctrl">—</div><div class="win__ctrl">□</div></div>
+          </div>
+          <div class="daisy-panel y-panel">
+            
+            <div class="y-sec">lluvia tipográfica</div>
+            <label for="phrases">Frases · una por línea</label>
+            <textarea class="y-txt" id="phrases" rows="4" maxlength="240">NOTION EMOTION
+FEEL IN BLOOM
+LET IT POUR
+GROW A FEELING</textarea>
+            <div id="sliders"></div>
+            <div class="y-sec">reproducción</div>
+            <button class="cam-btn" id="play">PAUSAR LOOP</button>
+            <div class="y-sec">exportar</div>
+            <button class="cam-btn" id="bLoop">EXPORTAR LOOP MP4 · 1080×1440</button>
+            <div class="y-hint" role="status" id="loopInfo">60 fps · 40 Mbps</div>
+            <div class="cam-wrap" id="recSlot"></div>
+          </div></div></div></div></div>
+          <script src="/tools/lib/mp4-muxer.min.js"></script>
+          <script type="module" src="/tools/rocio/control.js"></script>
+        </body></html>

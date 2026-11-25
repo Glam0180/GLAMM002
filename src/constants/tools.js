@@ -1,5 +1,17 @@
 export const TOOLS = [
   {
+    id: 'rocio',
+    slug: 'rocio',
+    name: 'Rocío',
+    description: 'Una regadera cromada vierte frases sobre un campo de margaritas. Póster en loop con lente ojo de pez.',
+    category: 'typography',
+    status: 'live',
+    tech: ['Canvas API', 'WebCodecs'],
+    path: '/tools/rocio',
+    index: '019',
+    thumbnail: '/tool-thumbnails/rocio.webp',
+  },
+  {
     id: 'cascada',
     slug: 'cascada',
     name: 'Cascada',
