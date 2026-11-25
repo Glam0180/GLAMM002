@@ -20,10 +20,16 @@ const context = canvas.getContext('2d', { alpha: false })
 const groups = [
   ['Óptica', [['lens','Ojo de pez',0,1,.01], ['squeeze','Compresión anamórfica (×)',.8,1.8,.01],
     ['cylinder','Panorámica cilíndrica',0,1,.01]]],
-  ['Regadera', [['canTilt','Inclinación (°)',-22,55,1],['canTurn','Giro lateral (°)',-65,45,1]]],
+  ['Regadera', [['canSize','Tamaño de regadera (×)',.45,1.65,.05],
+    ['canTilt','Inclinación (°)',-22,55,1],['canTurn','Giro lateral (°)',-65,45,1]]],
+  ['Bloques', [['blockSize','Tamaño de bloque (×)',.45,2.5,.05],['motionHue','Color de MOTION (°)',0,359,1],
+    ['emotionHue','Color de EMOTION (°)',0,359,1],['spin','Giro durante la caída',0,2,.05]]],
+  ['Caudal', [['blocks','Bloques por caída',0,32,1],['water','Cantidad de gotas',0,180,1],
+    ['spread','Apertura del chorro',0,1.6,.05]]],
   ['Cámara', [['pitch','Elevación (°)',12,36,1], ['altitude','Altura de cámara',.04,.55,.01],
     ['angle','Ángulo (°)',-26,26,1], ['zoom','Zoom',.72,1.24,.01]]],
   ['Estilo', [['facets','Facetas del metal',6,24,1], ['grain','Grano',0,1,.01], ['hue','Hue (°)',-180,180,1]]],
+  ['Cielo', [['ascii','Intensidad ASCII',0,1,.01],['skyCycles','Vueltas del cielo por loop',1,4,1]]],
   ['Ritmo', [['showers','Caídas por loop',1,5,1], ['duration','Duración (s)',2,16,.5]]]
 ]
 for (const [section,controls] of groups) {

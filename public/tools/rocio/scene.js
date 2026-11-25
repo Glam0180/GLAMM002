@@ -2,7 +2,9 @@
 const TAU = Math.PI * 2
 const { sin, cos, hypot } = Math
 export const defaults = { lens: .58, altitude: .18, angle: -8, zoom: 1, grain: .23,
-  squeeze: 1, cylinder: 0, pitch: 22, canTilt: 19, canTurn: -25, facets: 12, hue: 0, duration: 8, showers: 2 }
+  squeeze: 1, cylinder: 0, pitch: 22, canTilt: 19, canTurn: -25, canSize:1,
+  blockSize:1, blocks:6, water:94, spread:1, spin:1, motionHue:64, emotionHue:313, ascii:1, skyCycles:1,
+  facets: 12, hue: 0, duration: 8, showers: 2 }
 function seeded(seed) {
   return () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296)
 }
@@ -15,6 +17,10 @@ const flowers = Array.from({length: 285}, (_, i) => {
 }).sort((a,b) => b.z - a.z)
 const drops = Array.from({length: 100}, () => ({
   phase: random(), spread: random() - .5, drift: random() - .5
+}))
+const rainRandom=seeded(337)
+const drizzle=Array.from({length:180},()=>({
+  phase:rainRandom(),spread:rainRandom()-.5,drift:rainRandom()-.5
 }))
 const grass = Array.from({length: 1100}, () => {
   const z=.10+random()**1.6*9
@@ -50,19 +56,20 @@ const posterTexture = new WeakMap()
 // Tramas neutras: la luz de los glifos conserva el tono elegido para el cielo.
 function asciiLayer(cloud) {
   const tile=document.createElement('canvas')
-  tile.width=cloud ? 240 : 1440
+  tile.width=cloud ? 288 : 768
   tile.height=cloud ? 144 : 1536
   const ink=tile.getContext('2d'), randomGlyph=seeded(cloud?620:207)
-  const alphabet='.:+=ox0B8#$'
-  ink.font='bold 13px monospace'
+  const alphabet='.:+~=ox0B8#$@'
+  ink.font=cloud ? 'bold 16px monospace' : 'bold 13px monospace'
   for(let y=0;y<tile.height;y+=16) {
     for(let x=0;x<tile.width;x+=12) {
-      const wave=sin(x*.011+sin(y*.012)*2)+cos(y*.033+x*.003)+.45*sin(x*.032-y*.023)
+      const a=TAU*x/tile.width
+      const wave=sin(a+sin(y*.012)*2)+cos(y*.033+a)+.45*sin(3*a-y*.023)
       const density=Math.min(1,Math.max(0,(wave-.15)*.55))
       const pick=randomGlyph()
       if(!cloud && pick>.09+density*.85) continue
-      const value=cloud ? pick : density
-      ink.fillStyle=cloud ? 'rgba(0,0,0,.33)' : 'rgba(255,255,255,'+(.15+.4*density)+')'
+      const value=cloud ? .12+.70*density+.16*pick : density
+      ink.fillStyle=cloud ? 'rgba(0,0,0,'+(.28+.40*value)+')' : 'rgba(255,255,255,'+(.15+.49*density)+')'
       ink.fillText(alphabet[Math.floor(value*(alphabet.length-1))],x,y+13)
     }
   }
@@ -71,6 +78,7 @@ function asciiLayer(cloud) {
 const skyGlyphs=asciiLayer(false), cloudGlyphs=asciiLayer(true)
 
 export function render(ctx, phase, p) {
+  phase%=1
   const W = 1080, H = 1440, t = phase * TAU
   ctx.save()
   ctx.scale(ctx.canvas.width/W,ctx.canvas.height/H)
@@ -82,7 +90,13 @@ export function render(ctx, phase, p) {
   gradient.addColorStop(1,color(87,55,22))
   ctx.fillStyle = gradient
   ctx.fillRect(0,0,W,H)
-  ctx.drawImage(skyGlyphs,-175+18*sin(t),-36+6*cos(t))
+  const skyPhase=phase*p.skyCycles%1
+  ctx.save()
+  ctx.globalAlpha=p.ascii
+  for(let x=(skyPhase-1)*skyGlyphs.width;x<W;x+=skyGlyphs.width) {
+    ctx.drawImage(skyGlyphs,x,-36+6*cos(t))
+  }
+  ctx.restore()
   const roll = p.angle*Math.PI/180
   const pitch = p.pitch*Math.PI/180
   ctx.translate(540,0)
@@ -147,10 +161,14 @@ export function render(ctx, phase, p) {
     ctx.fillStyle=color(48,100,62);ctx.beginPath();ctx.ellipse(-.08,-.11,.32,.25,0,0,TAU);ctx.fill()
     ctx.restore()
   }
-  for(const [x,y,z,size] of cloudBanks) {
-    const wind=.33*sin(t+z)
-    const cloudPoint=([a,b])=>project([x+wind+a*size,y+b*size,z+.12*a])
+  function drawCloud([x,y,z,size],offset) {
+    const cloudPoint=([a,b])=>{
+      const pt=project([x+a*size,y+b*size,z+.12*a])
+      pt[0]+=offset
+      return pt
+    }
     const edge=cloudRim.map(cloudPoint)
+    if(edge.every(v=>v[0]<540-540*p.squeeze)||edge.every(v=>v[0]>540+540*p.squeeze)) return
     const centers=[[-.95,.13],[.02,.28],[.96,.10]].map(cloudPoint)
     for(let i=0;i<edge.length;i++){
       const j=(i+1)%edge.length
@@ -168,9 +186,14 @@ export function render(ctx, phase, p) {
     const minX=Math.min(...edge.map(v=>v[0])), minY=Math.min(...edge.map(v=>v[1]))
     const width=Math.max(...edge.map(v=>v[0]))-minX, height=Math.max(...edge.map(v=>v[1]))-minY
     ctx.translate(minX,minY)
+    ctx.globalAlpha=p.ascii
     ctx.fillStyle=ctx.createPattern(cloudGlyphs,'repeat')
     ctx.fillRect(0,0,width,height)
     ctx.restore()
+  }
+  for(const bank of cloudBanks) {
+    const period=(W+bank[3]*380)*p.squeeze
+    for(let copy=-2;copy<=2;copy++) drawCloud(bank,(skyPhase+copy)*period)
   }
   // La tierra sigue el mismo horizonte curvo que las raíces.
   const horizon=Array.from({length:45},(_,i)=>project([(i-22)*1.4,-.25,12+cos(i*.38)]))
@@ -190,6 +213,7 @@ export function render(ctx, phase, p) {
   const faces=[]
   const tilt=p.canTilt*Math.PI/180, twist=p.canTurn*Math.PI/180
   function world([x,y,z]) {
+    x*=p.canSize; y*=p.canSize; z*=p.canSize
     const a=x*cos(tilt)-y*sin(tilt), b=x*sin(tilt)+y*cos(tilt)
     return [.26+a*cos(twist)+z*sin(twist),2.53+b,2.72-a*sin(twist)+z*cos(twist)]
   }
@@ -245,29 +269,32 @@ export function render(ctx, phase, p) {
   faces.sort((a,b)=>b.depth-a.depth)
   for(const f of faces)polygon(f.points,f.paint)
   const nozzle=world([-1.72,.25,0])
-  for(let j=0;j<drops.length;j++) {
-    const d=drops[j],u=(phase*p.showers+(j<6 ? j/6 : d.phase))%1
-    const isBlock=j<6
-    const lane=isBlock ? (j*5%6+d.phase)/6 : d.phase
+  for(let j=0;j<p.blocks+p.water;j++) {
+    const isBlock=j<p.blocks
+    const d=isBlock ? drops[j] : drizzle[j-p.blocks]
+    const u=(phase*p.showers+(isBlock ? j/p.blocks : d.phase))%1
+    const lane=isBlock ? (j*.618034+d.phase*.13)%1 : d.phase
     const groundZ=.68+2.8*(d.drift+.5)
-    const groundX=(lane-.5)*groundZ*1.35*p.squeeze
+    const groundX=nozzle[0]+p.spread*((lane-.5)*groundZ*1.35*p.squeeze-nozzle[0])
     const pos=project([nozzle[0]+(groundX-nozzle[0])*u,
       nozzle[1]-.18*u-(nozzle[1]+.04)*u*u,nozzle[2]+(groundZ-nozzle[2])*u])
     const fade=Math.min(1,u*13,(1-u)*6)
-    ctx.save();ctx.globalAlpha=fade*(j<6?.98:.77)
+    ctx.save();ctx.globalAlpha=fade*(isBlock?.98:.77)
     ctx.translate(pos[0],pos[1])
-    ctx.rotate(isBlock ? d.spread*.7+u*d.drift*TAU*1.4 : -.14+.25*d.spread)
-    if(j<6) {
+    ctx.rotate(isBlock ? p.spin*(d.spread*.7+u*d.drift*TAU*1.4) : -.14+.25*d.spread)
+    if(isBlock) {
+      ctx.scale(p.blockSize,p.blockSize)
       const word=j%2 ? 'EMOTION' : 'MOTION'
       const size=23+7*u
       ctx.font='italic 900 '+size+'px Arial, sans-serif'
       const width=ctx.measureText(word).width+22
       ctx.beginPath()
       ctx.roundRect(-9,-size*.94,width,size*1.24,6)
-      ctx.fillStyle=j%2 ? color(313,91,68) : color(64,95,62)
+      const blockHue=j%2 ? p.emotionHue : p.motionHue
+      ctx.fillStyle=color(blockHue,94,65)
       ctx.fill()
       ctx.lineWidth=2
-      ctx.strokeStyle=color(j%2 ? 298 : 78,72,26)
+      ctx.strokeStyle=color(blockHue,72,26)
       ctx.stroke()
       ctx.fillStyle=color(246,38,12)
       ctx.fillText(word,2,0)
