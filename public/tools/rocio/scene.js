@@ -37,12 +37,6 @@ const plants=[
   ...[...flowers,...lowFlowers].map(f=>({z:f.z,flower:f})),
   ...grass.map(b=>({z:b.z,blade:b}))
 ].sort((a,b)=>b.z-a.z)
-const cloudBanks=[
-  [-4.1,12.1,9,1.4], [3.7,10.2,10,1.7], [-2.3,4.5,12,1], [6,5.7,13,1.4]
-]
-const cloudRim=[[-1.8,0],[-1.56,.27],[-1.18,.31],[-.95,.61],[-.54,.65],
-  [-.27,.95],[.17,1],[.51,.78],[.63,.53],[1,.59],[1.35,.38],[1.41,.23],
-  [1.78,.17],[1.96,-.04],[1.48,-.22],[.65,-.31],[-.19,-.26],[-1,-.25]]
 const noise = document.createElement('canvas')
 noise.width = noise.height = 192
 const noiseCtx = noise.getContext('2d')
@@ -54,28 +48,28 @@ for (let i=0; i<pixels.data.length; i+=4) {
 noiseCtx.putImageData(pixels,0,0)
 const posterTexture = new WeakMap()
 // Tramas neutras: la luz de los glifos conserva el tono elegido para el cielo.
-function asciiLayer(cloud) {
+function asciiLayer() {
   const tile=document.createElement('canvas')
-  tile.width=cloud ? 288 : 768
-  tile.height=cloud ? 144 : 1536
-  const ink=tile.getContext('2d'), randomGlyph=seeded(cloud?620:207)
+  tile.width=768
+  tile.height=1536
+  const ink=tile.getContext('2d'), randomGlyph=seeded(207)
   const alphabet='.:+~=ox0B8#$@'
-  ink.font=cloud ? 'bold 16px monospace' : 'bold 13px monospace'
+  ink.font='bold 13px monospace'
   for(let y=0;y<tile.height;y+=16) {
     for(let x=0;x<tile.width;x+=12) {
       const a=TAU*x/tile.width
       const wave=sin(a+sin(y*.012)*2)+cos(y*.033+a)+.45*sin(3*a-y*.023)
       const density=Math.min(1,Math.max(0,(wave-.15)*.55))
       const pick=randomGlyph()
-      if(!cloud && pick>.09+density*.85) continue
-      const value=cloud ? .12+.70*density+.16*pick : density
-      ink.fillStyle=cloud ? 'rgba(0,0,0,'+(.28+.40*value)+')' : 'rgba(255,255,255,'+(.15+.49*density)+')'
-      ink.fillText(alphabet[Math.floor(value*(alphabet.length-1))],x,y+13)
+      if(pick>.09+density*.85) continue
+
+      ink.fillStyle='rgba(255,255,255,'+(.15+.49*density)+')'
+      ink.fillText(alphabet[Math.floor(density*(alphabet.length-1))],x,y+13)
     }
   }
   return tile
 }
-const skyGlyphs=asciiLayer(false), cloudGlyphs=asciiLayer(true)
+const skyGlyphs=asciiLayer()
 
 export function render(ctx, phase, p, interaction) {
   phase%=1
@@ -160,40 +154,6 @@ export function render(ctx, phase, p, interaction) {
     ctx.fillStyle=color(35,100,48);ctx.beginPath();ctx.ellipse(0,0,.49,.5,0,0,TAU);ctx.fill()
     ctx.fillStyle=color(48,100,62);ctx.beginPath();ctx.ellipse(-.08,-.11,.32,.25,0,0,TAU);ctx.fill()
     ctx.restore()
-  }
-  function drawCloud([x,y,z,size],offset) {
-    const cloudPoint=([a,b])=>{
-      const pt=project([x+a*size,y+b*size,z+.12*a])
-      pt[0]+=offset
-      return pt
-    }
-    const edge=cloudRim.map(cloudPoint)
-    if(edge.every(v=>v[0]<540-540*p.squeeze)||edge.every(v=>v[0]>540+540*p.squeeze)) return
-    const centers=[[-.95,.13],[.02,.28],[.96,.10]].map(cloudPoint)
-    for(let i=0;i<edge.length;i++){
-      const j=(i+1)%edge.length
-      const region=a=>a<-.5?0:a>.7?2:1
-      const left=region(cloudRim[i][0]),right=region(cloudRim[j][0])
-      const light=i<12 ? 93+3*sin(i*1.7) : 79+3*cos(i)
-      polygon([edge[i],edge[j],centers[right],centers[left]],color(i<12?49:197,48,light))
-    }
-    polygon(centers,color(190,45,88))
-    ctx.save()
-    ctx.beginPath()
-    edge.forEach(([px,py],i)=>i ? ctx.lineTo(px,py) : ctx.moveTo(px,py))
-    ctx.closePath()
-    ctx.clip()
-    const minX=Math.min(...edge.map(v=>v[0])), minY=Math.min(...edge.map(v=>v[1]))
-    const width=Math.max(...edge.map(v=>v[0]))-minX, height=Math.max(...edge.map(v=>v[1]))-minY
-    ctx.translate(minX,minY)
-    ctx.globalAlpha=p.ascii
-    ctx.fillStyle=ctx.createPattern(cloudGlyphs,'repeat')
-    ctx.fillRect(0,0,width,height)
-    ctx.restore()
-  }
-  for(const bank of cloudBanks) {
-    const period=(W+bank[3]*380)*p.squeeze
-    for(let copy=-2;copy<=2;copy++) drawCloud(bank,(skyPhase+copy)*period)
   }
   // La tierra sigue el mismo horizonte curvo que las raíces.
   const horizon=Array.from({length:45},(_,i)=>project([(i-22)*1.4,-.25,12+cos(i*.38)]))
