@@ -20,6 +20,23 @@ const grass = Array.from({length: 1100}, () => {
   const z=.10+random()**1.6*9
   return {x:(random()-.5)*(z*2.8+.8),z,h:.07+random()*.33,lean:(random()-.5)*.38}
 }).sort((a,b)=>b.z-a.z)
+// Una segunda capa de flores bajas cubre la tierra que se ve bajo la lente.
+const gardenRandom = seeded(2719)
+const lowFlowers=Array.from({length:78},()=>{
+  const z=.28+gardenRandom()*1.9
+  return {x:(gardenRandom()-.5)*(2.3*z+1),z,h:-.13+gardenRandom()*.25,
+    size:.02+gardenRandom()*.032,tilt:gardenRandom(),seed:gardenRandom()*TAU}
+})
+const plants=[
+  ...[...flowers,...lowFlowers].map(f=>({z:f.z,flower:f})),
+  ...grass.map(b=>({z:b.z,blade:b}))
+].sort((a,b)=>b.z-a.z)
+const cloudBanks=[
+  [-4.1,12.1,9,1.4], [3.7,10.2,10,1.7], [-2.3,4.5,12,1], [6,5.7,13,1.4]
+]
+const cloudRim=[[-1.8,0],[-1.56,.27],[-1.18,.31],[-.95,.61],[-.54,.65],
+  [-.27,.95],[.17,1],[.51,.78],[.63,.53],[1,.59],[1.35,.38],[1.41,.23],
+  [1.78,.17],[1.96,-.04],[1.48,-.22],[.65,-.31],[-.19,-.26],[-1,-.25]]
 const noise = document.createElement('canvas')
 noise.width = noise.height = 192
 const noiseCtx = noise.getContext('2d')
@@ -81,11 +98,14 @@ export function render(ctx, phase, p) {
     const s=head[2]*size
     if (Math.abs(head[0]-540)>540*p.squeeze+s*3) return
     const mid=[(base[0]+head[0])*.5+s*.55,(base[1]+head[1])*.5]
-    ctx.strokeStyle=color(83+9*sin(seed),52,24+6*cos(seed))
-    ctx.lineWidth=Math.max(1,s*.12)
-    ctx.beginPath(); ctx.moveTo(base[0],base[1]); ctx.quadraticCurveTo(...mid,head[0],head[1]); ctx.stroke()
+    const thickness=Math.max(.65,s*.065)
+    ctx.fillStyle=color(83+9*sin(seed),52,24+6*cos(seed))
+    ctx.beginPath(); ctx.moveTo(base[0],base[1])
+    ctx.quadraticCurveTo(mid[0]-thickness,mid[1],head[0]-thickness,head[1])
+    ctx.lineTo(head[0]+thickness,head[1])
+    ctx.quadraticCurveTo(mid[0]+thickness,mid[1],base[0],base[1]);ctx.fill()
     for(let k=0;k<3;k++) {
-      const u=.28+k*.19, side=k%2 ? -1 : 1
+      const u=.05+k*.26, side=k%2 ? -1 : 1
       const lx=base[0]*(1-u)+head[0]*u, ly=base[1]*(1-u)+head[1]*u
       const tip=[lx+side*s*(2.3+f.tilt),ly-s*1.55]
       const ridge=[lx+side*s,ly-s*.87]
@@ -106,18 +126,34 @@ export function render(ctx, phase, p) {
     ctx.fillStyle=color(48,100,62);ctx.beginPath();ctx.ellipse(-.08,-.11,.32,.25,0,0,TAU);ctx.fill()
     ctx.restore()
   }
+  for(const [x,y,z,size] of cloudBanks) {
+    const wind=.33*sin(t+z)
+    const cloudPoint=([a,b])=>project([x+wind+a*size,y+b*size,z+.12*a])
+    const edge=cloudRim.map(cloudPoint)
+    const centers=[[-.95,.13],[.02,.28],[.96,.10]].map(cloudPoint)
+    for(let i=0;i<edge.length;i++){
+      const j=(i+1)%edge.length
+      const region=a=>a<-.5?0:a>.7?2:1
+      const left=region(cloudRim[i][0]),right=region(cloudRim[j][0])
+      const light=i<12 ? 93+3*sin(i*1.7) : 79+3*cos(i)
+      polygon([edge[i],edge[j],centers[right],centers[left]],color(i<12?49:197,48,light))
+    }
+    polygon(centers,color(190,45,88))
+  }
   // La tierra sigue el mismo horizonte curvo que las raíces.
   const horizon=Array.from({length:45},(_,i)=>project([(i-22)*1.4,-.25,12+cos(i*.38)]))
   polygon([...horizon,[2200,H+400],[-1200,H+400]],color(83,43,32))
-  for(const blade of grass) {
-    const {x,z,h,lean}=blade
-    const a=project([x-.014,-.18,z]), b=project([x+.014,-.18,z])
+  function plant(item) {
+    if(item.flower){flower(item.flower);return}
+    const blade=item.blade
+    const {x,z,lean}=blade
+    const h=blade.h*(.48+.52*Math.min(1,z))
+    const a=project([x-.009,-.18,z]), b=project([x+.009,-.18,z])
     const bend=project([x+lean*.32,h*.52-.12,z])
     const tip=project([x+lean+.025*sin(t+z),h-.1,z-.04])
     polygon([a,bend,tip,b],color(69+h*80,48+h*46,24+h*65))
   }
-  const near=[]
-  for(const f of flowers) { if(f.z>3) flower(f); else near.push(f) }
+  for(const item of plants) if(item.z>3) plant(item)
 
   const faces=[]
   const tilt=p.canTilt*Math.PI/180+.08*sin(t), twist=p.canTurn*Math.PI/180+.14*cos(t)
@@ -190,19 +226,19 @@ export function render(ctx, phase, p) {
       const width=ctx.measureText(word).width+22
       ctx.beginPath()
       ctx.roundRect(-9,-size*.94,width,size*1.24,6)
-      ctx.fillStyle=color(j%2 ? 188 : 298,48,19)
+      ctx.fillStyle=j%2 ? color(313,91,68) : color(64,95,62)
       ctx.fill()
       ctx.lineWidth=2
-      ctx.strokeStyle=color(j%2 ? 65 : 185,88,71)
+      ctx.strokeStyle=color(j%2 ? 298 : 78,72,26)
       ctx.stroke()
-      ctx.fillStyle=color(55,72,94)
+      ctx.fillStyle=color(246,38,12)
       ctx.fillText(word,2,0)
     } else {
       polygon([[0,0],[-2,-10-u*7],[2,-4],[3,1]],color(j%4?181:304,86,84))
     }
     ctx.restore()
   }
-  for(const f of near) flower(f)
+  for(const item of plants) if(item.z<=3) plant(item)
   // La textura cubre todo el sensor incluso con compresión anamórfica.
   ctx.translate(540,0)
   ctx.scale(p.squeeze,1)
