@@ -63,10 +63,44 @@ for (const [section,controls] of groups) {
   }
 }
 let playing=true, exporting=false, phase=0, previous=performance.now()
+let manual=true, time=0, aim=null
+const shots=[], moves=[]
+canvas.classList.add('manual')
+function point(event) {
+  if(!manual || exporting || !event.isPrimary) return
+  const rect=canvas.getBoundingClientRect()
+  aim={x:(event.clientX-rect.left)*RW/rect.width,y:(event.clientY-rect.top)*RH/rect.height}
+  if(moves.length && moves.at(-1).time===time) moves.pop()
+  moves.push({aim,time,phase})
+  while(moves.length>1 && moves[0].time<=time-1) moves.shift()
+}
+canvas.addEventListener('pointermove',point)
+canvas.addEventListener('pointerdown',event=>{
+  if(!manual || exporting || !event.isPrimary || event.button!==0) return
+  point(event)
+  shots.push({aim,time,phase})
+  while(shots.length>1 && shots[0].time<=time-1) shots.shift()
+})
+$('manual').onclick=()=>{
+  manual=!manual
+  canvas.classList.toggle('manual',manual)
+  $('manual').setAttribute('aria-pressed',String(manual))
+  $('manual').textContent=manual?'CONTROL CON MANITO':'LLUVIA AUTOMÁTICA'
+  aim=null; shots.length=0; moves.length=0
+}
+function replayAim(path,t) {
+  if(!path.length) return null
+  const next=path.findIndex(pt=>pt.phase>t)
+  const b=path[next<0?0:next],a=path[(next<0 || next===0)?path.length-1:next-1]
+  const span=(b.phase-a.phase+1)%1
+  const mix=span ? (t-a.phase+1)%1/span : 0
+  return {x:a.aim.x+(b.aim.x-a.aim.x)*mix,y:a.aim.y+(b.aim.y-a.aim.y)*mix}
+}
 function frame(now) {
-  if(playing && !exporting) phase=(phase+(now-previous)/(settings.duration*1000))%1
+  if(playing && !exporting) time+=(now-previous)/(settings.duration*1000)
+  phase=time%1
   previous=now
-  if(!exporting) render(context,phase,settings)
+  if(!exporting) render(context,phase,settings,manual ? {aim,time,shots} : null)
   requestAnimationFrame(frame)
 }
 requestAnimationFrame(frame)
@@ -81,6 +115,9 @@ $('bLoop').onclick=async()=>{
   if(exporting) return
   const btn=$('bLoop'), info=$('loopInfo')
   const params={...settings}, fps=60, total=params.duration*fps
+  const latest=Math.max(moves.at(-1)?.time??0,shots.at(-1)?.time??0)
+  const path=moves.filter(pt=>pt.time>latest-1).sort((a,b)=>a.phase-b.phase)
+  const sequence=shots.filter(shot=>shot.time>latest-1)
   const status=msg=>{info.textContent=msg}
   const controls=[...document.querySelectorAll('#sidebar button, #sidebar input, #sidebar textarea')]
   const disabled=controls.map(el=>el.disabled)
@@ -101,7 +138,8 @@ $('bLoop').onclick=async()=>{
     encoder.configure(config)
     for(let i=0;i<total;i++) {
       if(failure) throw failure
-      render(context,i/total,params)
+      const t=i/total
+      render(context,t,params,manual ? {aim:replayAim(path,t),shots:sequence,repeat:true} : null)
       const video=new VideoFrame(canvas,{timestamp:Math.round(i*1e6/fps),duration:Math.round((i+1)*1e6/fps)-Math.round(i*1e6/fps)})
       try { encoder.encode(video,{keyFrame:i%fps===0}) } finally { video.close() }
       if(encoder.encodeQueueSize>6) await encoder.flush()

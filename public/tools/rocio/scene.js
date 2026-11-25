@@ -77,7 +77,7 @@ function asciiLayer(cloud) {
 }
 const skyGlyphs=asciiLayer(false), cloudGlyphs=asciiLayer(true)
 
-export function render(ctx, phase, p) {
+export function render(ctx, phase, p, interaction) {
   phase%=1
   const W = 1080, H = 1440, t = phase * TAU
   ctx.save()
@@ -267,12 +267,18 @@ export function render(ctx, phase, p) {
     last=section
   }
   faces.sort((a,b)=>b.depth-a.depth)
-  for(const f of faces)polygon(f.points,f.paint)
   const nozzle=world([-1.72,.25,0])
-  for(let j=0;j<p.blocks+p.water;j++) {
-    const isBlock=j<p.blocks
-    const d=isBlock ? drops[j] : drizzle[j-p.blocks]
-    const u=(phase*p.showers+(isBlock ? j/p.blocks : d.phase))%1
+  const origin=project(nozzle)
+  function offset(aim) {
+    return aim ? [(aim.x-540)*p.squeeze+540-origin[0],aim.y-origin[1]] : [0,0]
+  }
+  const [offsetX,offsetY]=offset(interaction?.aim)
+  ctx.save()
+  ctx.translate(offsetX,offsetY)
+  for(const f of faces)polygon(f.points,f.paint)
+  ctx.restore()
+  function particle(j,isBlock,u,shiftX,shiftY) {
+    const d=isBlock ? drops[j] : drizzle[j]
     const lane=isBlock ? (j*.618034+d.phase*.13)%1 : d.phase
     const groundZ=.68+2.8*(d.drift+.5)
     const groundX=nozzle[0]+p.spread*((lane-.5)*groundZ*1.35*p.squeeze-nozzle[0])
@@ -280,7 +286,7 @@ export function render(ctx, phase, p) {
       nozzle[1]-.18*u-(nozzle[1]+.04)*u*u,nozzle[2]+(groundZ-nozzle[2])*u])
     const fade=Math.min(1,u*13,(1-u)*6)
     ctx.save();ctx.globalAlpha=fade*(isBlock?.98:.77)
-    ctx.translate(pos[0],pos[1])
+    ctx.translate(pos[0]+shiftX*(1-u*.45),pos[1]+shiftY*(1-u*u))
     ctx.rotate(isBlock ? p.spin*(d.spread*.7+u*d.drift*TAU*1.4) : -.14+.25*d.spread)
     if(isBlock) {
       ctx.scale(p.blockSize,p.blockSize)
@@ -302,6 +308,20 @@ export function render(ctx, phase, p) {
       polygon([[0,0],[-2,-10-u*7],[2,-4],[3,1]],color(j%4?181:304,86,84))
     }
     ctx.restore()
+  }
+  for(let j=0;j<p.water;j++) particle(j,false,(phase*p.showers+drizzle[j].phase)%1,offsetX,offsetY)
+  if(interaction) {
+    for(const shot of interaction.shots) {
+      const age=interaction.repeat ? (phase-shot.phase+1)%1 : interaction.time-shot.time
+      if(age<0 || age>=.69/p.showers) continue
+      const [sx,sy]=offset(shot.aim)
+      for(let j=0;j<p.blocks;j++) {
+        const u=(age*p.showers-j/Math.max(1,p.blocks)*.16)/.53
+        if(u>=0 && u<1) particle(j,true,u,sx,sy)
+      }
+    }
+  } else {
+    for(let j=0;j<p.blocks;j++) particle(j,true,(phase*p.showers+j/p.blocks)%1,0,0)
   }
   for(const item of plants) if(item.z<=3) plant(item)
   // La textura cubre todo el sensor incluso con compresión anamórfica.
